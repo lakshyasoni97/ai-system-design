@@ -1,0 +1,265 @@
+{
+  "candidate": {
+    "name": "Lakshya Soni",
+    "role": "Senior AI Engineer",
+    "experience": "~3.5 yrs AI/DS + 3 yrs Core Engineering",
+    "coreStack": [
+      "Python",
+      "FastAPI",
+      "Google ADK",
+      "LangGraph",
+      "LangChain",
+      "Gemini",
+      "Vertex AI",
+      "GKE (Kubernetes)",
+      "Cloud Run",
+      "Pub/Sub",
+      "BigQuery",
+      "PySpark",
+      "ChromaDB",
+      "Hugging Face Transformers",
+      "Docker"
+    ]
+  },
+  "quickRevisionMetrics": [
+    {
+      "id": "qr-1",
+      "category": "Vector DB Math",
+      "title": "HNSW RAM Formula",
+      "formula": "RAM (Bytes) = N_vectors × D_dims × Bytes_dtype × 1.5",
+      "detail": "50M × 1536 dims in FP32 = ~460.8 GB RAM vs. INT8 Scalar Quantization = ~115.2 GB RAM (4x reduction, <1.5% recall drop with Cross-Encoder reranking)."
+    },
+    {
+      "id": "qr-2",
+      "category": "GCP Compute",
+      "title": "GKE vs. Cloud Run Limits",
+      "formula": "Cloud Run Max Timeout: 60m | Concurrency: ≤1000/instance",
+      "detail": "GKE offers 0ms cold starts, persistent bidirectional WebSockets, DaemonSets/sidecars (OTel, local Redis), and 40–60% lower cost at steady 24/7 high QPS."
+    },
+    {
+      "id": "qr-3",
+      "category": "Agent Latency",
+      "title": "Multi-Agent P99 TTFT Budget (<2.0s)",
+      "formula": "Guardrail (80ms) + Router (220ms) + Parallel Tools (650ms) + First Token (450ms)",
+      "detail": "Keep end-to-end Time-To-First-Token under 2s via speculative execution, SSE intermediate thought streaming, and async Redis state checkpointing."
+    },
+    {
+      "id": "qr-4",
+      "category": "RAG Retrieval",
+      "title": "Reciprocal Rank Fusion (RRF)",
+      "formula": "RRF_Score(d) = Σ 1 / (k + rank_i(d)), where k = 60",
+      "detail": "Normalizes incompatible score distributions between BM25 lexical search (exact tickers/acronyms) and Dense Cosine Similarity without calibration."
+    },
+    {
+      "id": "qr-5",
+      "category": "LLM Serving",
+      "title": "KV Cache Memory per Request",
+      "formula": "KV_Bytes = 2 × n_layers × n_kv_heads × d_head × seq_len × bytes_per_param",
+      "detail": "PagedAttention (vLLM) eliminates 60–80% contiguous memory fragmentation, enabling 3–5x higher continuous batching throughput on GKE GPU pools."
+    },
+    {
+      "id": "qr-6",
+      "category": "Enterprise Evals",
+      "title": "The RAG Triad & Judge Calibration",
+      "formula": "Context Relevance × Groundedness (Faithfulness) × Answer Relevance",
+      "detail": "Mitigate LLM-as-a-Judge position & verbosity bias via swapped-pair consensus, rubric anchored 1–5 integer scales, and Cohen's Kappa > 0.82 human alignment."
+    }
+  ],
+  "modules": [
+    {
+      "id": "mod-1",
+      "title": "Module 1: Classical Backend & GCP Scaling",
+      "focus": "Defending FastAPI, GKE, Cloud Run, and Pub/Sub choices under heavy LLM traffic.",
+      "sessions": [
+        {
+          "id": "session-01",
+          "number": 1,
+          "title": "GKE vs. Cloud Run: Concurrency, Cold Starts & Autoscaling",
+          "projectTieIn": "Deloitte Multi-Agent (GKE) vs. Network18 Video/RAG (Cloud Run)",
+          "estimatedReadTime": "14 min",
+          "studyPrompt": "Explain GKE vs. Cloud Run concurrency, cold starts, and autoscaling in simple terms. Then, grill me on why I used GKE for my Deloitte FastAPI multi-agent orchestrator, but Cloud Run for my Network18 Video Repurposing and Sales RAG apps."
+        },
+        {
+          "id": "session-02",
+          "number": 2,
+          "title": "Async Queues & Pub/Sub Internals",
+          "projectTieIn": "Network18 AI Video Repurposing Engine",
+          "estimatedReadTime": "12 min",
+          "studyPrompt": "Teach me Pub/Sub internals: at-least-once vs. exactly-once delivery, Dead Letter Queues (DLQs), idempotency, and backpressure. Then ask me to redesign my Network18 AI Video Repurposing Engine (FastAPI + moviepy + Gemini) so it can handle 5,000 editors uploading 1-hour videos simultaneously without timing out."
+        },
+        {
+          "id": "session-03",
+          "number": 3,
+          "title": "API Gateways, Rate Limiting & Quota Management",
+          "projectTieIn": "Deloitte Multi-Agent Orchestrator",
+          "estimatedReadTime": "13 min",
+          "studyPrompt": "Explain Token Bucket vs. Leaky Bucket rate limiting, circuit breakers, and exponential backoff with jitter. Show me how to design an API Gateway in front of Gemini API that manages token-per-minute (TPM) quotas across 10 internal teams."
+        },
+        {
+          "id": "session-04",
+          "number": 4,
+          "title": "Multi-Tier Caching: Redis, Prompt & Semantic Caching",
+          "projectTieIn": "Deloitte Customer Support & Sales RAG",
+          "estimatedReadTime": "15 min",
+          "studyPrompt": "Compare Redis in-memory caching, Prompt Caching, and Semantic Caching (vector-based caching). Walk me through the math of when Semantic Caching actually saves money vs. when the embedding lookup adds too much latency."
+        }
+      ]
+    },
+    {
+      "id": "mod-2",
+      "title": "Module 2: Enterprise RAG & Multimodal Search",
+      "focus": "Scaling from single-node ChromaDB to 100M+ vectors with hybrid search and RBAC.",
+      "sessions": [
+        {
+          "id": "session-05",
+          "number": 5,
+          "title": "Vector DB Internals: HNSW, IVF & Quantization Math",
+          "projectTieIn": "Deloitte Asset Discovery Chatbot (ChromaDB)",
+          "estimatedReadTime": "16 min",
+          "studyPrompt": "Explain HNSW vs. IVF indexing and Product Quantization (PQ) in simple terms. Help me calculate the RAM required to store 50 million embeddings (1536 dimensions) and explain when I must migrate away from single-node ChromaDB to Vertex AI Vector Search or Qdrant."
+        },
+        {
+          "id": "session-06",
+          "number": 6,
+          "title": "Hybrid Search (BM25 + Dense), RRF & Cross-Encoder Reranking",
+          "projectTieIn": "Network18 Sales Intelligence RAG & Financial News",
+          "estimatedReadTime": "14 min",
+          "studyPrompt": "Explain Dense Vector Search + BM25 Sparse Search, Reciprocal Rank Fusion (RRF), and Cross-Encoder Reranking. Then test me on how I would add hybrid search to my Financial News or Sales Intelligence RAG pipeline so exact company tickers and jargon aren't missed."
+        },
+        {
+          "id": "session-07",
+          "number": 7,
+          "title": "Multimodal Ingestion & Incremental Indexing at Scale",
+          "projectTieIn": "Deloitte Slide-to-Image RAG Pipeline",
+          "estimatedReadTime": "15 min",
+          "studyPrompt": "Let's scale my Deloitte Internal Asset Discovery Chatbot (converting PowerPoint slides to images -> LLM description -> ChromaDB). Act as an interviewer and ask me how to handle 10 million slides, incremental updates when a slide is edited, and deduplication of near-identical slides."
+        },
+        {
+          "id": "session-08",
+          "number": 8,
+          "title": "Enterprise RBAC & Multi-Tenant Vector Search",
+          "projectTieIn": "Deloitte Internal Asset Discovery Chatbot",
+          "estimatedReadTime": "13 min",
+          "studyPrompt": "Explain how to implement Role-Based Access Control (RBAC) and document-level security in a RAG pipeline (Pre-filtering vs. Post-filtering metadata in Vector DBs). Grill me on how to ensure a junior analyst can't retrieve confidential partner slides in my Deloitte chatbot."
+        }
+      ]
+    },
+    {
+      "id": "mod-3",
+      "title": "Module 3: Multi-Agent Orchestration & State",
+      "focus": "Deep-diving into Google ADK, LangGraph, distributed state, and sub-2s latency.",
+      "sessions": [
+        {
+          "id": "session-09",
+          "number": 9,
+          "title": "Agentic Topologies, Google ADK, MCP & A2A Protocols",
+          "projectTieIn": "Deloitte Multi-Agent Customer Support",
+          "estimatedReadTime": "15 min",
+          "studyPrompt": "Compare Supervisor/Orchestrator, Hierarchical, and Swarm agent patterns in LangGraph and Google ADK. Also explain MCP (Model Context Protocol) and A2A (Agent-to-Agent) in crisp terms, and how they standardize tool calling."
+        },
+        {
+          "id": "session-10",
+          "number": 10,
+          "title": "Distributed State Checkpointing & Memory Architecture",
+          "projectTieIn": "Deloitte FastAPI Orchestrator on GKE",
+          "estimatedReadTime": "14 min",
+          "studyPrompt": "My FastAPI orchestrator runs on multiple stateless GKE pods. Explain how agent state checkpointing works under the hood (using Redis/Postgres), and how to architect short-term session memory vs. long-term customer memory."
+        },
+        {
+          "id": "session-11",
+          "number": 11,
+          "title": "Low-Latency Agents: Speculative Execution & Streaming",
+          "projectTieIn": "Deloitte Support (24-48h to Near-Instantaneous)",
+          "estimatedReadTime": "14 min",
+          "studyPrompt": "In my resume, I cut customer support response time from 24–48 hours to near-instantaneous. Teach me techniques to keep multi-agent Time-To-First-Token (TTFT) under 2 seconds—including parallel tool execution, speculative execution, and streaming intermediate thoughts."
+        },
+        {
+          "id": "session-12",
+          "number": 12,
+          "title": "Agent Failure Modes, Saga Fallbacks & Loop Prevention",
+          "projectTieIn": "Deloitte Multi-Agent Customer Support",
+          "estimatedReadTime": "15 min",
+          "studyPrompt": "What happens when a sub-agent's tool API fails halfway through a 4-step workflow, or two agents get stuck in an infinite loop? Teach me deterministic fallbacks, saga patterns/compensating transactions for agents, and token budget circuit breakers."
+        }
+      ]
+    },
+    {
+      "id": "mod-4",
+      "title": "Module 4: High-Throughput Data & LLM Serving",
+      "focus": "Scaling NLP pipelines, custom Transformer inference, and BigQuery/PySpark internals.",
+      "sessions": [
+        {
+          "id": "session-13",
+          "number": 13,
+          "title": "Real-Time Streaming Ingestion vs. Batch Pipelines",
+          "projectTieIn": "Network18 Financial News Pipeline",
+          "estimatedReadTime": "14 min",
+          "studyPrompt": "My Network18 pipeline ingested 600+ articles/day from 12+ sources hourly using Vertex AI Scheduler and BeautifulSoup. Grill me on how to re-architect this to ingest 100,000 articles per minute in real-time using distributed crawlers, Pub/Sub, and Dataflow/PySpark Streaming."
+        },
+        {
+          "id": "session-14",
+          "number": 14,
+          "title": "High-QPS Custom Model Serving: Dynamic Batching & Quantization",
+          "projectTieIn": "Network18 Multilingual Transformer NER",
+          "estimatedReadTime": "16 min",
+          "studyPrompt": "I used a Hugging Face Multilingual Transformer NER model (80–90% F1). Explain dynamic batching, ONNX/TensorRT optimization, and FP16/INT8 quantization so I can explain how to serve this NER model at 5,000 QPS on GPUs cheaply."
+        },
+        {
+          "id": "session-15",
+          "number": 15,
+          "title": "LLM Inference Internals: KV Cache, PagedAttention & vLLM",
+          "projectTieIn": "Self-Hosted GKE Models vs. Vertex Gemini API",
+          "estimatedReadTime": "17 min",
+          "studyPrompt": "Explain how LLM serving works under the hood in simple terms: KV Cache, PagedAttention (vLLM), Continuous Batching, and Time-To-First-Token (TTFT) vs. Inter-Token Latency (ITL). Why does this matter when choosing between self-hosting open-weights models on GKE vs. using Vertex Gemini API?"
+        },
+        {
+          "id": "session-16",
+          "number": 16,
+          "title": "BigQuery Internals & PySpark Shuffle Optimization",
+          "projectTieIn": "Network18 Enterprise Reporting Automation",
+          "estimatedReadTime": "13 min",
+          "studyPrompt": "Explain BigQuery columnar storage, partitioning vs. clustering, and PySpark shuffle optimization in simple terms. Connect this to how I automated enterprise reporting saving 3,500+ man-hours at Network18."
+        }
+      ]
+    },
+    {
+      "id": "mod-5",
+      "title": "Module 5: LLMOps, Evals, Security & Full Mocks",
+      "focus": "Proving enterprise reliability, automated evaluation, security guardrails, and cost optimization.",
+      "sessions": [
+        {
+          "id": "session-17",
+          "number": 17,
+          "title": "Automated Evals, Golden Datasets & LLM-as-a-Judge",
+          "projectTieIn": "Deloitte Multi-Agent Evals & LLMOps",
+          "estimatedReadTime": "15 min",
+          "studyPrompt": "I have Evals and LLMOps on my resume. Teach me how to design an automated offline + online Evaluation Pipeline: building a Golden Dataset, RAG triad metrics (Context Relevance, Groundedness, Answer Relevance), and fixing LLM-as-a-Judge biases (position bias, verbosity bias)."
+        },
+        {
+          "id": "session-18",
+          "number": 18,
+          "title": "AI Security: Low-Latency Guardrails, PII & Scoped Tool IAM",
+          "projectTieIn": "Deloitte Customer Support System",
+          "estimatedReadTime": "14 min",
+          "studyPrompt": "How do I prevent prompt injection, PII leakage, and unauthorized tool execution in my customer support multi-agent system without adding 2 seconds of latency? Explain lightweight guardrail models, PII token vaulting, and scoped IAM permissions for agents."
+        },
+        {
+          "id": "session-19",
+          "number": 19,
+          "title": "Enterprise LLM Gateway & Dynamic Model Routing",
+          "projectTieIn": "Cross-Platform AI Architecture ($1.3M+ Savings)",
+          "estimatedReadTime": "15 min",
+          "studyPrompt": "Design an Enterprise LLM Gateway that routes simple queries to Gemini Flash and complex queries to Gemini Pro, tracks token spend per department, and falls back gracefully during a region outage. Then quiz me on the trade-offs."
+        },
+        {
+          "id": "session-20",
+          "number": 20,
+          "title": "Capstone: 45-Minute End-to-End Mock Interview",
+          "projectTieIn": "All 4 Core Resume Projects",
+          "estimatedReadTime": "45 min",
+          "studyPrompt": "Act as a Hiring Manager for a Senior AI Engineer role. Pick one of my resume projects or a scaled-up version of it, and run a realistic system design interview. Ask me to gather requirements, estimate capacity, define the API/data model, draw the high-level architecture, and then drill me on bottlenecks."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,156 @@
+{
+  "foundationalBooks": [
+    { "title": "Designing Data-Intensive Applications — Martin Kleppmann", "type": "book", "why": "The single best foundation. Read ch. 3 (storage), 5 (replication), 6 (partitioning), 7 (transactions), 8 (distributed trouble), 11 (streams)." },
+    { "title": "AI Engineering — Chip Huyen", "type": "book", "why": "Production LLM apps: evals, RAG, agents, inference optimization, monitoring. Map chapters onto Modules 2–5." },
+    { "title": "System Design Interview Vol. 1 & 2 — Alex Xu", "type": "book", "why": "Interview format and classic problems (rate limiter, news feed, notification system, metrics)." },
+    { "title": "Generative AI System Design Interview — Ali Aminian & Hao Sheng", "type": "book", "why": "Interview-style GenAI problems; use alongside the Problem Bank." },
+    { "title": "Designing Machine Learning Systems — Chip Huyen", "type": "book", "why": "Classical ML platform concerns: data, features, deployment, drift. Key for the ML Engineer track." },
+    { "title": "Site Reliability Engineering — Google (free online)", "type": "book", "url": "https://sre.google/sre-book/table-of-contents/", "why": "SLOs, error budgets, handling overload, cascading failures." }
+  ],
+  "fundamentals": {
+    "fund-01": [
+      { "title": "DDIA ch. 5 Replication, ch. 9 Consistency & Consensus", "type": "book", "why": "Leader/follower, quorums, linearizability, consensus." },
+      { "title": "Brewer — CAP Twelve Years Later", "type": "paper", "why": "Clears up CAP myths; pair with the PACELC discussion (Abadi)." }
+    ],
+    "fund-02": [
+      { "title": "DDIA ch. 6 Partitioning", "type": "book", "why": "Range vs hash, secondary indexes, rebalancing." },
+      { "title": "Dynamo: Amazon's Highly Available Key-value Store", "type": "paper", "why": "Origin of consistent hashing with virtual nodes and quorum replication." },
+      { "title": "The Tail at Scale — Dean & Barroso", "type": "paper", "why": "Why fan-out makes P99 dominate; hedged requests." }
+    ],
+    "fund-03": [
+      { "title": "DDIA ch. 3 Storage and Retrieval", "type": "book", "why": "B-tree vs LSM, column stores." },
+      { "title": "Use The Index, Luke", "type": "article", "url": "https://use-the-index-luke.com/", "why": "Practical index design for SQL databases." }
+    ],
+    "fund-04": [
+      { "title": "Google Cloud Pub/Sub overview and subscription docs", "type": "docs", "url": "https://cloud.google.com/pubsub/docs/overview", "why": "Ack deadlines, DLQ, ordering keys, exactly-once delivery scope." },
+      { "title": "DDIA ch. 11 Stream Processing", "type": "book", "why": "Logs vs queues, delivery guarantees, idempotence." },
+      { "title": "microservices.io — Transactional outbox", "type": "article", "url": "https://microservices.io/patterns/data/transactional-outbox.html", "why": "Fixes the dual-write problem." }
+    ],
+    "fund-05": [
+      { "title": "AWS Builders' Library — Timeouts, retries and backoff with jitter", "type": "article", "url": "https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/", "why": "The reference on safe retries." },
+      { "title": "Google SRE Book — Handling Overload & Addressing Cascading Failures", "type": "book", "url": "https://sre.google/sre-book/table-of-contents/", "why": "Load shedding, retry amplification, graceful degradation." },
+      { "title": "Microsoft Azure Architecture Center — Circuit Breaker pattern", "type": "docs", "url": "https://learn.microsoft.com/azure/architecture/patterns/circuit-breaker", "why": "States and implementation considerations." }
+    ],
+    "fund-06": [
+      { "title": "Stripe — Scaling your API with rate limiters", "type": "article", "url": "https://stripe.com/blog/rate-limiters", "why": "Token bucket, concurrency limiters, load shedders in production." },
+      { "title": "Alex Xu — Design a Rate Limiter (SDI Vol. 1)", "type": "book", "why": "Interview-ready algorithms comparison." }
+    ],
+    "fund-07": [
+      { "title": "Jeff Dean — Latency numbers every programmer should know", "type": "article", "why": "Search the title; many maintained copies exist. Use as ballpark only." },
+      { "title": "Chip Huyen — AI Engineering, inference cost & latency sections", "type": "book", "why": "LLM-specific cost and memory math." }
+    ],
+    "fund-08": [
+      { "title": "Google SRE Book — Monitoring Distributed Systems & Service Level Objectives", "type": "book", "url": "https://sre.google/sre-book/table-of-contents/", "why": "Golden signals, SLI/SLO/SLA." },
+      { "title": "OpenTelemetry docs", "type": "docs", "url": "https://opentelemetry.io/docs/", "why": "Spans, attributes, context propagation for tracing." },
+      { "title": "Hamel Husain — Your AI Product Needs Evals", "type": "article", "url": "https://hamel.dev/blog/posts/evals/", "why": "Quality monitoring for LLM products." }
+    ]
+  },
+  "sessions": {
+    "session-01": [
+      { "title": "Cloud Run — container instance concurrency", "type": "docs", "url": "https://cloud.google.com/run/docs/about-concurrency", "why": "Concurrency setting, CPU allocation, how scaling reacts." },
+      { "title": "GKE — Horizontal Pod Autoscaling", "type": "docs", "url": "https://cloud.google.com/kubernetes-engine/docs/concepts/horizontalpodautoscaler", "why": "Scaling on CPU, custom and external metrics." },
+      { "title": "Google Cloud — Choosing a compute option", "type": "docs", "url": "https://cloud.google.com/architecture/application-development/choose-compute", "why": "Decision framing you can quote." }
+    ],
+    "session-02": [
+      { "title": "Fundamentals 04: Queues vs Logs & Delivery Semantics", "type": "internal", "href": "/fundamentals/fund-04", "why": "Read first." },
+      { "title": "Pub/Sub — dead-letter topics and retry policy", "type": "docs", "url": "https://cloud.google.com/pubsub/docs/dead-letter-topics", "why": "Configure DLQ and backoff." },
+      { "title": "GCS — resumable uploads & signed URLs", "type": "docs", "url": "https://cloud.google.com/storage/docs/resumable-uploads", "why": "Direct-to-bucket large uploads." }
+    ],
+    "session-03": [
+      { "title": "Fundamentals 05 and 06", "type": "internal", "href": "/fundamentals/fund-06", "why": "Rate limiting and reliability basics." },
+      { "title": "Stripe — Scaling your API with rate limiters", "type": "article", "url": "https://stripe.com/blog/rate-limiters", "why": "Practical limiter design." },
+      { "title": "Vertex AI — quotas and limits for generative models", "type": "docs", "url": "https://cloud.google.com/vertex-ai/generative-ai/docs/quotas", "why": "Know how RPM/TPM quotas and 429s behave." }
+    ],
+    "session-04": [
+      { "title": "Gemini API — context caching", "type": "docs", "url": "https://ai.google.dev/gemini-api/docs/caching", "why": "Provider-side prefix caching economics." },
+      { "title": "GPTCache / semantic caching write-ups", "type": "article", "why": "Search for the project README — read for threshold and false-positive discussion." },
+      { "title": "Redis docs — caching patterns", "type": "docs", "url": "https://redis.io/docs/latest/develop/", "why": "TTL, eviction policies, atomic ops." }
+    ],
+    "session-05": [
+      { "title": "Malkov & Yashunin — Efficient and robust ANN search using HNSW", "type": "paper", "url": "https://arxiv.org/abs/1603.09320", "why": "Read abstract + algorithm section; know M, efConstruction, efSearch." },
+      { "title": "Pinecone — Hierarchical Navigable Small Worlds explainer", "type": "article", "url": "https://www.pinecone.io/learn/series/faiss/hnsw/", "why": "Visual intuition." },
+      { "title": "Jégou et al. — Product Quantization for Nearest Neighbor Search", "type": "paper", "why": "Search by title; understand compression vs recall." },
+      { "title": "Vertex AI Vector Search overview", "type": "docs", "url": "https://cloud.google.com/vertex-ai/docs/vector-search/overview", "why": "Managed alternative to ChromaDB." }
+    ],
+    "session-06": [
+      { "title": "Cormack et al. — Reciprocal Rank Fusion outperforms Condorcet and individual rank learning methods", "type": "paper", "why": "Short paper; the RRF formula source." },
+      { "title": "ColBERT — Late interaction retrieval", "type": "paper", "url": "https://arxiv.org/abs/2004.12832", "why": "Context for rerankers vs bi-encoders." },
+      { "title": "Lost in the Middle — How language models use long contexts", "type": "paper", "url": "https://arxiv.org/abs/2307.03172", "why": "Why top-k size and ordering matter." }
+    ],
+    "session-07": [
+      { "title": "Fundamentals 04 — idempotency and claim-check", "type": "internal", "href": "/fundamentals/fund-04", "why": "Incremental indexing relies on these." },
+      { "title": "Anthropic — Contextual Retrieval", "type": "article", "url": "https://www.anthropic.com/news/contextual-retrieval", "why": "Chunk enrichment before indexing." },
+      { "title": "ColPali — document retrieval with vision-language models", "type": "paper", "url": "https://arxiv.org/abs/2407.01449", "why": "Alternative to slide→caption→embed pipelines." }
+    ],
+    "session-08": [
+      { "title": "OWASP — Top 10 for LLM Applications (sensitive information disclosure)", "type": "docs", "url": "https://genai.owasp.org/llm-top-10/", "why": "Threat framing for RAG leakage." },
+      { "title": "Qdrant / Pinecone docs — payload filtering & namespaces", "type": "docs", "why": "Pre-filtering vs post-filtering in real engines." },
+      { "title": "Fundamentals 02 — partitioning", "type": "internal", "href": "/fundamentals/fund-02", "why": "Per-tenant index strategies." }
+    ],
+    "session-09": [
+      { "title": "Anthropic — Building effective agents", "type": "article", "url": "https://www.anthropic.com/research/building-effective-agents", "why": "Workflows vs agents, orchestrator-worker, evaluator-optimizer." },
+      { "title": "Lilian Weng — LLM Powered Autonomous Agents", "type": "article", "url": "https://lilianweng.github.io/posts/2023-06-23-agent/", "why": "Planning, memory, tool use taxonomy." },
+      { "title": "Model Context Protocol — introduction", "type": "docs", "url": "https://modelcontextprotocol.io/", "why": "Servers, tools, resources, transports." },
+      { "title": "Google Agent Development Kit docs", "type": "docs", "url": "https://google.github.io/adk-docs/", "why": "Your stack — know agents, sessions, runners." },
+      { "title": "Agent2Agent (A2A) protocol", "type": "docs", "url": "https://a2a-protocol.org/", "why": "Agent discovery and task delegation." },
+      { "title": "Yao et al. — ReAct", "type": "paper", "url": "https://arxiv.org/abs/2210.03629", "why": "Foundational reasoning+acting loop." }
+    ],
+    "session-10": [
+      { "title": "LangGraph — persistence and checkpointers", "type": "docs", "url": "https://langchain-ai.github.io/langgraph/concepts/persistence/", "why": "Threads, checkpoints, time travel, human-in-the-loop." },
+      { "title": "Fundamentals 01 and 03", "type": "internal", "href": "/fundamentals/fund-01", "why": "Consistency and store choice for state." },
+      { "title": "Temporal docs — durable execution concepts", "type": "docs", "url": "https://docs.temporal.io/evaluate/understanding-temporal", "why": "Compare to checkpointing; know when you need it." }
+    ],
+    "session-11": [
+      { "title": "Fundamentals 08 — percentile thinking", "type": "internal", "href": "/fundamentals/fund-08", "why": "Latency budgets." },
+      { "title": "Leviathan et al. — Fast Inference from Transformers via Speculative Decoding", "type": "paper", "url": "https://arxiv.org/abs/2211.17192", "why": "Different from speculative tool execution, but interviewers conflate them — know both." },
+      { "title": "MDN — Server-Sent Events", "type": "docs", "url": "https://developer.mozilla.org/docs/Web/API/Server-sent_events", "why": "Streaming transport for tokens and intermediate steps." }
+    ],
+    "session-12": [
+      { "title": "microservices.io — Saga pattern", "type": "article", "url": "https://microservices.io/patterns/data/saga.html", "why": "Compensating transactions." },
+      { "title": "Fundamentals 05 — reliability patterns", "type": "internal", "href": "/fundamentals/fund-05", "why": "Retries, breakers, budgets." },
+      { "title": "Anthropic — How we built our multi-agent research system", "type": "article", "url": "https://www.anthropic.com/engineering/built-multi-agent-research-system", "why": "Real failure modes, evaluation and debugging lessons." }
+    ],
+    "session-13": [
+      { "title": "DDIA ch. 10–11 Batch and Stream Processing", "type": "book", "why": "Lambda vs kappa thinking, windowing, event-time." },
+      { "title": "Dataflow / Apache Beam programming guide", "type": "docs", "url": "https://beam.apache.org/documentation/programming-guide/", "why": "Windows, triggers, watermarks." },
+      { "title": "Fundamentals 04", "type": "internal", "href": "/fundamentals/fund-04", "why": "Ingestion transport." }
+    ],
+    "session-14": [
+      { "title": "Hugging Face — Optimum / ONNX Runtime export", "type": "docs", "url": "https://huggingface.co/docs/optimum/index", "why": "Faster CPU/GPU inference for Transformers." },
+      { "title": "NVIDIA Triton Inference Server — dynamic batching", "type": "docs", "url": "https://docs.nvidia.com/deeplearning/triton-inference-server/user-guide/docs/index.html", "why": "Latency/throughput trade-off knobs." },
+      { "title": "Dettmers et al. — LLM.int8()", "type": "paper", "url": "https://arxiv.org/abs/2208.07339", "why": "Quantization intuition (applies to encoders too)." }
+    ],
+    "session-15": [
+      { "title": "Kwon et al. — Efficient Memory Management for LLM Serving with PagedAttention", "type": "paper", "url": "https://arxiv.org/abs/2309.06180", "why": "The vLLM paper; read intro and design sections." },
+      { "title": "vLLM blog — Easy, fast and cheap LLM serving", "type": "article", "url": "https://blog.vllm.ai/2023/06/20/vllm.html", "why": "Accessible version." },
+      { "title": "Dao et al. — FlashAttention", "type": "paper", "url": "https://arxiv.org/abs/2205.14135", "why": "Memory-bandwidth-aware attention." },
+      { "title": "Fundamentals 07 — KV cache math", "type": "internal", "href": "/fundamentals/fund-07", "why": "Capacity estimation." }
+    ],
+    "session-16": [
+      { "title": "BigQuery — storage and query optimization docs", "type": "docs", "url": "https://cloud.google.com/bigquery/docs/best-practices-performance-overview", "why": "Partitioning, clustering, slot usage, avoiding SELECT *." },
+      { "title": "Spark — performance tuning guide", "type": "docs", "url": "https://spark.apache.org/docs/latest/sql-performance-tuning.html", "why": "Shuffle, broadcast joins, AQE, skew handling." },
+      { "title": "Fundamentals 03 — columnar storage", "type": "internal", "href": "/fundamentals/fund-03", "why": "Why columns scan fast." }
+    ],
+    "session-17": [
+      { "title": "Hamel Husain — Your AI Product Needs Evals", "type": "article", "url": "https://hamel.dev/blog/posts/evals/", "why": "Pragmatic eval loop." },
+      { "title": "Zheng et al. — Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena", "type": "paper", "url": "https://arxiv.org/abs/2306.05685", "why": "Position, verbosity and self-preference biases." },
+      { "title": "RAGAS — Automated evaluation of Retrieval Augmented Generation", "type": "paper", "url": "https://arxiv.org/abs/2309.15217", "why": "Faithfulness / answer relevance / context metrics." },
+      { "title": "Eugene Yan — Patterns for Building LLM-based Systems", "type": "article", "url": "https://eugeneyan.com/writing/llm-patterns/", "why": "Evals, RAG, guardrails, caching in one map." }
+    ],
+    "session-18": [
+      { "title": "OWASP Top 10 for LLM Applications", "type": "docs", "url": "https://genai.owasp.org/llm-top-10/", "why": "Prompt injection, insecure output handling, excessive agency." },
+      { "title": "Simon Willison — The lethal trifecta for AI agents", "type": "article", "url": "https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/", "why": "Private data + untrusted content + external comms = exfiltration risk." },
+      { "title": "Microsoft Presidio", "type": "docs", "url": "https://microsoft.github.io/presidio/", "why": "PII detection/anonymization building block." }
+    ],
+    "session-19": [
+      { "title": "Chip Huyen — Building A Generative AI Platform", "type": "article", "url": "https://huyenchip.com/2024/07/25/genai-platform.html", "why": "Gateway, routing, caching, guardrails as platform components." },
+      { "title": "LiteLLM proxy docs", "type": "docs", "url": "https://docs.litellm.ai/docs/simple_proxy", "why": "Concrete open-source gateway: routing, budgets, fallbacks." },
+      { "title": "Chen et al. — FrugalGPT", "type": "paper", "url": "https://arxiv.org/abs/2305.05176", "why": "Cascade/routing to cut cost." },
+      { "title": "Fundamentals 05 and 06", "type": "internal", "href": "/fundamentals/fund-06", "why": "Quotas and fallbacks." }
+    ],
+    "session-20": [
+      { "title": "Problem Bank", "type": "internal", "href": "/problems", "why": "Rehearse with unseen prompts before the capstone." },
+      { "title": "Hello Interview — system design delivery framework", "type": "article", "url": "https://www.hellointerview.com/learn/system-design/in-a-hurry/delivery", "why": "Time-boxed structure for the 45 minutes." }
+    ]
+  }
+}

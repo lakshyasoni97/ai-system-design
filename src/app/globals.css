@@ -1,0 +1,112 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+    /* Light Theme — Calm Editorial Paper */
+    --background: 210 20% 98%;           /* #f8f9fb */
+    --foreground: 222 47% 11%;           /* #0f172a */
+    --card: 0 0% 100%;                   /* #ffffff */
+    --card-foreground: 222 47% 11%;      /* #0f172a */
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 161 94% 30%;              /* #047857 emerald-700 for crisp contrast */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 214 32% 95%;            /* #eef2f6 */
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 25% 96%;                /* #f1f5f9 */
+    --muted-foreground: 215 16% 42%;     /* #58677d */
+    --accent: 243 75% 58%;               /* #4f46e5 indigo-600 */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;            /* #dc2626 */
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 25% 90%;               /* #dfe5ec */
+    --input: 214 25% 90%;
+    --ring: 161 94% 30%;
+    --radius: 0.75rem;
+
+    --scrollbar-track: #f8f9fb;
+    --scrollbar-thumb: #cbd5e1;
+    --scrollbar-thumb-hover: #94a3b8;
+  }
+
+  .dark {
+    /* Dark Theme — Calm Obsidian */
+    --background: 240 10% 5%;            /* #0b0b0e */
+    --foreground: 210 20% 96%;           /* #f3f4f6 */
+    --card: 240 8% 8.5%;                 /* #141418 */
+    --card-foreground: 210 20% 96%;      /* #f3f4f6 */
+    --popover: 240 8% 8.5%;
+    --popover-foreground: 210 20% 96%;
+    --primary: 158 64% 48%;              /* #2dd4bf / #10b981 calm emerald */
+    --primary-foreground: 240 10% 5%;
+    --secondary: 240 6% 14%;             /* #212126 */
+    --secondary-foreground: 210 20% 96%;
+    --muted: 240 6% 12%;                 /* #1c1c21 */
+    --muted-foreground: 215 14% 65%;     /* #9ca3af */
+    --accent: 239 84% 67%;               /* #6366f1 */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 350 89% 60%;          /* #f43f5e */
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 6% 16%;                /* #26262c */
+    --input: 240 6% 16%;
+    --ring: 158 64% 48%;
+
+    --scrollbar-track: #0b0b0e;
+    --scrollbar-thumb: #26262c;
+    --scrollbar-thumb-hover: #3f3f46;
+  }
+}
+
+html,
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-sans);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  min-height: 100%;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom adaptive scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* Focus visibility - WCAG 2.2 AA compliant */
+:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

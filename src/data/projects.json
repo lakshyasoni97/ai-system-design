@@ -1,0 +1,226 @@
+[
+  {
+    "id": "proj-deloitte-agents",
+    "tag": "Deloitte Multi-Agent",
+    "company": "Deloitte",
+    "title": "Enterprise Multi-Agent Customer Support System",
+    "subtitle": "Google ADK + LangGraph + FastAPI on GKE + Pub/Sub + Vertex AI Agent Engine",
+    "elevatorPitch": "Architected and deployed a production multi-agent customer support orchestration platform on GKE using FastAPI, Google ADK, LangGraph, and Vertex AI Gemini. By replacing manual L1/L2 ticket triage with a deterministic Supervisor + Sub-Agent DAG connected to enterprise CRM/ERP tools over Pub/Sub and Redis state checkpointing, we reduced ticket resolution turnaround from 24–48 hours to near-instantaneous (<1.8s P95 TTFT), delivering over $1.3M+ in verified annual operational savings.",
+    "impactMetrics": [
+      { "label": "Annual Cost Savings", "value": "$1.3M+ / yr", "delta": "Verified OpEx reduction" },
+      { "label": "Response Latency", "value": "< 1.8s TTFT", "delta": "Down from 24–48 hrs" },
+      { "label": "Automated Deflection", "value": "78.4%", "delta": "Zero human touch L1/L2" },
+      { "label": "Groundedness Score", "value": "96.2%", "delta": "RAG Triad CI/CD gated" }
+    ],
+    "techStack": [
+      "Python 3.11",
+      "FastAPI",
+      "Google ADK",
+      "LangGraph",
+      "Vertex AI Agent Engine",
+      "Gemini 1.5 Flash & Pro",
+      "GKE (Autopilot/Standard)",
+      "Cloud Pub/Sub",
+      "Redis Cluster",
+      "Cloud SQL (Postgres)"
+    ],
+    "currentArchitectureMermaid": "flowchart TD\n    Client[\"Customer Portal / Webhook\"] -->|HTTPS / WSS| Ingress[\"Cloud Load Balancer + Armor\"]\n    Ingress --> FastAPI[\"GKE FastAPI Orchestrator Pods\"]\n    FastAPI <-->|State Checkpoints| Redis[(\"Redis Cluster (Hot State)\")]\n    FastAPI -->|Supervisor Routing| Router[\"Google ADK / LangGraph Supervisor\"]\n    Router -->|Order Status| AgentA[\"Order & Logistics Agent\"]\n    Router -->|Policy Lookup| AgentB[\"RAG Knowledge Agent\"]\n    Router -->|Refund / Action| AgentC[\"Billing & ERP Tool Agent\"]\n    AgentA & AgentB & AgentC -->|Async Audit & CRM Sync| PubSub[[\"Cloud Pub/Sub Topic\"]]\n    PubSub --> Worker[\"GKE Background Sync Worker\"]\n    Worker --> Postgres[(\"Cloud SQL Audit Store\")]",
+    "scale100xArchitectureMermaid": "flowchart TD\n    Global[\"Global Users (5,000+ Peak QPS)\"] -->|Anycast Edge| CDN[\"Cloud CDN + Cloud Armor WAF\"]\n    CDN --> GW[\"Enterprise Envoy LLM Gateway\\n(Redis Lua TPM Quota + Semantic Cache)\"]\n    GW -->|Speculative Parallel Call| Guard[\"vLLM Llama-Guard Sidecar\\n(L4 GPU Node Pool - 35ms)\"]\n    GW --> GKE[\"Multi-Region GKE Orchestrator\\n(KEDA Autoscaling on In-Flight Streams)\"]\n    GKE <-->|Sub-ms Read/Write| Memory[(\"Redis Enterprise Active-Active\\n+ Cloud Spanner Cold Ledger\")]\n    GKE --> ADK[\"Hierarchical ADK Graph\\n(Flash-8B Router -> Pro Escalation)\"]\n    ADK -->|MCP Protocol + Circuit Breaker| Tools[\"Isolated Tool Execution Sandbox\"]\n    ADK -->|Regional Quota Failover| Vertex[\"Vertex AI Multi-Region Router\\n(us-central1 / europe-west4 / Self-Hosted vLLM)\"]\n    GKE -->|Outbox Pattern| Kafka[[\"Cloud Pub/Sub Partitioned Stream\"]] --> BQ[(\"BigQuery Real-Time Eval Sink\")]",
+    "hardNumbers": {
+      "qps": "Current: 45 avg / 180 peak QPS → 100x Target: 4,500 avg / 15,000 peak QPS",
+      "dailyVolume": "Current: 120,000 tickets/day → 100x Target: 12M interactions/day",
+      "latency": "P50 TTFT: 820ms | P95 TTFT: 1.75s | P99 End-to-End Action: 4.2s",
+      "costPer1k": "$2.85 per 1,000 resolved multi-turn sessions (76% Flash + 24% Pro + Prompt Caching)",
+      "evalMetrics": "Intent Classification F1: 94.8% | Tool Call Exact-Match: 97.1% | Groundedness: 96.2%"
+    },
+    "hostileQuestions": [
+      {
+        "question": "Why did you deploy the FastAPI orchestrator on GKE instead of Cloud Run when Vertex AI calls are just external HTTP I/O?",
+        "answer": "Three production reasons: First, **Bidirectional Streaming & Stateful Sessions**—our orchestrator maintains persistent SSE/WebSocket streams with intermediate thought updates and background state checkpointing; Cloud Run's request-scoped CPU throttling kills background async tasks the millisecond the HTTP response closes unless you pay for always-on CPU. Second, **Zero Cold-Start SLA**—compiling complex LangGraph/ADK state machines and warming connection pools to Redis, Postgres, and Vertex AI takes 3–5 seconds on cold boot, violating our <2s TTFT SLA. Third, **DaemonSet & Sidecar Topology**—on GKE we run local OpenTelemetry collectors, Envoy service mesh circuit breakers, and dedicated L4 GPU node pools for sub-40ms PII/Guardrail inference in the same VPC subnet."
+      },
+      {
+        "question": "What happens if a GKE pod crashes halfway through step 3 of a 4-step refund workflow? Doesn't the user get double-refunded?",
+        "answer": "No, because we combine **Super-Step State Checkpointing** with **Idempotent Tool Execution Keys**. At the end of every LangGraph/ADK node transition, the state tuple `(thread_id, step_id, channel_values)` is atomically written to Redis before any side-effecting tool runs. Every external mutation (e.g., issuing a refund in SAP/Stripe) carries a deterministic idempotency key `hash(thread_id + tool_name + step_index)`. If Pod A dies right after calling the refund API, Pod B resumes from the last Redis checkpoint, replays the node with the exact same idempotency key, and the downstream ERP returns the cached `200 OK` receipt instead of executing a duplicate transaction."
+      },
+      {
+        "question": "How did you prevent two sub-agents from getting stuck in an infinite handoff loop and burning $10,000 of Gemini tokens?",
+        "answer": "We eliminated peer-to-peer Swarm handoffs in favor of a **Hub-and-Spoke Supervisor DAG** with three hard circuit breakers: (1) `recursion_limit = 6` enforced in the graph runner state, (2) a **Per-Session Token Budget Counter** stored in the state object (`max_tokens_per_ticket = 16,000`) that immediately routes to human escalation if exceeded, and (3) **Cycle Detection** on `(agent_name, tool_call_hash)`—if the same sub-agent invokes the same tool with identical parameters twice in one session, a deterministic fallback node intercepts the loop and returns a structured escalation payload."
+      },
+      {
+        "question": "How did you cut latency from 24–48 hours to under 2 seconds when multi-agent systems usually take 10–20 seconds per turn?",
+        "answer": "First, the 24–48 hour baseline was human L1/L2 queue wait time; our engineering battle was getting AI multi-agent latency from ~9 seconds down to **<1.8s TTFT**. We achieved that via **Speculative Parallel Execution** (`asyncio.gather` running PII redaction, Redis user profile fetch, and RAG vector lookup simultaneously in 180ms), **Model Tiering** (using Gemini Flash for the Supervisor Router and JSON tool extraction at ~220ms latency, reserving Gemini Pro strictly for final complex synthesis), and **SSE Intermediate Status Streaming** so the user sees immediate progress within 250ms."
+      },
+      {
+        "question": "How do you prevent a malicious customer from using prompt injection to trick the Billing Agent into refunding someone else's order?",
+        "answer": "We never trust the LLM to enforce authorization—**authorization is enforced deterministically at the Tool Layer via Scoped IAM Context**. The user's authenticated `customer_id` and JWT claims are injected into a read-only `RunnableConfig` outside the LLM's mutable prompt context. When the Billing Agent emits a tool call `issue_refund(order_id='999')`, the Python tool wrapper verifies `SELECT customer_id FROM orders WHERE order_id='999' == config.auth_customer_id` before executing. Even a 100% successful jailbreak cannot access cross-tenant records."
+      }
+    ]
+  },
+  {
+    "id": "proj-deloitte-rag",
+    "tag": "Deloitte Slide RAG",
+    "company": "Deloitte",
+    "title": "Internal Asset Discovery Multimodal RAG",
+    "subtitle": "Slide-to-Image Vision Pipeline + ChromaDB / Vector Search + LangGraph + Streamlit",
+    "elevatorPitch": "Built an enterprise multimodal RAG platform enabling consultants to search thousands of historical pitch decks, architecture blueprints, and consulting deliverables. Because standard PDF/PPTX text parsers destroy visual layout, charts, and 2x2 matrices, I designed a Slide-to-Image ingestion pipeline using Vision LLMs to generate structured semantic markdown + metadata indexed into ChromaDB, orchestrated via LangGraph.",
+    "impactMetrics": [
+      { "label": "Retrieval Recall@5", "value": "91.4%", "delta": "+34% vs. text-only OCR" },
+      { "label": "Proposal Prep Speed", "value": "4.5x Faster", "delta": "Hours to seconds discovery" },
+      { "label": "Visual Table Accuracy", "value": "94.0%", "delta": "Preserved charts & diagrams" },
+      { "label": "Boilerplate Deduped", "value": "68%", "delta": "Via perceptual + XML hashing" }
+    ],
+    "techStack": [
+      "Python",
+      "Gemini 1.5 Pro / Flash Vision",
+      "ChromaDB",
+      "Vertex AI Vector Search",
+      "LangGraph",
+      "LangChain",
+      "LibreOffice Headless / Poppler",
+      "Streamlit",
+      "Docker"
+    ],
+    "currentArchitectureMermaid": "flowchart LR\n    PPTX[\"SharePoint .PPTX / .PDF Decks\"] --> Convert[\"LibreOffice Headless\\nSlide-to-PNG (150 DPI)\"]\n    Convert --> Vision[\"Gemini Flash Vision\\nStructured Markdown + Tags\"]\n    Vision --> Embed[\"Vertex Text-Embedding-004\\n(768 / 1536 dims)\"]\n    Embed --> Chroma[(\"ChromaDB Vector +\\nMetadata Store\")]\n    User[\"Consultant Query\"] --> UI[\"Streamlit + LangGraph Agent\"]\n    UI -->|Metadata Filter + Dense Search| Chroma\n    Chroma -->|Top-K Slide Summaries + PNGs| Synthesis[\"Gemini Grounded Answer\\n+ Slide Preview Citations\"]",
+    "scale100xArchitectureMermaid": "flowchart TD\n    Ingest[\"10M+ Enterprise Slides\\n(SharePoint / Box Webhooks)\"] --> Delta[\"ZIP XML Hash Diff +\\nPerceptual Hash (pHash) Dedup\"]\n    Delta -->|Only Changed Slides - 20%| PubSub[[\"Cloud Pub/Sub Ingestion Queue\"]]\n    PubSub --> Workers[\"Cloud Run Batch Vision Workers\\n(Gemini Flash Batch API - 50% Discount)\"]\n    Workers --> DualIndex[\"Dual Indexing Engine\"]\n    DualIndex -->|Dense INT8 + Payload Bitmaps| VectorDB[(\"Vertex AI Vector Search / Qdrant\\n(50M Vectors, 115GB RAM INT8)\")]\n    DualIndex -->|BM25 Lexical Index| Elastic[(\"OpenSearch / BM25 Sparse Index\")]\n    Query[\"Consultant Search + Okta JWT\"] --> ACL[\"Pre-Filter RBAC Bitmap\\n(allowed_groups & clearance)\"]\n    ACL --> Hybrid[\"Parallel Dense + BM25 Search\\nMerged via RRF (k=60)\"]\n    Hybrid --> Rerank[\"Cross-Encoder Reranker\\n(bge-reranker-v2-m3 on L4 GPU - 30ms)\"]\n    Rerank --> Answer[\"Gemini Pro Answer + Signed GCS Slide Previews\"]",
+    "hardNumbers": {
+      "qps": "Current: 15 peak QPS (Internal Consulting) → 100x Target: 1,500 QPS across global practices",
+      "dailyVolume": "Current: 25,000 slides indexed → 100x Target: 10M+ slides (50M chunk/region vectors)",
+      "latency": "Query P50: 640ms | Query P95: 1.45s (Hybrid Search 45ms + Rerank 35ms + LLM TTFT 560ms)",
+      "costPer1k": "Ingestion: $0.42 per 1,000 slides (with Batch API + pHash dedup) | Query: $1.60 per 1k searches",
+      "evalMetrics": "Recall@5: 91.4% | MRR@10: 0.87 | RBAC Zero-Leakage Compliance: 100%"
+    },
+    "hostileQuestions": [
+      {
+        "question": "Why did you convert slides to images and pay for a Vision LLM instead of just using `python-pptx` text extraction?",
+        "answer": "In management consulting decks, **70% of the signal is spatial**: 2x2 strategy matrices, architecture arrows, Gantt timelines, and color-coded Harvey balls. `python-pptx` extracts shapes in arbitrary XML creation order, turning a structured comparison table into scrambled, unsearchable sentence fragments. By rendering each slide at 150 DPI and prompting Gemini Flash Vision with a strict JSON/Markdown schema (`visual_layout`, `key_metrics`, `entities`, `mermaid_equivalent`), our Recall@5 on architecture and financial benchmark queries jumped from **57% to 91.4%**."
+      },
+      {
+        "question": "ChromaDB on a single node breaks at 10 million slides. Exactly when does it break, and what is the RAM math for your migration?",
+        "answer": "Single-node ChromaDB starts degrading past **1–2 million vectors** due to SQLite metadata locking and unquantized in-memory HNSW graph overhead. At 10M slides (averaging 5 visual/text chunks per slide = **50M vectors** at 1536 dims), raw FP32 HNSW requires `50M × 1536 × 4 bytes × 1.5 = 460.8 GB RAM`. At that threshold, we migrate to **Qdrant Cluster or Vertex AI Vector Search** using **INT8 Scalar Quantization**, which drops RAM 4x to **115.2 GB** across 4 shards while retaining 99.1% recall when paired with our Cross-Encoder reranker."
+      },
+      {
+        "question": "If a consultant fixes a typo on Slide 4 of a 120-slide deck, do you re-run Vision LLM inference on all 120 slides?",
+        "answer": "Never. A `.pptx` file is a standard ZIP archive containing `ppt/slides/slide1.xml` through `slide120.xml` plus `ppt/media/*`. Our ingestion worker computes a fast SHA-256 hash of each individual slide's XML + embedded media references and compares it against our metadata store. Only Slide 4's hash changes, so we only render and invoke Vision LLM on Slide 4, updating its vector ID `hash(deck_id + slide_num)` in place. Furthermore, **Perceptual Hashing (pHash)** skips 68% of recurring corporate cover, divider, and legal disclaimer slides globally."
+      },
+      {
+        "question": "How do you prevent a junior analyst from retrieving confidential M&A slides meant only for Partners?",
+        "answer": "We enforce **Document-Level RBAC via Single-Stage Pre-Filtered HNSW Bitmaps**. Every slide chunk is indexed with an `acl_groups` array synced from SharePoint/Azure AD permissions. At query time, the analyst's Okta JWT is cryptographically verified by the backend (never passed via prompt), and their group IDs are injected as a mandatory filter predicate `Filter(must=[FieldCondition(key='acl_groups', match=MatchAny(any=user_jwt.groups))])`. Using payload bitmap indexing during HNSW traversal prevents both unauthorized data leakage and the 'zero-results starvation' bug of naive post-filtering."
+      },
+      {
+        "question": "What happens if the Vision LLM hallucinates a number when summarizing a dense financial bar chart on a slide?",
+        "answer": "We mitigate visual hallucination at two layers: First, during ingestion we run **Hybrid Extraction**—we pass *both* the deterministic XML text table extracted via `python-pptx` AND the rendered slide PNG to the Vision LLM, instructing it to use the deterministic XML strings for exact figures and the image for spatial relationships. Second, at query time, the UI always renders the **original high-res slide PNG thumbnail** with bounding-box highlights right next to the synthesized answer so the consultant visually verifies every cited metric before pasting it into a client deck."
+      }
+    ]
+  },
+  {
+    "id": "proj-network18-news",
+    "tag": "Network18 Financial News",
+    "company": "Network18",
+    "title": "Real-Time Financial News Intelligence Pipeline",
+    "subtitle": "Multilingual Transformer NER (80–90% F1) + Vertex AI Scheduler + Parallel Ingestion + BigQuery",
+    "elevatorPitch": "Engineered an automated multilingual financial news ingestion and NLP intelligence pipeline processing 600+ articles/day from 12+ publishers. Combined parallel scraping orchestrated via Vertex AI Scheduler, custom Hugging Face Multilingual Transformer NER achieving 80–90% F1 across English and Indic regional languages, and BigQuery + Power BI analytics to surface market-moving entity and sentiment signals in near real-time.",
+    "impactMetrics": [
+      { "label": "Multilingual NER F1", "value": "80–90% F1", "delta": "Across English & Indic languages" },
+      { "label": "Enterprise Automation", "value": "3,500+ hrs", "delta": "Annual man-hours saved" },
+      { "label": "Source Coverage", "value": "12+ Feeds", "delta": "600+ daily financial articles" },
+      { "label": "Pipeline Reliability", "value": "99.6%", "delta": "Automated Vertex AI scheduling" }
+    ],
+    "techStack": [
+      "Python",
+      "Hugging Face Transformers",
+      "PyTorch / ONNX",
+      "Vertex AI Auto Scheduler",
+      "BeautifulSoup4 / aiohttp",
+      "BigQuery",
+      "PySpark",
+      "Power BI",
+      "Docker"
+    ],
+    "currentArchitectureMermaid": "flowchart LR\n    Sources[\"12+ Financial News Portals\\n(600+ Articles/Day)\"] --> Scheduler[\"Vertex AI Auto Scheduler\\n(Hourly Trigger)\"]\n    Scheduler --> Crawler[\"Parallel Async Crawlers\\n(aiohttp + BeautifulSoup)\"]\n    Crawler --> Clean[\"Deduplication + Text Normalization\"]\n    Clean --> NER[\"Multilingual Transformer NER\\n(Hugging Face - 80-90% F1)\"]\n    NER --> BQ[(\"Google BigQuery\\nPartitioned Fact Tables\")]\n    BQ --> BI[\"Power BI Executive Dashboards\"]",
+    "scale100xArchitectureMermaid": "flowchart TD\n    Feeds[\"10,000+ Global Feeds / Firehose\\n(100,000 Articles / Min)\"] --> Frontier[\"Distributed URL Frontier\\n(Redis Bloom Filter + Politeness Delay)\"]\n    Frontier --> Scrapers[\"GKE Spot Crawler Fleet\\n(Playwright / Rust / aiohttp)\"]\n    Scrapers -->|Raw HTML + SimHash| Kafka[[\"Cloud Pub/Sub / Kafka\\n(Partitioned by Domain)\"]]\n    Kafka --> Stream[\"Dataflow / PySpark Structured Streaming\\n(MinHash LSH Near-Dup Filter)\"]\n    Stream -->|Micro-Batches - 5ms window| Triton[\"Triton Inference Server on L4 GPUs\\n(INT8/FP16 ONNX Transformer NER @ 5,000 QPS)\"]\n    Triton --> Storage[(\"BigQuery Storage Write API\\n(Partitioned by pub_date, Clustered by ticker)\")]\n    Triton --> Alert[\"Sub-Second Breaking Alpha Webhook\"]",
+    "hardNumbers": {
+      "qps": "Current: Hourly batch (~600/day) → 100x Target: 1,700 sustained / 5,000 peak articles/sec",
+      "dailyVolume": "Current: 600+ articles/day → 100x Target: 140M articles/day global multi-language firehose",
+      "latency": "Current: Hourly batch (~4 min run) → 100x Target: <450ms end-to-end publish-to-signal latency",
+      "costPer1k": "$0.04 per 1,000 articles processed using ONNX FP16 dynamic batching on L4 Spot GPUs",
+      "evalMetrics": "Entity Level F1: 86.4% (80–90% across languages) | Precision: 88.2% | Dedup Accuracy: 99.3%"
+    },
+    "hostileQuestions": [
+      {
+        "question": "Why did you use a fine-tuned Multilingual Transformer NER model instead of just calling Gemini Flash API to extract entities?",
+        "answer": "At scale, **Unit Economics and Tail Latency** make LLMs the wrong tool for high-volume token classification. Calling an LLM for 5,000 articles/sec (avg 800 tokens each = 4M tokens/sec) costs **~$15,000+/day** and suffers 300–600ms network latency. In contrast, our encoder-only Multilingual Transformer (`XLM-RoBERTa / IndicBERT`, 270M params) compiled to **ONNX/TensorRT FP16** runs in **3.8ms per batch** on four L4 GPUs for **<$15/day**—a **1,000x cost reduction** while achieving 80–90% strict span-level F1."
+      },
+      {
+        "question": "If wire agencies like Reuters and PTI syndicate the exact same article across 8 of your 12 news sources with slight headline edits, how do you avoid double-counting sentiment in BigQuery?",
+        "answer": "URL hashing and exact SHA-256 fail on syndicated news because each publisher injects its own dateline and boilerplate. We use a **Two-Stage Deduplication Pipeline**: (1) a fast **Redis Bloom Filter** on canonical URLs to drop exact re-crawls in O(1), followed by (2) **128-bit SimHash / MinHash LSH (Locality Sensitive Hashing)** over 3-word character shingles of the article body. Any article with Hamming distance ≤ 3 (≥88% Jaccard similarity) within a 24-hour sliding window is linked to a single `canonical_story_id` rather than counted as independent market sentiment."
+      },
+      {
+        "question": "How would you serve your Hugging Face Transformer NER model at 5,000 QPS without spending a fortune on GPUs?",
+        "answer": "Three optimizations: First, convert the PyTorch model to **TensorRT / ONNX Runtime** with layer fusion and **FP16 (or INT8 calibration)**, giving a 4.2x latency speedup. Second, deploy on **NVIDIA Triton Inference Server with Dynamic Batching** (`max_queue_delay_microseconds: 5000`, `preferred_batch_size: [32, 64]`). Third, implement **Sequence Length Bucketing**—sort incoming paragraphs into length buckets (64, 128, 256, 512 tokens) before batching so a 40-token tweet doesn't get zero-padded to 512 tokens, saving ~65% of wasted attention FLOPs."
+      },
+      {
+        "question": "How did you design the BigQuery schema so Power BI dashboards stayed fast and cheap as historical news data grew?",
+        "answer": "BigQuery charges by bytes scanned on columnar Capacitor storage. First, we never run `SELECT *`—Power BI queries only the required projection columns. Second, we **Time-Partitioned** the table by `DATE(published_at)` with `require_partition_filter = true`. Third, we **Clustered** the table by `(primary_ticker, language_code, sentiment_bucket)`. When an analyst filters for `RELIANCE` over the last 30 days, BigQuery prunes 98%+ of micro-blocks without scanning irrelevant sectors."
+      },
+      {
+        "question": "How do you handle OOV (Out-of-Vocabulary) entities—like a brand-new IPO ticker or a newly appointed CEO that wasn't in your NER training data?",
+        "answer": "Pure sequence-labeling NER models rely on contextual clues (*'appointed X as CEO'*), which catches ~75% of unseen names, but fails on novel stock tickers. We solved this with a **Hybrid Gazetteer + Span-Confidence Router**: (1) an automated daily job syncs the master NSE/BSE ticker & company registry into an **Aho-Corasick trie** (O(N) exact multi-pattern matcher taking <0.5ms), and (2) any article where the Transformer NER outputs high entropy (confidence between 0.45 and 0.70) is asynchronously routed to **Gemini Flash** to extract novel entities and auto-populate our weekly active-learning retraining queue."
+      }
+    ]
+  },
+  {
+    "id": "proj-network18-video",
+    "tag": "Network18 Video Engine",
+    "company": "Network18",
+    "title": "AI Video Repurposing Engine",
+    "subtitle": "Gemini Multimodal API + MoviePy/FFmpeg + FastAPI + Docker on Cloud Run",
+    "elevatorPitch": "Designed and containerized an AI-powered video repurposing service on Google Cloud Run using FastAPI, Docker, Gemini Multimodal API, and MoviePy. Automatically analyzes long-form broadcast news videos to identify high-engagement viral segments, timestamps, and hooks, cutting manual video editing effort by ~85% while achieving 84% highlight selection precision.",
+    "impactMetrics": [
+      { "label": "Manual Effort Saved", "value": "~85%", "delta": "Automated clip extraction" },
+      { "label": "Highlight Precision", "value": "84.0%", "delta": "Editorial acceptance rate" },
+      { "label": "Deployment Footprint", "value": "Scale-to-Zero", "delta": "Serverless Cloud Run containers" },
+      { "label": "Turnaround Time", "value": "< 3 mins", "delta": "Down from 45+ mins manual edit" }
+    ],
+    "techStack": [
+      "Python",
+      "FastAPI",
+      "Gemini 1.5 Pro / Flash (Native Video)",
+      "MoviePy / FFmpeg",
+      "Google Cloud Run",
+      "Cloud Storage (GCS)",
+      "Cloud Pub/Sub",
+      "Docker"
+    ],
+    "currentArchitectureMermaid": "flowchart LR\n    Editor[\"Newsroom Editor\"] -->|Upload Broadcast Video| API[\"Cloud Run FastAPI Service\\n(Dockerized)\"]\n    API --> GCS[(\"Google Cloud Storage\")]\n    GCS --> Gemini[\"Gemini Multimodal API\\n(Timestamp & Hook Detection)\"]\n    Gemini -->|JSON Start/End Timestamps| MoviePy[\"MoviePy / FFmpeg Clip Renderer\"]\n    MoviePy --> Shorts[(\"GCS Output Clips +\\nCaptions JSON\")]\n    Shorts --> Editor",
+    "scale100xArchitectureMermaid": "flowchart TD\n    Editors[\"5,000 Concurrent Editors\\n(1-Hr 4K Broadcasts)\"] -->|1. Request Upload Slot| API[\"Cloud Run FastAPI Gateway\"]\n    API -->|2. Return v4 Signed URL - sub-30ms| Editors\n    Editors -->|3. Direct Resumable Upload| GCSRaw[(\"GCS Raw Video Bucket\")]\n    GCSRaw -->|4. OBJECT_FINALIZE Event| PubSub1[[\"Pub/Sub: video-ingest-topic\"]]\n    PubSub1 --> Splitter[\"Cloud Run Job: FFmpeg Keyframe Splitter\\n(-c copy, 5-min segments, zero re-encode)\"]\n    Splitter --> PubSub2[[\"Pub/Sub: chunk-analysis-topic (Fan-Out)\"]]\n    PubSub2 --> VisionPool[\"Parallel Analysis Workers\\n(Low-Bitrate 360p Proxy @ 1 FPS -> Gemini Flash)\"]\n    VisionPool -->|Validated Timestamps| RenderQueue[[\"Pub/Sub: ffmpeg-render-topic\"]]\n    RenderQueue --> GPUFleet[\"GKE / Cloud Run L4 GPU Workers\\n(FFmpeg NVENC Hardware Encoding)\"]\n    GPUFleet --> CDN[(\"GCS + Cloud CDN Ready Clips\")]",
+    "hardNumbers": {
+      "qps": "Current: 20–50 daily broadcast jobs → 100x Target: 5,000 concurrent 1-hour video uploads",
+      "dailyVolume": "Current: ~30 hours video/day → 100x Target: 15,000 hours of 4K broadcast video/day",
+      "latency": "Current: ~160s per 20-min video → 100x Target: <45s for a 1-hour video via 12x chunk fan-out",
+      "costPer1k": "$0.18 per hour of video analyzed (using 360p 1-FPS proxy stream + Gemini Flash)",
+      "evalMetrics": "Highlight Selection Precision: 84.0% | Boundary Timestamp IoU: 0.89 | Editor Effort Reduction: 85%"
+    },
+    "hostileQuestions": [
+      {
+        "question": "Why did you use Cloud Run here when video processing is heavy and stateful, whereas you used GKE at Deloitte?",
+        "answer": "Workload traffic shape dictates compute choice. Editorial video repurposing at Network18 is **bursty and diurnal**—editors upload heavily after prime-time broadcasts and zero jobs run at 3 AM. Cloud Run with **CPU always allocated during job execution + scale-to-zero** meant we paid $0 during idle hours, whereas a 24/7 GKE cluster with high-CPU nodes would sit 70% idle. For long renders exceeding HTTP request timeouts, **Cloud Run Jobs** (up to 24-hour execution, triggered via Pub/Sub) give serverless economics without container cold-start impact on end users."
+      },
+      {
+        "question": "MoviePy loads frames into Python numpy arrays in RAM. If 100 users upload 1-hour 1080p videos at once, won't your Cloud Run instances immediately crash with OOM (Out-of-Memory)?",
+        "answer": "Yes, if you use naive `VideoFileClip` frame iteration or accept raw file uploads through FastAPI memory! We prevented OOM in three ways: First, **Direct-to-GCS Signed URLs** so video bytes never touch FastAPI RAM. Second, `maxInstanceRequestConcurrency = 1` on the video rendering worker container (with 8 GB RAM / 4 vCPU per instance) so two videos never contend for memory on the same container. Third, for simple cuts without complex Python frame overlays, we invoke **`ffmpeg -ss <start> -to <end> -i input.mp4 -c copy`** via subprocess, which slices keyframes at the container demuxer level in <2 seconds using under 50 MB of RAM."
+      },
+      {
+        "question": "Sending a raw 4GB 4K broadcast file to Gemini API wastes massive bandwidth and tokens. How do you optimize multimodal video input?",
+        "answer": "Gemini samples video at **1 frame per second (1 FPS)** and downscales resolution internally (~258 tokens/sec of video). Uploading a 4GB 4K 60fps master file to Vertex AI adds zero semantic accuracy while bottlenecking network I/O. Our ingest splitter generates a lightweight **360p, 1-FPS, mono-audio proxy MP4 (~15 MB per hour)** solely for Gemini Multimodal timestamp discovery. Once Gemini returns the JSON `{start_ms, end_ms, viral_score}` coordinates, the FFmpeg cutter slices the original **4K 60fps master file** in GCS at those exact timestamps."
+      },
+      {
+        "question": "What happens if Gemini returns a timestamp that cuts off a news anchor mid-sentence?",
+        "answer": "LLMs operating on 1-FPS video frames have ~1-second temporal quantization jitter. To guarantee broadcast-grade cuts, we align Gemini's semantic timestamps with **Deterministic Audio/Scene Boundaries**: we run lightweight **Silero VAD (Voice Activity Detection)** / word-level timestamps on the audio track and **PySceneDetect** for camera shot changes. Our post-processor snaps Gemini's raw `start_time` and `end_time` to the nearest **silence gap (≥250ms) and shot boundary** within a ±2.5s window, eliminating mid-word cuts and boosting editor precision to 84%."
+      },
+      {
+        "question": "If a 1-hour video job fails at minute 55 during rendering, do you restart the entire pipeline and pay for Gemini tokens again?",
+        "answer": "No. The pipeline is decomposed into **Idempotent Checkpointed Stages** persisted in Firestore/GCS: Stage 1 (Proxy Generation), Stage 2 (Gemini Multimodal JSON Analysis), and Stage 3 (Parallel Clip Rendering). The Gemini JSON response is cached in GCS keyed by `sha256(video_id + prompt_version)`. Furthermore, each output clip (`clip_1` through `clip_10`) is rendered as an independent Pub/Sub fan-out task. If `clip_7` fails due to a transient worker preemption, only `clip_7` retries, reading the already-persisted timestamps with zero repeat LLM cost."
+      }
+    ]
+  }
+]

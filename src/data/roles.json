@@ -1,0 +1,150 @@
+{
+  "intro": "Your stack (Python/FastAPI, ADK + LangGraph, Vertex/Gemini, GKE/Cloud Run/Pub/Sub, RAG on ChromaDB, NER with HF Transformers, evals) maps most directly to applied-LLM and agent-platform roles. Pick one PRIMARY track and one SECONDARY track; the tracks change how much weight you give each module, not what you learn.",
+  "weightLegend": { "3": "Core — be able to whiteboard it cold", "2": "Solid — defend resume claims + basic design", "1": "Skim — know vocabulary and trade-offs", "0": "Skip for now" },
+  "roles": [
+    {
+      "id": "applied-llm",
+      "title": "Senior Applied AI / LLM Engineer",
+      "priority": "PRIMARY",
+      "fit": "Strong fit",
+      "tagline": "Ship RAG + agent features to production and own quality, latency and cost.",
+      "titlesToSearch": ["Senior AI Engineer", "Applied AI Engineer", "LLM Engineer", "Senior Machine Learning Engineer (GenAI)", "AI Engineer, RAG / Search"],
+      "targetCompanies": "Product companies shipping LLM features (fintech, media, SaaS, e-commerce), AI-first startups, big-tech applied teams, and GenAI practices at consultancies.",
+      "whatTheyTest": [
+        "Design an end-to-end RAG / assistant system with a latency, cost and quality budget",
+        "Retrieval quality: chunking, hybrid search, reranking, evals",
+        "Reliability: caching, fallbacks, guardrails, observability",
+        "Defending your own projects at 10x–100x scale"
+      ],
+      "weights": { "fund": 2, "mod-1": 2, "mod-2": 3, "mod-3": 3, "mod-4": 2, "mod-5": 3 },
+      "mustDo": ["session-04", "session-05", "session-06", "session-08", "session-09", "session-10", "session-11", "session-17", "session-18", "session-19", "session-20"],
+      "skim": ["session-13", "session-14", "session-15", "session-16"],
+      "skip": [],
+      "gapsToClose": [
+        "Online evals + A/B testing of prompts/models (not just offline golden sets)",
+        "A concrete story for cost per request and how you reduced it",
+        "Know one non-GCP equivalent for each service you used (Pub/Sub→Kafka/SQS, Vertex Vector Search→pgvector/Pinecone/Qdrant, GKE→EKS)"
+      ],
+      "problems": ["enterprise-rag", "chat-assistant", "llm-gateway", "support-agent", "content-moderation"],
+      "resumeFraming": "Lead with Deloitte multi-agent support (quantified savings + latency) and the multimodal asset RAG. Network18 NER/video pipelines show breadth."
+    },
+    {
+      "id": "agent-platform",
+      "title": "AI Agent / Agentic Platform Engineer",
+      "priority": "PRIMARY",
+      "fit": "Strong fit",
+      "tagline": "Build the orchestration, state, tool and safety layers agents run on.",
+      "titlesToSearch": ["AI Agent Engineer", "Agentic Systems Engineer", "Senior Software Engineer, Agents", "AI Platform Engineer", "Member of Technical Staff (Agents)"],
+      "targetCompanies": "Agent-focused startups, developer-tool and workflow-automation companies, and enterprise platform teams building internal agent frameworks.",
+      "whatTheyTest": [
+        "Agent topologies, tool-calling protocols (MCP/A2A), planning vs. reactive loops",
+        "Durable state, checkpointing, resumability, idempotent tools",
+        "Failure handling: retries, sagas, loop/budget limits, human-in-the-loop",
+        "Sandboxing, scoped permissions, prompt-injection defense",
+        "Evaluating non-deterministic multi-step systems"
+      ],
+      "weights": { "fund": 3, "mod-1": 2, "mod-2": 1, "mod-3": 3, "mod-4": 1, "mod-5": 3 },
+      "mustDo": ["session-02", "session-03", "session-09", "session-10", "session-11", "session-12", "session-17", "session-18", "session-19", "session-20"],
+      "skim": ["session-04", "session-05", "session-06", "session-08"],
+      "skip": ["session-14", "session-16"],
+      "gapsToClose": [
+        "Durable execution engines (Temporal / Workflow-style) — know why checkpointing in Redis is not the same thing",
+        "Code-execution sandboxes (gVisor/Firecracker/containers), browser/computer-use agents",
+        "Trace-based debugging of agent runs (OpenTelemetry spans per tool call)"
+      ],
+      "problems": ["support-agent", "coding-agent", "llm-gateway", "chat-assistant", "workflow-automation"],
+      "resumeFraming": "Make the Deloitte orchestrator the centerpiece: topology choice, state store, failure modes, TTFT budget."
+    },
+    {
+      "id": "llm-infra",
+      "title": "LLM Platform / Inference Infrastructure Engineer",
+      "priority": "STRETCH",
+      "fit": "Stretch — needs ~4–6 weeks of extra serving depth",
+      "tagline": "Own model serving, batching, GPU cost and the gateway in front of it.",
+      "titlesToSearch": ["ML Platform Engineer", "Inference Engineer", "LLM Infrastructure Engineer", "AI Infrastructure Engineer", "MLOps Engineer"],
+      "targetCompanies": "Model providers, inference-hosting companies, and larger orgs with in-house GPU fleets and internal LLM platforms.",
+      "whatTheyTest": [
+        "KV cache, continuous batching, paged attention, quantization, speculative decoding",
+        "GPU capacity planning, autoscaling on queue depth / tokens-per-second",
+        "Multi-tenant gateway: quotas, routing, fallback, per-team cost attribution",
+        "Kubernetes at depth (GPU scheduling, node pools, rollouts)"
+      ],
+      "weights": { "fund": 3, "mod-1": 3, "mod-2": 1, "mod-3": 1, "mod-4": 3, "mod-5": 2 },
+      "mustDo": ["session-01", "session-02", "session-03", "session-04", "session-14", "session-15", "session-19", "session-20"],
+      "skim": ["session-05", "session-13", "session-16", "session-17"],
+      "skip": ["session-07", "session-09"],
+      "gapsToClose": [
+        "Hands-on: run vLLM or TGI yourself and benchmark TTFT / tokens-per-second at different batch sizes",
+        "GPU basics: memory bandwidth vs. compute bound, tensor parallelism, FlashAttention",
+        "Your resume is API-consumer heavy — be honest and show the NER serving work as your inference experience"
+      ],
+      "problems": ["llm-gateway", "inference-serving", "chat-assistant", "enterprise-rag"],
+      "resumeFraming": "Lead with high-QPS NER serving, the $1.3M cost savings, and GKE operations."
+    },
+    {
+      "id": "solutions-architect",
+      "title": "AI Solutions Architect / Forward-Deployed Engineer",
+      "priority": "SECONDARY",
+      "fit": "Good fit — consulting background is a real advantage",
+      "tagline": "Turn a customer's messy problem into a deployed, defensible AI system.",
+      "titlesToSearch": ["Forward Deployed Engineer", "AI Solutions Architect", "Customer Engineer (AI)", "AI Consultant, Technical", "Applied AI Architect"],
+      "targetCompanies": "Cloud and model vendors' customer-facing teams, AI startups with enterprise customers, and consultancies' AI/architecture practices.",
+      "whatTheyTest": [
+        "Requirements gathering from vague prompts; scoping and phasing",
+        "Security, RBAC, data residency, compliance in enterprise RAG",
+        "Build vs. buy and cost/ROI conversations",
+        "Clear communication: diagrams, trade-offs, risk"
+      ],
+      "weights": { "fund": 1, "mod-1": 2, "mod-2": 3, "mod-3": 2, "mod-4": 1, "mod-5": 3 },
+      "mustDo": ["session-01", "session-04", "session-05", "session-06", "session-08", "session-09", "session-17", "session-18", "session-19", "session-20"],
+      "skim": ["session-10", "session-11", "session-12", "session-13", "session-16"],
+      "skip": ["session-14", "session-15"],
+      "gapsToClose": [
+        "Practice 10-minute requirement-clarification openings (questions before boxes)",
+        "Multi-cloud vocabulary: you will meet AWS/Azure customers",
+        "ROI stories: translate the 3,500+ man-hours and $1.3M savings into repeatable business cases"
+      ],
+      "problems": ["enterprise-rag", "support-agent", "content-moderation", "workflow-automation"],
+      "resumeFraming": "Deloitte client delivery is your edge. Show requirements → design → measured business impact."
+    },
+    {
+      "id": "ml-engineer",
+      "title": "Machine Learning Engineer (Data / NLP leaning)",
+      "priority": "SECONDARY",
+      "fit": "Good fit — requires classical ML system design on top",
+      "tagline": "Train, serve and monitor models and data pipelines at scale.",
+      "titlesToSearch": ["Machine Learning Engineer", "NLP Engineer", "Data Scientist (ML Engineering)", "Senior ML Engineer, Search/Ranking"],
+      "targetCompanies": "Media, fintech, marketplaces and search/recommendation teams; companies with established ML platforms.",
+      "whatTheyTest": [
+        "Classic ML system design: feature stores, training pipelines, offline vs. online serving",
+        "Streaming vs. batch data pipelines, BigQuery/Spark performance",
+        "Model monitoring, drift, retraining triggers",
+        "NLP-specific serving (batching, quantization, ONNX)"
+      ],
+      "weights": { "fund": 3, "mod-1": 1, "mod-2": 2, "mod-3": 1, "mod-4": 3, "mod-5": 2 },
+      "mustDo": ["session-05", "session-06", "session-13", "session-14", "session-16", "session-17", "session-20"],
+      "skim": ["session-02", "session-04", "session-15", "session-18"],
+      "skip": ["session-09", "session-12"],
+      "gapsToClose": [
+        "Recommendation / ranking system design (two-tower retrieval, ranking, feature store) — not covered here yet",
+        "Experimentation: A/B test design, metric sensitivity, guardrail metrics",
+        "Drift detection and retraining pipelines (e.g. Vertex AI Pipelines / Kubeflow-style)"
+      ],
+      "problems": ["inference-serving", "enterprise-rag", "content-moderation", "chat-assistant"],
+      "resumeFraming": "Lead with Network18 multilingual NER (80–90% F1, 600+ articles/day) and BigQuery/PySpark reporting automation."
+    }
+  ],
+  "studyPlan": {
+    "title": "Suggested 8-week sequence (about 8–10 hrs/week)",
+    "weeks": [
+      { "week": "1", "focus": "Fundamentals: replication, partitioning, consistency, queues vs logs", "do": ["fund-01", "fund-02", "fund-03", "fund-04"] },
+      { "week": "2", "focus": "Reliability + back-of-envelope + caching/rate limits", "do": ["fund-05", "fund-06", "fund-07", "fund-08", "session-03", "session-04"] },
+      { "week": "3", "focus": "Module 1 on GCP + async pipelines", "do": ["session-01", "session-02"] },
+      { "week": "4", "focus": "Module 2 RAG at scale", "do": ["session-05", "session-06", "session-07", "session-08"] },
+      { "week": "5", "focus": "Module 3 agents", "do": ["session-09", "session-10", "session-11", "session-12"] },
+      { "week": "6", "focus": "Module 4 (weight by track) + Module 5 evals/security", "do": ["session-13", "session-14", "session-15", "session-16", "session-17", "session-18"] },
+      { "week": "7", "focus": "Gateway + problem bank (2 problems, timed)", "do": ["session-19", "problem:enterprise-rag", "problem:support-agent"] },
+      { "week": "8", "focus": "Mocks: 1 problem every other day, then the capstone", "do": ["problem:llm-gateway", "problem:chat-assistant", "session-20"] }
+    ]
+  }
+}

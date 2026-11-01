@@ -1,0 +1,122 @@
+[
+  {
+    "id": "fc-001",
+    "sessionId": "session-01",
+    "module": "Module 1",
+    "projectTag": "Deloitte Multi-Agent",
+    "question": "In simple terms, why did you deploy the Deloitte Customer Support AI on GKE (Kubernetes), but the Network18 Video Editor on Cloud Run?",
+    "answer": "Think of **GKE like leasing a bus fleet 24/7**, and **Cloud Run like calling an Uber on demand**:\n\n1. **Zero Startup Wait (0ms Cold Start):** Live support chat needs a reply in `<2 seconds`. GKE keeps servers warm 24/7 with libraries and database connections already loaded, whereas Cloud Run takes `3–5 seconds` to wake up from zero.\n2. **Waiter vs. Chef Workloads:** The Deloitte chatbot mostly *waits* on Gemini over the network (I/O-bound), so 1 GKE pod easily juggles **250 live chats at once** and keeps background tasks running after replying. The Network18 app cuts heavy HD video (CPU/RAM-bound), so each worker can only handle **1 video at a time (`concurrency = 1`)**.\n3. **Cost Pattern:** Network18 had zero traffic overnight, so Cloud Run scaled to `0` (`$0` idle cost). Deloitte ran steady 24/7 enterprise traffic, where GKE is **40–60% cheaper**."
+  },
+  {
+    "id": "fc-002",
+    "sessionId": "session-01",
+    "module": "Module 1",
+    "projectTag": "Deloitte Multi-Agent",
+    "question": "How can a single GKE FastAPI Pod (with just 2 CPU cores) handle 250+ live AI chats at the same time without freezing?",
+    "answer": "1. **1 Worker per CPU Core:** We run **2 Uvicorn workers** on a `2 vCPU / 4 GB RAM` pod (`1 worker per core`) so processes don't fight over CPU, and let Kubernetes add more pods when traffic grows.\n2. **The 'Waiter' Pattern (`async/await`):** Because 92% of chat time is just waiting for Gemini or Redis to respond over the network, Python's `asyncio` event loop doesn't sit idle—while waiting on User #1's AI reply, it immediately takes requests from Users #2 through #250.\n3. **Never Block the Waiter:** If any step requires heavy CPU math (like parsing a huge JSON/PDF file), we offload it to a background thread (`asyncio.to_thread()`) so the main event loop never freezes for the other 249 users."
+  },
+  {
+    "id": "fc-003",
+    "sessionId": "session-02",
+    "module": "Module 1",
+    "projectTag": "Network18 Video Engine",
+    "question": "If 5,000 editors upload 1-hour videos simultaneously to the Network18 AI Video Repurposing Engine, how do you prevent FastAPI OOM crashes and Cloud Run 60-minute timeouts?",
+    "answer": "1. **Direct-to-GCS Signed URLs:** Bypass FastAPI for file bytes; issue a GCS v4 Signed URL with resumable chunked upload so video streams go directly from browser to Cloud Storage.\n2. **Pub/Sub Event Decoupling:** GCS `OBJECT_FINALIZE` triggers a Pub/Sub topic. FastAPI returns a `202 Accepted` + `job_id` in <50ms.\n3. **Chunked Parallel Processing (Map-Reduce):** A splitter worker slices the 1-hr video at scene/silence boundaries into twelve 5-minute chunks via FFmpeg stream copy (`-c copy`, zero re-encoding) and fans out chunk tasks over Pub/Sub.\n4. **Idempotency & DLQ:** Track `chunk_id + sha256` in Redis/Firestore; configure Pub/Sub ack deadline extension (up to 600s) and route poison-pill corrupt videos to a Dead Letter Queue after 3 retries."
+  },
+  {
+    "id": "fc-004",
+    "sessionId": "session-03",
+    "module": "Module 1",
+    "projectTag": "Deloitte Multi-Agent",
+    "question": "Why does standard HTTP Request-Per-Minute (RPM) rate limiting fail for Enterprise LLM Gateways, and how do you implement Token-Per-Minute (TPM) rate limiting?",
+    "answer": "1. **Why RPM Fails:** One request with a 100k-token context window consumes 500x more Vertex AI quota than a 200-token classification prompt.\n2. **Dual Token Bucket in Redis (Lua Script):** Maintain two atomic Redis buckets per tenant: `RPM` and `TPM`.\n3. **Pre-Flight Reservation + Post-Flight Reconciliation:** Before calling Gemini, estimate input tokens (`len(chars)/4`) + `max_output_tokens` and deduct atomically via a Redis Lua script. Once streaming finishes, refund `(reserved_output - actual_output)` tokens back to the bucket.\n4. **Priority Tiering:** Reserve 30% of regional Vertex AI TPM quota exclusively for P0 customer-facing traffic; throttle P2 batch jobs first when utilization hits 70%."
+  },
+  {
+    "id": "fc-005",
+    "sessionId": "session-04",
+    "module": "Module 1",
+    "projectTag": "Deloitte Multi-Agent",
+    "question": "When does Semantic Caching actually hurt latency or accuracy in a production RAG/Agent system, and what is the break-even math?",
+    "answer": "1. **Latency Math:** Embedding call (~35ms) + Vector HNSW lookup (~15ms) = **~50ms overhead** on every cache miss. If hit rate < 15%, average latency *increases*.\n2. **False-Positive Danger:** Queries like *'What is our Q3 revenue in India?'* vs *'What is our Q4 revenue in India?'* have >0.96 cosine similarity! Pure semantic caching will serve stale/wrong financial numbers.\n3. **Production Fix:** Extract hard entities/dates/filters first (`quarter=Q4, region=IN`) as an exact Redis namespace prefix before running vector similarity (threshold ≥ 0.94), and combine with **Provider Prompt Caching** (75% discount on static system prompts/tools)."
+  },
+  {
+    "id": "fc-006",
+    "sessionId": "session-05",
+    "module": "Module 2",
+    "projectTag": "Deloitte Slide RAG",
+    "question": "How do you estimate the RAM required for an HNSW vector index with 50 million embeddings of 1536 dimensions in FP32 vs. INT8 scalar quantization?",
+    "answer": "**Formula:** `RAM = Vectors * Dimensions * Bytes_per_dim * 1.5 (HNSW graph overhead)`\n\n- **FP32 (4 bytes):** `50M * 1536 * 4 * 1.5` ≈ **460.8 GB RAM** (Requires expensive distributed memory cluster).\n- **INT8 Quantization (1 byte):** `50M * 1536 * 1 * 1.5` ≈ **115.2 GB RAM** (4x reduction with <1-2% recall drop when paired with a Cross-Encoder reranker).\n- **Binary / PQ (Product Quantization):** Compresses further by 8–32x using asymmetric distance computation, keeping hot centroids in RAM and raw FP16 vectors on NVMe SSD for rescoring."
+  },
+  {
+    "id": "fc-007",
+    "sessionId": "session-06",
+    "module": "Module 2",
+    "projectTag": "Network18 Financial News",
+    "question": "Why did dense embeddings alone miss critical financial queries in your Network18 pipeline, and how do BM25 + RRF + Cross-Encoder Reranking solve it?",
+    "answer": "1. **Dense Embedding Blindspot:** Bi-encoders compress text into a smooth semantic space, losing exact lexical matches on stock tickers (`RELIANCE.NS`), regulatory codes (`SEBI LODR Reg 30`), and rare executive names.\n2. **Hybrid Retrieval + RRF:** Run parallel **BM25 Sparse Search** (top 100) + **Dense HNSW Search** (top 100) and merge via **Reciprocal Rank Fusion**: `Score = 1/(60 + rank_bm25) + 1/(60 + rank_dense)`. RRF requires zero score normalization.\n3. **Two-Stage Reranking:** Pass the top 50 fused candidates into a lightweight Cross-Encoder (`bge-reranker-v2-m3` on L4 GPU, ~35ms) to compute full token-by-token cross-attention before feeding the top 5 chunks to Gemini."
+  },
+  {
+    "id": "fc-008",
+    "sessionId": "session-07",
+    "module": "Module 2",
+    "projectTag": "Deloitte Slide RAG",
+    "question": "In your Deloitte Multimodal Slide RAG pipeline, how do you scale from thousands of slides to 10M+ slides while handling edits and deduplicating template boilerplate?",
+    "answer": "1. **Two-Tier Deduplication:** Compute **SHA-256** on slide XML/text for exact match, and **pHash (Perceptual Hash) / MinHash LSH** on rendered slide PNGs to skip 65%+ duplicate title/disclaimer/template slides across decks.\n2. **Delta Slide Indexing:** Parse `.pptx` zip archives (`ppt/slides/slideX.xml`); only re-render and call Gemini Flash Vision on slides whose XML hash changed, cutting Vision token spend by ~80%.\n3. **Dual-Vector Representation:** Index both the **Vision LLM structured markdown summary** (charts, tables, key metrics) AND raw OCR text, linking back to the signed GCS slide image URL for visual citation verification."
+  },
+  {
+    "id": "fc-009",
+    "sessionId": "session-08",
+    "module": "Module 2",
+    "projectTag": "Deloitte Slide RAG",
+    "question": "Compare Pre-Filtering vs. Post-Filtering vs. Single-Stage Filtered HNSW for enforcing Enterprise RBAC in Vector Databases.",
+    "answer": "1. **Post-Filtering Pitfall:** Fetching top-K=20 globally and then filtering by `user_groups` can result in **0 results returned** (low-selectivity starvation) if the user only has access to 1% of the corpus.\n2. **Naive Pre-Filtering Pitfall:** Filtering 50M vectors down to 50k first breaks the HNSW graph connectivity, forcing a slow brute-force flat scan.\n3. **Production Solution:** Use **Single-Stage Filtered HNSW (Payload Bitmaps / Acorn-1)** where metadata inverted-index bitmaps (`allowed_groups: ['audit-partner', 'practice-ai']`) are evaluated *during* graph traversal, coupled with physical namespace partitioning for strict regulatory tenants."
+  },
+  {
+    "id": "fc-010",
+    "sessionId": "session-09",
+    "module": "Module 3",
+    "projectTag": "Deloitte Multi-Agent",
+    "question": "How did you architect the agent topology in the Deloitte Customer Support system using Google ADK & LangGraph, and why did you choose Supervisor + DAG over an autonomous Swarm?",
+    "answer": "1. **Bounded Determinism:** Enterprise support cannot tolerate unpredictable peer-to-peer Swarm handoffs. We used a **Hierarchical Supervisor + Deterministic State Graph**: an Intent Router classifies tickets and dispatches to specialized sub-agents (Billing, Order Triage, Policy RAG, Escalation).\n2. **Google ADK + MCP Integration:** Sub-agents access enterprise systems (SAP, Salesforce, ServiceNow) via standardized **MCP (Model Context Protocol)** tool servers with strict JSON Schema contracts.\n3. **Cost & Latency Control:** Capped graph depth at `max_steps = 6` and used structured output routing, eliminating conversational chitchat between agents and saving $1.3M+ annually."
+  },
+  {
+    "id": "fc-011",
+    "sessionId": "session-10",
+    "module": "Module 3",
+    "projectTag": "Deloitte Multi-Agent",
+    "question": "How does distributed agent state checkpointing work across stateless GKE FastAPI pods when a pod restarts mid-conversation?",
+    "answer": "1. **Super-Step Checkpointing:** After every node transition in LangGraph / Google ADK, serialize the state tuple `(thread_id, checkpoint_id, channel_values, pending_writes)` to **Redis Cluster (hot, 24h TTL)** and asynchronously flush to **Cloud SQL Postgres (cold audit log)**.\n2. **Optimistic Concurrency Control:** Use `checkpoint_id` version fencing (`SET NX` or CAS) so duplicate webhook retries cannot corrupt state.\n3. **Three-Tier Memory:**\n   - *Working Memory:* Sliding window of last 8 turns + rolling summary.\n   - *Episodic Memory:* Past ticket resolutions in Vector DB.\n   - *Semantic Profile:* Structured customer KV facts in Redis/Postgres."
+  },
+  {
+    "id": "fc-012",
+    "sessionId": "session-11",
+    "module": "Module 3",
+    "projectTag": "Deloitte Multi-Agent",
+    "question": "What concrete engineering techniques kept your Deloitte Multi-Agent system's Time-To-First-Token (TTFT) under 2 seconds?",
+    "answer": "1. **Speculative Parallel Execution:** Run the Input Guardrail (Llama-Guard/Flash-8B), Customer Profile Lookup (Redis), and RAG Embedding Search **in parallel via `asyncio.gather()`** rather than sequentially—saving ~450ms.\n2. **Model Tiering:** Use **Gemini 1.5/2.0 Flash** (~220ms TTFT) for the Intent Router and Tool Calling nodes; invoke Pro only for complex dispute synthesis.\n3. **SSE Intermediate Progress Streaming:** Immediately stream Server-Sent Events (`status: 'Checking order #4829...'`) within 250ms while tool calls execute, masking downstream API latency."
+  },
+  {
+    "id": "fc-013",
+    "sessionId": "session-14",
+    "module": "Module 4",
+    "projectTag": "Network18 Financial News",
+    "question": "How did you optimize the Multilingual Transformer NER model (80–90% F1) at Network18, and how would you scale it to 5,000 QPS on GPUs?",
+    "answer": "1. **Graph & Precision Optimization:** Export PyTorch Hugging Face XLM-RoBERTa/IndicBERT NER to **ONNX Runtime / TensorRT** with operator fusion (LayerNorm + GELU) and **FP16 / INT8 calibration**, cutting inference latency from 45ms to **3.8ms**.\n2. **Dynamic Batching + Sequence Bucketing:** Run on **Triton Inference Server** with a `max_queue_delay = 5ms` window and pad to the longest sentence in the micro-batch (not max 512 tokens) to avoid 70% wasted FLOPs on padding.\n3. **Throughput Math:** One NVIDIA L4 GPU processes ~1,400 sequences/sec in FP16 dynamic batches → **4 L4 GPUs** comfortably serve 5,000 QPS with headroom."
+  },
+  {
+    "id": "fc-014",
+    "sessionId": "session-15",
+    "module": "Module 4",
+    "projectTag": "Deloitte Multi-Agent",
+    "question": "Explain KV Cache fragmentation in LLM serving and how vLLM's PagedAttention solves it when self-hosting models on GKE.",
+    "answer": "1. **The KV Cache Bottleneck:** Autoregressive decoding stores Key and Value tensors for all prior tokens. Standard serving pre-allocates contiguous GPU VRAM for `max_seq_len` (e.g., 32k), wasting **60–80% of VRAM** on internal/external fragmentation.\n2. **PagedAttention (vLLM):** Partitions the KV cache into fixed-size blocks (e.g., 16 tokens/block) mapped via a virtual block table—just like OS virtual memory pages.\n3. **Impact:** Near-zero memory waste (<4%), copy-on-write prefix sharing for shared system prompts, and **3–5x higher continuous batching throughput** before hitting GPU HBM limits."
+  },
+  {
+    "id": "fc-015",
+    "sessionId": "session-17",
+    "module": "Module 5",
+    "projectTag": "Deloitte Multi-Agent",
+    "question": "How did you design the Automated Evaluation (LLMOps) pipeline for your RAG and Multi-Agent systems to catch regressions before production?",
+    "answer": "1. **Golden Dataset Stratification:** Curated 500+ real anonymized queries across 4 buckets: Happy Path (50%), Multi-Hop Reasoning (25%), Adversarial/Out-of-Scope (15%), and Edge Formatting (10%).\n2. **The RAG Triad + Agent Trajectory Evals:** Measure **Context Relevance**, **Groundedness (Hallucination check)**, **Answer Relevance**, and **Tool Selection Precision/Recall** (`expected_tool_calls == actual_tool_calls`).\n3. **Debiasing LLM-as-a-Judge:** Use pairwise position swapping (run A-vs-B and B-vs-A to eliminate position bias), integer 1–5 rubrics with chain-of-thought critique first, and block CI/CD PR merges if Groundedness drops below **0.94**."
+  }
+]

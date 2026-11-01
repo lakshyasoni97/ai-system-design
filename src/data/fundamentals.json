@@ -1,0 +1,14 @@
+{
+  "title": "Module 0: Distributed Systems Fundamentals",
+  "focus": "The classic building blocks interviewers probe before (and underneath) any AI-specific question. Do this first.",
+  "topics": [
+    { "id": "fund-01", "number": 1, "title": "Replication, Consistency & CAP/PACELC", "readTime": "15 min", "aiTieIn": "Vector DB replicas, Redis agent-state failover, multi-region Gemini fallbacks" },
+    { "id": "fund-02", "number": 2, "title": "Partitioning, Sharding & Consistent Hashing", "readTime": "14 min", "aiTieIn": "Sharding 100M+ vectors, per-tenant indexes, routing sessions to pods" },
+    { "id": "fund-03", "number": 3, "title": "Storage Engines & Choosing a Database", "readTime": "14 min", "aiTieIn": "Postgres+pgvector vs dedicated vector DB, BigQuery vs OLTP, checkpoint stores" },
+    { "id": "fund-04", "number": 4, "title": "Queues vs Logs & Delivery Semantics", "readTime": "13 min", "aiTieIn": "Pub/Sub for video jobs, Kafka-style ingestion for news, idempotent LLM workers" },
+    { "id": "fund-05", "number": 5, "title": "Reliability Patterns: Timeouts, Retries, Circuit Breakers, Backpressure", "readTime": "15 min", "aiTieIn": "Gemini 429s/timeouts, tool failures inside agent loops, graceful degradation" },
+    { "id": "fund-06", "number": 6, "title": "Caching & Rate Limiting Fundamentals", "readTime": "13 min", "aiTieIn": "Prompt/semantic caches, TPM quotas, per-tenant fairness" },
+    { "id": "fund-07", "number": 7, "title": "Back-of-the-Envelope Estimation Toolkit", "readTime": "14 min", "aiTieIn": "Tokens/sec, GPU RAM, vector index size, cost per 1k requests" },
+    { "id": "fund-08", "number": 8, "title": "Observability, SLOs & Percentile Thinking", "readTime": "12 min", "aiTieIn": "TTFT P99, agent traces, quality SLOs next to latency SLOs" }
+  ]
+}
