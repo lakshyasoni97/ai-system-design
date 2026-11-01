@@ -28,6 +28,7 @@ import {
   Target,
   Library,
   ListChecks,
+  Highlighter,
 } from "lucide-react";
 import curriculumData from "@/data/curriculum.json";
 import projectsData from "@/data/projects.json";
@@ -44,6 +45,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
     isSessionCompleted,
     exportProgressJson,
     importProgressJson,
+    highlights,
   } = useProgress();
 
   // Desktop sidebar collapse state
@@ -126,6 +128,13 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
           title: "Go to Problem Bank",
           subtitle: "Standard AI system design problems",
           onSelect: () => router.push("/problems"),
+        },
+        {
+          id: "nav-highlights",
+          category: "Navigation",
+          title: "Go to Context Highlights",
+          subtitle: `${highlights.length} saved knowledge anchors & interview defenses`,
+          onSelect: () => router.push("/highlights"),
         },
         {
           id: "nav-curriculum",
@@ -225,6 +234,24 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
       }
     });
 
+    // Search Highlights
+    highlights.forEach((h) => {
+      if (
+        h.text.toLowerCase().includes(q) ||
+        (h.note && h.note.toLowerCase().includes(q)) ||
+        h.sourceTitle.toLowerCase().includes(q) ||
+        h.sectionTitle.toLowerCase().includes(q)
+      ) {
+        results.push({
+          id: `hl-${h.id}`,
+          category: "Highlights",
+          title: h.text.length > 60 ? h.text.slice(0, 60) + "..." : h.text,
+          subtitle: `${h.sourceTitle} • ${h.note || h.sectionTitle}`,
+          onSelect: () => router.push(`${h.href}?highlight=${h.id}`),
+        });
+      }
+    });
+
     // Search Flashcard topics
     flashcardsData.slice(0, 20).forEach((fc) => {
       if (
@@ -310,6 +337,9 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
     if (pathname.startsWith("/problems")) {
       return [{ label: "Problem Bank", href: "/problems" }];
     }
+    if (pathname.startsWith("/highlights")) {
+      return [{ label: "Highlights", href: "/highlights" }];
+    }
     if (pathname.startsWith("/projects")) {
       return [{ label: "Projects", href: "/projects" }];
     }
@@ -361,6 +391,12 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
       href: "/problems",
       label: "Problem Bank",
       icon: ListChecks,
+    },
+    {
+      href: "/highlights",
+      label: "Highlights",
+      icon: Highlighter,
+      badge: highlights.length > 0 ? String(highlights.length) : undefined,
     },
     {
       href: "/flashcards",
@@ -441,6 +477,17 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
                   />
                   <span>{item.label}</span>
                 </div>
+                {item.badge && (
+                  <span
+                    className={`rounded-full px-2 py-0.5 font-mono text-[10px] font-semibold ${
+                      isActive
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-muted-foreground"
+                    }`}
+                  >
+                    {item.badge}
+                  </span>
+                )}
               </Link>
             );
           })}

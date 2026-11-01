@@ -110,3 +110,95 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Context Highlighting Styles */
+mark.text-highlight {
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 1px 3px;
+  margin: 0 1px;
+  transition: all 0.15s ease-in-out;
+  text-decoration: none;
+}
+
+mark.text-highlight:hover {
+  filter: brightness(0.95);
+}
+
+.dark mark.text-highlight:hover {
+  filter: brightness(1.15);
+}
+
+/* Amber (Key Concept) */
+mark.text-highlight-amber {
+  background-color: rgba(245, 158, 11, 0.22);
+  color: #78350f;
+  border-bottom: 2px solid #f59e0b;
+}
+.dark mark.text-highlight-amber {
+  background-color: rgba(245, 158, 11, 0.25);
+  color: #fef3c7;
+  border-bottom: 2px solid #fbbf24;
+}
+
+/* Emerald (Formula / SLO) */
+mark.text-highlight-emerald {
+  background-color: rgba(16, 185, 129, 0.22);
+  color: #064e3b;
+  border-bottom: 2px solid #10b981;
+}
+.dark mark.text-highlight-emerald {
+  background-color: rgba(16, 185, 129, 0.25);
+  color: #d1fae5;
+  border-bottom: 2px solid #34d399;
+}
+
+/* Indigo (Interview Defense) */
+mark.text-highlight-indigo {
+  background-color: rgba(99, 102, 241, 0.22);
+  color: #312e81;
+  border-bottom: 2px solid #6366f1;
+}
+.dark mark.text-highlight-indigo {
+  background-color: rgba(99, 102, 241, 0.28);
+  color: #e0e7ff;
+  border-bottom: 2px solid #818cf8;
+}
+
+/* Rose (Trap / Failure Mode) */
+mark.text-highlight-rose {
+  background-color: rgba(244, 63, 94, 0.22);
+  color: #881337;
+  border-bottom: 2px solid #f43f5e;
+}
+.dark mark.text-highlight-rose {
+  background-color: rgba(244, 63, 94, 0.28);
+  color: #ffe4e6;
+  border-bottom: 2px solid #fb7185;
+}
+
+/* Deep link spotlight pulse */
+@keyframes highlightSpotlight {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  30% {
+    transform: scale(1.02);
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.35);
+  }
+  60% {
+    transform: scale(1.01);
+    box-shadow: 0 0 0 12px rgba(16, 185, 129, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.highlight-spotlight {
+  animation: highlightSpotlight 1.8s ease-out 2;
+  outline: 2px dashed #10b981;
+  outline-offset: 4px;
+}

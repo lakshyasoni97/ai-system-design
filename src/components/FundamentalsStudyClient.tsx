@@ -92,7 +92,14 @@ export default function FundamentalsStudyClient({
         <h1 className="mt-4 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{topic.title}</h1>
       </div>
 
-      <MarkdownArticle content={content} diagramTitle={`Fundamentals ${topic.number} — Diagram`} />
+      <MarkdownArticle
+        content={content}
+        diagramTitle={`Fundamentals ${topic.number} — Diagram`}
+        sourceType="fundamental"
+        sourceId={topic.id}
+        sourceTitle={`Topic ${topic.number}: ${topic.title}`}
+        href={`/fundamentals/${topic.id}`}
+      />
       <ReadingList items={reading} />
 
       <div className="flex items-center justify-between gap-3">

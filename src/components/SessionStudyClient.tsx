@@ -24,6 +24,7 @@ import MermaidDiagram from "./MermaidDiagram";
 import TradeoffTable from "./TradeoffTable";
 import FlashcardPlayer, { FlashcardItem } from "./FlashcardPlayer";
 import ReadingList from "./ReadingList";
+import HighlightableArticle from "./HighlightableArticle";
 import resourcesData from "@/data/resources.json";
 import { useProgress } from "./ProgressProvider";
 
@@ -286,10 +287,16 @@ export default function SessionStudyClient({
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
         {/* Main Markdown Article (lg:col-span-9) */}
         <div className="lg:col-span-9 space-y-8 min-w-0">
-          <article className="rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-xs">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
+          <HighlightableArticle
+            sourceType="session"
+            sourceId={session.id}
+            sourceTitle={`Session ${String(session.number).padStart(2, "0")}: ${session.title}`}
+            href={`/roadmap/${session.id}`}
+          >
+            <article className="rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-xs">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
                 h1: ({ children }) => {
                   // Suppress redundant H1 since it repeats the header above
                   return null;
@@ -353,6 +360,7 @@ export default function SessionStudyClient({
                   </blockquote>
                 ),
                 hr: () => <hr className="my-8 border-border" />,
+                pre: ({ children }) => <>{children}</>,
                 table: ({ children }) => <TradeoffTable>{children}</TradeoffTable>,
                 thead: ({ children }) => (
                   <thead className="border-b border-border bg-muted/60 font-mono text-xs uppercase tracking-wider text-foreground">
@@ -410,6 +418,7 @@ export default function SessionStudyClient({
               {markdownContent}
             </ReactMarkdown>
           </article>
+        </HighlightableArticle>
 
           {/* Reading list */}
           <ReadingList
@@ -551,6 +560,14 @@ export default function SessionStudyClient({
 
             {/* Quick Jumps */}
             <div className="border-t border-border pt-3 space-y-1.5 font-mono text-[11px]">
+              <button
+                type="button"
+                onClick={() => scrollToElement("page-highlights-drawer")}
+                className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              >
+                <span>Highlights</span>
+                <ChevronRight className="h-3 w-3 text-emerald-500" />
+              </button>
               <button
                 type="button"
                 onClick={() => scrollToElement("session-flashcards")}

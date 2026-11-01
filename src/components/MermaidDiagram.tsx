@@ -32,6 +32,18 @@ function sanitizeMermaidChart(rawChart: string): string {
   });
 }
 
+// Module-level serialized queue to prevent concurrent mermaid initialization & DOM collisions
+let mermaidRenderQueue = Promise.resolve();
+
+function enqueueMermaidRender<T>(task: () => Promise<T>): Promise<T> {
+  const result = mermaidRenderQueue.then(task, task);
+  mermaidRenderQueue = result.then(
+    () => {},
+    () => {}
+  );
+  return result;
+}
+
 export default function MermaidDiagram({ chart, title }: MermaidDiagramProps) {
   const uniqueId = useId().replace(/[^a-zA-Z0-9]/g, "");
   const { resolvedTheme } = useTheme();
@@ -44,84 +56,84 @@ export default function MermaidDiagram({ chart, title }: MermaidDiagramProps) {
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
+  const [retryNonce, setRetryNonce] = useState<number>(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let isMounted = true;
+    const renderId = `mermaid-svg-${uniqueId}-${Date.now()}`;
+    let tempContainer: HTMLDivElement | null = null;
 
-    // Helper to purge stray Mermaid error or temp nodes injected into document.body
-    const purgeStrayMermaidElements = (renderId?: string) => {
-      try {
-        if (renderId) {
-          const tempEl = document.getElementById(renderId);
-          if (tempEl?.parentNode) tempEl.parentNode.removeChild(tempEl);
-          const errEl = document.getElementById(`d${renderId}`);
-          if (errEl?.parentNode) errEl.parentNode.removeChild(errEl);
-        }
-        document
-          .querySelectorAll(
-            'body > [id^="dmermaid-svg-"], body > svg[id^="mermaid-svg-"], body > .error-icon, body > [id^="dmermaid"]'
-          )
-          .forEach((el) => el.remove());
-      } catch {
-        // ignore
-      }
-    };
-
-    async function renderMermaid() {
+    async function doRender() {
       if (!chart?.trim()) return;
-      const renderId = `mermaid-svg-${uniqueId}-${Date.now()}`;
+
       try {
         setRenderError(null);
-        const mermaidModule = await import("mermaid");
-        const mermaid = mermaidModule.default;
 
-        const isDark = resolvedTheme === "dark";
+        // Render inside serialized queue so Mermaid never collides with concurrent renders or theme resets
+        await enqueueMermaidRender(async () => {
+          if (!isMounted) return;
 
-        mermaid.initialize({
-          startOnLoad: false,
-          suppressErrorRendering: true,
-          theme: isDark ? "dark" : "base",
-          securityLevel: "loose",
-          fontFamily: "JetBrains Mono, IBM Plex Sans, monospace",
-          themeVariables: isDark
-            ? {
-                darkMode: true,
-                background: "#09090b",
-                primaryColor: "#18181b",
-                primaryTextColor: "#f4f4f5",
-                primaryBorderColor: "#10b981",
-                lineColor: "#818cf8",
-                secondaryColor: "#1e1b4b",
-                tertiaryColor: "#09090b",
-                clusterBkg: "#09090b",
-                clusterBorder: "#27272a",
-                edgeLabelBackground: "#18181b",
-                textColor: "#e4e4e7",
-              }
-            : {
-                darkMode: false,
-                background: "#ffffff",
-                primaryColor: "#f8fafc",
-                primaryTextColor: "#0f172a",
-                primaryBorderColor: "#059669",
-                lineColor: "#4f46e5",
-                secondaryColor: "#e0e7ff",
-                tertiaryColor: "#f1f5f9",
-                clusterBkg: "#f8fafc",
-                clusterBorder: "#cbd5e1",
-                edgeLabelBackground: "#ffffff",
-                textColor: "#0f172a",
-              },
+          const mermaidModule = await import("mermaid");
+          const mermaid = mermaidModule.default;
+          const isDark = resolvedTheme === "dark";
+
+          mermaid.initialize({
+            startOnLoad: false,
+            suppressErrorRendering: true,
+            theme: isDark ? "dark" : "base",
+            securityLevel: "loose",
+            fontFamily: "JetBrains Mono, IBM Plex Sans, monospace",
+            themeVariables: isDark
+              ? {
+                  darkMode: true,
+                  background: "#09090b",
+                  primaryColor: "#18181b",
+                  primaryTextColor: "#f4f4f5",
+                  primaryBorderColor: "#10b981",
+                  lineColor: "#818cf8",
+                  secondaryColor: "#1e1b4b",
+                  tertiaryColor: "#09090b",
+                  clusterBkg: "#09090b",
+                  clusterBorder: "#27272a",
+                  edgeLabelBackground: "#18181b",
+                  textColor: "#e4e4e7",
+                }
+              : {
+                  darkMode: false,
+                  background: "#ffffff",
+                  primaryColor: "#f8fafc",
+                  primaryTextColor: "#0f172a",
+                  primaryBorderColor: "#059669",
+                  lineColor: "#4f46e5",
+                  secondaryColor: "#e0e7ff",
+                  tertiaryColor: "#f1f5f9",
+                  clusterBkg: "#f8fafc",
+                  clusterBorder: "#cbd5e1",
+                  edgeLabelBackground: "#ffffff",
+                  textColor: "#0f172a",
+                },
+          });
+
+          // Dedicated isolated offscreen container for this diagram's render
+          tempContainer = document.createElement("div");
+          tempContainer.id = `mermaid-temp-box-${renderId}`;
+          tempContainer.style.position = "absolute";
+          tempContainer.style.top = "-9999px";
+          tempContainer.style.left = "-9999px";
+          tempContainer.style.visibility = "hidden";
+          document.body.appendChild(tempContainer);
+
+          const sanitizedChart = sanitizeMermaidChart(chart.trim());
+          const { svg } = await mermaid.render(renderId, sanitizedChart, tempContainer);
+
+          if (isMounted) {
+            setSvgContent(svg);
+            setShowRaw(false);
+          }
         });
-
-        const sanitizedChart = sanitizeMermaidChart(chart.trim());
-        const { svg } = await mermaid.render(renderId, sanitizedChart);
-        if (isMounted) {
-          setSvgContent(svg);
-        }
       } catch (err: unknown) {
-        console.error("Mermaid render fallback triggered:", err);
+        console.error("Mermaid render error:", err);
         if (isMounted) {
           setRenderError(
             err instanceof Error ? err.message : "Failed to parse Mermaid diagram syntax."
@@ -129,16 +141,30 @@ export default function MermaidDiagram({ chart, title }: MermaidDiagramProps) {
           setShowRaw(true);
         }
       } finally {
-        purgeStrayMermaidElements(renderId);
+        if (tempContainer && tempContainer.parentNode) {
+          tempContainer.parentNode.removeChild(tempContainer);
+        }
+        // Purge only elements specifically belonging to this renderId, never blanket remove other renders
+        const strayEl = document.getElementById(renderId);
+        if (strayEl?.parentNode) strayEl.parentNode.removeChild(strayEl);
+        const strayDiv = document.getElementById(`d${renderId}`);
+        if (strayDiv?.parentNode) strayDiv.parentNode.removeChild(strayDiv);
       }
     }
 
-    renderMermaid();
+    doRender();
+
     return () => {
       isMounted = false;
-      purgeStrayMermaidElements();
+      if (tempContainer && tempContainer.parentNode) {
+        tempContainer.parentNode.removeChild(tempContainer);
+      }
+      const strayEl = document.getElementById(renderId);
+      if (strayEl?.parentNode) strayEl.parentNode.removeChild(strayEl);
+      const strayDiv = document.getElementById(`d${renderId}`);
+      if (strayDiv?.parentNode) strayDiv.parentNode.removeChild(strayDiv);
     };
-  }, [chart, uniqueId, resolvedTheme]);
+  }, [chart, uniqueId, resolvedTheme, retryNonce]);
 
   const handleCopy = async () => {
     try {
@@ -274,11 +300,21 @@ export default function MermaidDiagram({ chart, title }: MermaidDiagramProps) {
 
       {/* Error Banner */}
       {renderError && (
-        <div className="flex items-center gap-2 border-b border-destructive/30 bg-destructive/10 px-4 py-2 text-xs text-destructive">
-          <AlertTriangle className="h-4 w-4 shrink-0 text-destructive" />
-          <span>
-            Mermaid syntax fallback active — showing raw diagram definition ({renderError}).
-          </span>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-destructive/30 bg-destructive/10 px-4 py-2 text-xs text-destructive">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-destructive" />
+            <span>
+              Mermaid syntax fallback active — showing raw diagram definition ({renderError}).
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setRetryNonce((n) => n + 1)}
+            className="flex items-center gap-1 rounded-md border border-destructive/40 bg-card px-2 py-0.5 font-mono text-[11px] text-destructive hover:bg-destructive/15 transition-colors cursor-pointer"
+          >
+            <RotateCcw className="h-3 w-3" />
+            <span>Retry Render</span>
+          </button>
         </div>
       )}
 
