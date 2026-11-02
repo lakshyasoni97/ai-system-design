@@ -29,12 +29,14 @@ import {
   Library,
   ListChecks,
   Highlighter,
+  Cloud,
 } from "lucide-react";
 import curriculumData from "@/data/curriculum.json";
 import projectsData from "@/data/projects.json";
 import flashcardsData from "@/data/flashcards.json";
 import { useProgress } from "./ProgressProvider";
 import { useTheme } from "./ThemeProvider";
+import CloudSyncModal from "./CloudSyncModal";
 
 export default function Sidebar({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -43,8 +45,9 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
   const {
     completedSessions,
     isSessionCompleted,
-    exportProgressJson,
-    importProgressJson,
+    isSyncConfigured,
+    isSyncing,
+    githubUser,
     highlights,
   } = useProgress();
 
@@ -55,8 +58,6 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
   const [paletteQuery, setPaletteQuery] = useState<string>("");
   const [selectedPaletteIndex, setSelectedPaletteIndex] = useState<number>(0);
   const [showSyncModal, setShowSyncModal] = useState<boolean>(false);
-  const [importText, setImportText] = useState<string>("");
-  const [syncStatus, setSyncStatus] = useState<string | null>(null);
 
   // Active session context
   const activeSessionId = pathname.startsWith("/roadmap/")
@@ -293,30 +294,6 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
         target.onSelect();
         setCommandPaletteOpen(false);
       }
-    }
-  };
-
-  const handleDownloadJson = () => {
-    const json = exportProgressJson();
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `lakshya-ai-study-progress-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    setSyncStatus("Exported progress JSON file.");
-  };
-
-  const handleImportJson = () => {
-    if (!importText.trim()) return;
-    const ok = importProgressJson(importText);
-    if (ok) {
-      setSyncStatus("Progress restored successfully!");
-      setImportText("");
-      setTimeout(() => setShowSyncModal(false), 900);
-    } else {
-      setSyncStatus("Invalid JSON structure. Please check the payload.");
     }
   };
 
@@ -592,18 +569,36 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
         )}
       </div>
 
-      {/* Footer: Data Sync & Settings */}
+      {/* Footer: Cloud Sync & Settings */}
       <div className="border-t border-border bg-muted/40 p-3">
         <button
           type="button"
           onClick={() => {
-            setSyncStatus(null);
             setShowSyncModal(true);
           }}
-          className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 font-mono text-[11px] text-muted-foreground hover:border-primary/40 hover:text-foreground transition-colors cursor-pointer"
+          className="flex w-full items-center justify-between rounded-xl border border-border bg-card px-3 py-2 font-mono text-[11px] hover:border-primary/40 hover:text-foreground transition-all cursor-pointer group"
+          title="Open Cross-Device Cloud Sync settings"
         >
-          <Download className="h-3.5 w-3.5 text-primary" />
-          <span>Export / Import Progress</span>
+          <div className="flex items-center gap-2 min-w-0">
+            {isSyncConfigured ? (
+              <span className={`relative flex h-2 w-2 ${isSyncing ? "animate-spin" : ""}`}>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
+            ) : (
+              <Cloud className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+            )}
+            <span className="truncate font-medium text-foreground">
+              {isSyncConfigured
+                ? isSyncing
+                  ? "Syncing Gist..."
+                  : `@${githubUser?.login || "Gist Sync"}`
+                : "Cloud Sync (Gist)"}
+            </span>
+          </div>
+          <span className="rounded bg-secondary/80 px-1.5 py-0.5 text-[10px] text-muted-foreground shrink-0">
+            {isSyncConfigured ? "Active" : "Setup"}
+          </span>
         </button>
       </div>
     </div>
@@ -715,6 +710,35 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
               </kbd>
             </button>
 
+            {/* Cloud Sync Header Quick Status Button */}
+            <button
+              type="button"
+              onClick={() => setShowSyncModal(true)}
+              className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-mono transition-all cursor-pointer ${
+                isSyncConfigured
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20"
+                  : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
+              }`}
+              title={
+                isSyncConfigured
+                  ? `Cloud Sync Active (@${githubUser?.login}) - Click for sync settings`
+                  : "Setup Cross-Device Cloud Sync via GitHub Gist"
+              }
+              aria-label="Cloud sync settings"
+            >
+              <Cloud className={`h-3.5 w-3.5 ${isSyncing ? "animate-pulse text-amber-500" : ""}`} />
+              <span className="hidden sm:inline">
+                {isSyncConfigured
+                  ? isSyncing
+                    ? "Syncing"
+                    : "Synced"
+                  : "Sync"}
+              </span>
+              {isSyncConfigured && (
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              )}
+            </button>
+
             {/* Theme Toggle Button */}
             <button
               type="button"
@@ -804,67 +828,11 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      {/* Export / Import Modal */}
-      {showSyncModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <h3 className="text-base font-bold text-foreground">
-                Progress Backup & Sync
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowSyncModal(false)}
-                className="rounded-lg p-1 text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              Your study completions, ratings, and scratchpad notes are saved in your browser&apos;s localStorage.
-            </p>
-
-            <div className="space-y-3">
-              <button
-                type="button"
-                onClick={handleDownloadJson}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground shadow-xs hover:opacity-95 cursor-pointer"
-              >
-                <Download className="h-4 w-4" />
-                <span>Download Progress JSON</span>
-              </button>
-
-              <div className="space-y-1.5 pt-2 border-t border-border">
-                <label className="text-xs font-medium text-foreground">
-                  Restore from JSON:
-                </label>
-                <textarea
-                  rows={3}
-                  value={importText}
-                  onChange={(e) => setImportText(e.target.value)}
-                  placeholder="Paste your exported progress JSON here..."
-                  className="w-full rounded-xl border border-border bg-secondary/40 p-2.5 font-mono text-xs text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={handleImportJson}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-xs font-medium text-foreground hover:bg-muted cursor-pointer"
-                >
-                  <Upload className="h-3.5 w-3.5 text-primary" />
-                  <span>Restore Progress</span>
-                </button>
-              </div>
-
-              {syncStatus && (
-                <div className="rounded-lg bg-secondary p-2 text-center font-mono text-xs text-primary">
-                  {syncStatus}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Cross-Device Cloud Sync & Backup Modal */}
+      <CloudSyncModal
+        isOpen={showSyncModal}
+        onClose={() => setShowSyncModal(false)}
+      />
     </div>
   );
 }

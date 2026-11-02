@@ -1,6 +1,26 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import {
+  clearStoredSyncConfig,
+  fetchFromGist,
+  findOrCreateSyncGist,
+  getStoredSyncConfig,
+  GitHubUserInfo,
+  mergeStudyStates,
+  pushToGist,
+  recordDeletedHighlightId,
+  saveStoredSyncConfig,
+  SyncedStudyState,
+  validateGitHubToken,
+} from "@/lib/gistSync";
 
 export type FlashcardRating = "unseen" | "hard" | "medium" | "easy";
 
@@ -20,6 +40,7 @@ export interface TextHighlight {
   color: HighlightColor;
   note?: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
 interface ProgressState {
@@ -27,10 +48,22 @@ interface ProgressState {
   flashcardRatings: Record<string, FlashcardRating>;
   scratchpadNotes: Record<string, string>;
   highlights: TextHighlight[];
+  lastModifiedAt?: string;
 }
 
 interface ProgressContextType extends ProgressState {
   isHydrated: boolean;
+  // Cloud Sync state
+  isSyncConfigured: boolean;
+  isSyncing: boolean;
+  lastSyncedAt: string | null;
+  syncError: string | null;
+  gistUrl: string | null;
+  githubUser: GitHubUserInfo | null;
+  connectSync: (token: string) => Promise<boolean>;
+  disconnectSync: () => void;
+  triggerSyncNow: () => Promise<void>;
+  // Existing study actions
   toggleSessionCompleted: (sessionId: string) => void;
   isSessionCompleted: (sessionId: string) => boolean;
   rateFlashcard: (cardId: string, rating: FlashcardRating) => void;
@@ -90,6 +123,7 @@ const DEFAULT_STATE: ProgressState = {
       createdAt: "2026-11-01T12:30:00.000Z",
     },
   ],
+  lastModifiedAt: "2026-11-01T12:30:00.000Z",
 };
 
 const ProgressContext = createContext<ProgressContextType | undefined>(undefined);
@@ -98,6 +132,19 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<ProgressState>(DEFAULT_STATE);
   const [isHydrated, setIsHydrated] = useState(false);
 
+  // Cloud Sync state
+  const [isSyncConfigured, setIsSyncConfigured] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [gistUrl, setGistUrl] = useState<string | null>(null);
+  const [githubUser, setGithubUser] = useState<GitHubUserInfo | null>(null);
+
+  // Active sync credentials in memory
+  const syncCredsRef = useRef<{ token: string; gistId: string } | null>(null);
+  const syncDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 1. Initial hydration from localStorage & sync config initialization
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -118,7 +165,18 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
           highlights: Array.isArray(parsed.highlights)
             ? parsed.highlights
             : DEFAULT_STATE.highlights,
+          lastModifiedAt: parsed.lastModifiedAt || new Date().toISOString(),
         });
+      }
+
+      // Read sync credentials
+      const conf = getStoredSyncConfig();
+      if (conf.token && conf.gistId) {
+        syncCredsRef.current = { token: conf.token, gistId: conf.gistId };
+        setIsSyncConfigured(true);
+        setGistUrl(conf.gistUrl);
+        setGithubUser(conf.user);
+        setLastSyncedAt(conf.lastSyncedAt);
       }
     } catch (e) {
       console.error("Failed to load study progress from localStorage:", e);
@@ -127,6 +185,7 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // 2. Persist state to localStorage on modification
   useEffect(() => {
     if (!isHydrated) return;
     try {
@@ -136,13 +195,172 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
     }
   }, [state, isHydrated]);
 
+  // Helper to convert state to SyncedStudyState
+  const toSyncedState = useCallback(
+    (s: ProgressState): SyncedStudyState => ({
+      version: 2,
+      completedSessions: s.completedSessions,
+      flashcardRatings: s.flashcardRatings,
+      scratchpadNotes: s.scratchpadNotes,
+      highlights: s.highlights,
+      lastModifiedAt: s.lastModifiedAt || new Date().toISOString(),
+    }),
+    []
+  );
+
+  // Perform a full pull and merge from Gist
+  const pullAndMerge = useCallback(
+    async (token: string, gistId: string) => {
+      setIsSyncing(true);
+      setSyncError(null);
+      try {
+        const { state: remoteState, gistUrl: url } = await fetchFromGist(token, gistId);
+        setGistUrl(url);
+
+        setState((currentLocal) => {
+          const merged = mergeStudyStates(toSyncedState(currentLocal), remoteState);
+
+          // After merging, push back the unified state so both sides are in sync
+          pushToGist(token, gistId, merged).catch((err) =>
+            console.error("Error writing unified state back to Gist:", err)
+          );
+
+          const nowIso = new Date().toISOString();
+          setLastSyncedAt(nowIso);
+
+          return {
+            completedSessions: merged.completedSessions,
+            flashcardRatings: merged.flashcardRatings,
+            scratchpadNotes: merged.scratchpadNotes,
+            highlights: merged.highlights,
+            lastModifiedAt: merged.lastModifiedAt,
+          };
+        });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("Failed to pull from Gist:", msg);
+        setSyncError(msg);
+      } finally {
+        setIsSyncing(false);
+      }
+    },
+    [toSyncedState]
+  );
+
+  // 3. Auto-sync on startup if credentials exist
+  useEffect(() => {
+    if (!isHydrated) return;
+    const creds = syncCredsRef.current;
+    if (creds?.token && creds?.gistId) {
+      pullAndMerge(creds.token, creds.gistId);
+    }
+  }, [isHydrated, pullAndMerge]);
+
+  // 4. Debounced auto-push when user makes edits
+  useEffect(() => {
+    if (!isHydrated || !isSyncConfigured) return;
+    const creds = syncCredsRef.current;
+    if (!creds?.token || !creds?.gistId) return;
+
+    if (syncDebounceTimerRef.current) {
+      clearTimeout(syncDebounceTimerRef.current);
+    }
+
+    syncDebounceTimerRef.current = setTimeout(async () => {
+      try {
+        setIsSyncing(true);
+        setSyncError(null);
+        await pushToGist(creds.token, creds.gistId, toSyncedState(state));
+        const nowIso = new Date().toISOString();
+        setLastSyncedAt(nowIso);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("Auto-sync push failed:", msg);
+        setSyncError(msg);
+      } finally {
+        setIsSyncing(false);
+      }
+    }, 2200);
+
+    return () => {
+      if (syncDebounceTimerRef.current) {
+        clearTimeout(syncDebounceTimerRef.current);
+      }
+    };
+  }, [state, isHydrated, isSyncConfigured, toSyncedState]);
+
+  // Connect user's GitHub Personal Access Token
+  const connectSync = async (token: string): Promise<boolean> => {
+    setIsSyncing(true);
+    setSyncError(null);
+    try {
+      const user = await validateGitHubToken(token);
+      const { gistId, gistUrl: url, remoteState } = await findOrCreateSyncGist(
+        token,
+        toSyncedState(state)
+      );
+
+      saveStoredSyncConfig(token, gistId, url, user);
+      syncCredsRef.current = { token, gistId };
+
+      setGithubUser(user);
+      setGistUrl(url);
+      setIsSyncConfigured(true);
+
+      if (remoteState) {
+        const merged = mergeStudyStates(toSyncedState(state), remoteState);
+        await pushToGist(token, gistId, merged);
+        setState({
+          completedSessions: merged.completedSessions,
+          flashcardRatings: merged.flashcardRatings,
+          scratchpadNotes: merged.scratchpadNotes,
+          highlights: merged.highlights,
+          lastModifiedAt: merged.lastModifiedAt,
+        });
+      }
+
+      const nowIso = new Date().toISOString();
+      setLastSyncedAt(nowIso);
+      return true;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setSyncError(msg);
+      return false;
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Disconnect sync
+  const disconnectSync = () => {
+    clearStoredSyncConfig();
+    syncCredsRef.current = null;
+    setIsSyncConfigured(false);
+    setGithubUser(null);
+    setGistUrl(null);
+    setLastSyncedAt(null);
+    setSyncError(null);
+  };
+
+  // Manual Trigger Sync Now
+  const triggerSyncNow = async () => {
+    const creds = syncCredsRef.current;
+    if (!creds?.token || !creds?.gistId) return;
+    await pullAndMerge(creds.token, creds.gistId);
+  };
+
+  // State mutations with automatic timestamp tracking
   const toggleSessionCompleted = (sessionId: string) => {
     setState((prev) => {
       const exists = prev.completedSessions.includes(sessionId);
       const next = exists
         ? prev.completedSessions.filter((id) => id !== sessionId)
         : [...prev.completedSessions, sessionId];
-      return { ...prev, completedSessions: next };
+      return {
+        ...prev,
+        completedSessions: next,
+        lastModifiedAt: new Date().toISOString(),
+      };
     });
   };
 
@@ -157,6 +375,7 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
         ...prev.flashcardRatings,
         [cardId]: rating,
       },
+      lastModifiedAt: new Date().toISOString(),
     }));
   };
 
@@ -171,18 +390,22 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
         ...prev.scratchpadNotes,
         [key]: note,
       },
+      lastModifiedAt: new Date().toISOString(),
     }));
   };
 
   const addHighlight = (hl: Omit<TextHighlight, "id" | "createdAt">): TextHighlight => {
+    const nowIso = new Date().toISOString();
     const newHighlight: TextHighlight = {
       ...hl,
       id: `hl-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-      createdAt: new Date().toISOString(),
+      createdAt: nowIso,
+      updatedAt: nowIso,
     };
     setState((prev) => ({
       ...prev,
       highlights: [newHighlight, ...prev.highlights],
+      lastModifiedAt: nowIso,
     }));
     return newHighlight;
   };
@@ -191,18 +414,22 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
     id: string,
     updates: Partial<Pick<TextHighlight, "color" | "note">>
   ) => {
+    const nowIso = new Date().toISOString();
     setState((prev) => ({
       ...prev,
       highlights: prev.highlights.map((h) =>
-        h.id === id ? { ...h, ...updates } : h
+        h.id === id ? { ...h, ...updates, updatedAt: nowIso } : h
       ),
+      lastModifiedAt: nowIso,
     }));
   };
 
   const removeHighlight = (id: string) => {
+    recordDeletedHighlightId(id);
     setState((prev) => ({
       ...prev,
       highlights: prev.highlights.filter((h) => h.id !== id),
+      lastModifiedAt: new Date().toISOString(),
     }));
   };
 
@@ -239,6 +466,7 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
             ? parsed.scratchpadNotes
             : {},
         highlights: Array.isArray(parsed.highlights) ? parsed.highlights : [],
+        lastModifiedAt: new Date().toISOString(),
       });
       return true;
     } catch {
@@ -252,6 +480,7 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
       flashcardRatings: {},
       scratchpadNotes: {},
       highlights: [],
+      lastModifiedAt: new Date().toISOString(),
     });
   };
 
@@ -260,6 +489,15 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
       value={{
         ...state,
         isHydrated,
+        isSyncConfigured,
+        isSyncing,
+        lastSyncedAt,
+        syncError,
+        gistUrl,
+        githubUser,
+        connectSync,
+        disconnectSync,
+        triggerSyncNow,
         toggleSessionCompleted,
         isSessionCompleted,
         rateFlashcard,
