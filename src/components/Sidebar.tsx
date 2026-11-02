@@ -49,7 +49,16 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
     isSyncing,
     githubUser,
     highlights,
+    scratchpadNotes,
   } = useProgress();
+
+  const activeScratchpadCount = useMemo(
+    () =>
+      Object.values(scratchpadNotes || {}).filter((val) => Boolean(val?.trim()))
+        .length,
+    [scratchpadNotes]
+  );
+  const totalAnnotationsCount = highlights.length + activeScratchpadCount;
 
   // Desktop sidebar collapse state
   const [collapsed, setCollapsed] = useState<boolean>(false);
@@ -235,7 +244,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
       }
     });
 
-    // Search Highlights
+    // Search Highlights & Comments
     highlights.forEach((h) => {
       if (
         h.text.toLowerCase().includes(q) ||
@@ -243,12 +252,39 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
         h.sourceTitle.toLowerCase().includes(q) ||
         h.sectionTitle.toLowerCase().includes(q)
       ) {
+        const displayTitle = h.note?.trim()
+          ? `💬 ${h.note.length > 65 ? h.note.slice(0, 65) + "..." : h.note}`
+          : h.text.length > 60
+          ? h.text.slice(0, 60) + "..."
+          : h.text;
         results.push({
           id: `hl-${h.id}`,
-          category: "Highlights",
-          title: h.text.length > 60 ? h.text.slice(0, 60) + "..." : h.text,
-          subtitle: `${h.sourceTitle} • ${h.note || h.sectionTitle}`,
+          category: "Notes & Highlights",
+          title: displayTitle,
+          subtitle: `${h.sourceTitle} • "${h.text.slice(0, 50)}..."`,
           onSelect: () => router.push(`${h.href}?highlight=${h.id}`),
+        });
+      }
+    });
+
+    // Search Scratchpad Notebooks
+    Object.entries(scratchpadNotes || {}).forEach(([sourceId, noteText]) => {
+      if (!noteText?.trim()) return;
+      if (
+        noteText.toLowerCase().includes(q) ||
+        sourceId.toLowerCase().includes(q)
+      ) {
+        const href = sourceId.startsWith("fund")
+          ? `/fundamentals/${sourceId}#session-scratchpad`
+          : sourceId.startsWith("session")
+          ? `/roadmap/${sourceId}#session-scratchpad`
+          : "/simulator";
+        results.push({
+          id: `nb-${sourceId}`,
+          category: "Notebooks",
+          title: `📓 ${sourceId.toUpperCase()} Notebook`,
+          subtitle: noteText.trim().slice(0, 75) + "...",
+          onSelect: () => router.push(href),
         });
       }
     });
@@ -315,7 +351,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
       return [{ label: "Problem Bank", href: "/problems" }];
     }
     if (pathname.startsWith("/highlights")) {
-      return [{ label: "Highlights", href: "/highlights" }];
+      return [{ label: "Notes & Highlights", href: "/highlights" }];
     }
     if (pathname.startsWith("/projects")) {
       return [{ label: "Projects", href: "/projects" }];
@@ -371,9 +407,10 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
     },
     {
       href: "/highlights",
-      label: "Highlights",
+      label: "Notes & Highlights",
       icon: Highlighter,
-      badge: highlights.length > 0 ? String(highlights.length) : undefined,
+      badge:
+        totalAnnotationsCount > 0 ? String(totalAnnotationsCount) : undefined,
     },
     {
       href: "/flashcards",

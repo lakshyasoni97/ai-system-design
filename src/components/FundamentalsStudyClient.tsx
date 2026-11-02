@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, CheckCircle2, Circle, Clock, Cpu } from "lucide-react";
 import MarkdownArticle from "./MarkdownArticle";
 import ReadingList, { ReadingItem } from "./ReadingList";
+import StudyScratchpad from "./StudyScratchpad";
 
 const STORAGE_KEY = "fundamentals-done";
 
@@ -101,6 +102,11 @@ export default function FundamentalsStudyClient({
         href={`/fundamentals/${topic.id}`}
       />
       <ReadingList items={reading} />
+      <StudyScratchpad
+        sourceId={topic.id}
+        sourceTitle={`Topic ${topic.number}: ${topic.title}`}
+        placeholder="Jot down core distributed systems invariants, CAP/PACELC trade-offs, or AI tie-ins for this topic..."
+      />
 
       <div className="flex items-center justify-between gap-3">
         {prev ? (

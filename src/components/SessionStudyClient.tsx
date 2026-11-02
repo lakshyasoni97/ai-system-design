@@ -25,6 +25,7 @@ import TradeoffTable from "./TradeoffTable";
 import FlashcardPlayer, { FlashcardItem } from "./FlashcardPlayer";
 import ReadingList from "./ReadingList";
 import HighlightableArticle from "./HighlightableArticle";
+import StudyScratchpad from "./StudyScratchpad";
 import resourcesData from "@/data/resources.json";
 import { useProgress } from "./ProgressProvider";
 
@@ -115,7 +116,7 @@ export default function SessionStudyClient({
     isSessionCompleted,
     toggleSessionCompleted,
     scratchpadNotes,
-    updateScratchpad,
+    getHighlightsForSource,
   } = useProgress();
 
   const [copiedPrompt, setCopiedPrompt] = useState(false);
@@ -123,6 +124,7 @@ export default function SessionStudyClient({
   const [readProgress, setReadProgress] = useState<number>(0);
   const completed = isSessionCompleted(session.id);
   const personalNote = scratchpadNotes[session.id] || "";
+  const sessionHighlights = getHighlightsForSource(session.id);
 
   // Extract Table of Contents from markdown headings
   const tocItems = useMemo<TocItem[]>(() => {
@@ -430,30 +432,11 @@ export default function SessionStudyClient({
           />
 
           {/* 3. Personal Session Scratchpad */}
-          <div
-            id="session-scratchpad"
-            className="rounded-3xl border border-border bg-card p-6 shadow-xs scroll-mt-24"
-          >
-            <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <StickyNote className="h-4 w-4 text-amber-500" />
-                <h2 className="text-base font-semibold text-foreground">
-                  Personal Scratchpad Notes
-                </h2>
-              </div>
-              <span className="font-mono text-xs text-muted-foreground">
-                Saved automatically
-              </span>
-            </div>
-            <textarea
-              aria-label="Personal interview scratchpad notes"
-              rows={3}
-              value={personalNote}
-              onChange={(e) => updateScratchpad(session.id, e.target.value)}
-              placeholder="Jot down personal metrics, interview analogies, or trade-offs to remember for this session..."
-              className="w-full rounded-xl border border-border bg-muted/30 p-3.5 font-mono text-xs leading-relaxed text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none"
-            />
-          </div>
+          <StudyScratchpad
+            sourceId={session.id}
+            sourceTitle={`Session ${String(session.number).padStart(2, "0")}: ${session.title}`}
+            placeholder="Jot down personal metrics, interview analogies, or trade-offs to remember for this session..."
+          />
 
           {/* 4. Check Your Understanding — Session Flashcards */}
           <div
@@ -565,8 +548,28 @@ export default function SessionStudyClient({
                 onClick={() => scrollToElement("page-highlights-drawer")}
                 className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
               >
-                <span>Highlights</span>
+                <span className="flex items-center gap-1.5">
+                  <span>Highlights & Comments</span>
+                  {sessionHighlights.length > 0 && (
+                    <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.2 text-[10px] font-semibold text-emerald-500">
+                      {sessionHighlights.length}
+                    </span>
+                  )}
+                </span>
                 <ChevronRight className="h-3 w-3 text-emerald-500" />
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToElement("session-scratchpad")}
+                className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              >
+                <span className="flex items-center gap-1.5">
+                  <span>Architect Notebook</span>
+                  {personalNote.trim() && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                  )}
+                </span>
+                <ChevronRight className="h-3 w-3 text-amber-500" />
               </button>
               <button
                 type="button"
@@ -575,14 +578,6 @@ export default function SessionStudyClient({
               >
                 <span>Flashcards</span>
                 <ChevronRight className="h-3 w-3 text-primary" />
-              </button>
-              <button
-                type="button"
-                onClick={() => scrollToElement("session-scratchpad")}
-                className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
-              >
-                <span>Scratchpad</span>
-                <ChevronRight className="h-3 w-3 text-amber-500" />
               </button>
             </div>
           </div>
