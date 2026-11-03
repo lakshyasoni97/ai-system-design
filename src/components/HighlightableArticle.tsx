@@ -260,17 +260,65 @@ export default function HighlightableArticle({
       const containerRect = containerRef.current.getBoundingClientRect();
       const heading = findPrecedingHeading(range.startContainer);
 
-      const fullContent = containerRef.current.innerText || "";
-      const textIndex = fullContent.indexOf(text);
-      const prefix =
-        textIndex > 0 ? fullContent.slice(Math.max(0, textIndex - 35), textIndex) : "";
-      const suffix =
-        textIndex !== -1
-          ? fullContent.slice(
-              textIndex + text.length,
-              Math.min(fullContent.length, textIndex + text.length + 35)
-            )
-          : "";
+      let prefix = "";
+      let suffix = "";
+      try {
+        const walker = document.createTreeWalker(containerRef.current, NodeFilter.SHOW_TEXT, {
+          acceptNode: (node) => {
+            const p = node.parentElement;
+            if (
+              p &&
+              (p.tagName === "PRE" ||
+                p.tagName === "BUTTON" ||
+                p.closest(".mermaid-diagram-wrap") ||
+                p.closest("[data-no-highlight]"))
+            ) {
+              return NodeFilter.FILTER_REJECT;
+            }
+            return NodeFilter.FILTER_ACCEPT;
+          },
+        });
+
+        let accumulated = "";
+        let selStart = -1;
+        let curr = walker.nextNode() as Text | null;
+        while (curr) {
+          if (curr === range.startContainer) {
+            selStart = accumulated.length + range.startOffset;
+          }
+          accumulated += curr.nodeValue || "";
+          curr = walker.nextNode() as Text | null;
+        }
+
+        if (selStart !== -1) {
+          const rawText = selection.toString();
+          const lead = rawText.indexOf(text);
+          const start = selStart + (lead > 0 ? lead : 0);
+          const end = start + text.length;
+          prefix = accumulated.slice(Math.max(0, start - 40), start);
+          suffix = accumulated.slice(end, Math.min(accumulated.length, end + 40));
+        } else {
+          const pre = range.cloneRange();
+          pre.selectNodeContents(containerRef.current);
+          pre.setEnd(range.startContainer, range.startOffset);
+          prefix = pre.toString().slice(-40);
+
+          const post = range.cloneRange();
+          post.selectNodeContents(containerRef.current);
+          post.setStart(range.endContainer, range.endOffset);
+          suffix = post.toString().slice(0, 40);
+        }
+      } catch {
+        const fullContent = containerRef.current.innerText || "";
+        const textIndex = fullContent.indexOf(text);
+        if (textIndex !== -1) {
+          prefix = textIndex > 0 ? fullContent.slice(Math.max(0, textIndex - 35), textIndex) : "";
+          suffix = fullContent.slice(
+            textIndex + text.length,
+            Math.min(fullContent.length, textIndex + text.length + 35)
+          );
+        }
+      }
 
       const rawTop = rect.top - containerRect.top + containerRef.current.offsetTop - 56;
       const safeTop = rawTop < 10 ? rect.bottom - containerRect.top + containerRef.current.offsetTop + 10 : rawTop;
@@ -398,13 +446,19 @@ export default function HighlightableArticle({
         currentNode = walker.nextNode() as Text | null;
       }
 
-      let matchIdx = fullArticleText.indexOf(targetText);
-      if (hl.prefix && fullArticleText.includes(hl.prefix)) {
+      let matchIdx = -1;
+      if (hl.prefix && fullArticleText.includes(hl.prefix + targetText)) {
+        matchIdx = fullArticleText.indexOf(hl.prefix + targetText) + hl.prefix.length;
+      } else if (hl.suffix && fullArticleText.includes(targetText + hl.suffix)) {
+        matchIdx = fullArticleText.indexOf(targetText + hl.suffix);
+      } else if (hl.prefix && fullArticleText.includes(hl.prefix)) {
         const prefixIdx = fullArticleText.indexOf(hl.prefix);
         const candidateIdx = fullArticleText.indexOf(targetText, prefixIdx);
         if (candidateIdx !== -1) {
           matchIdx = candidateIdx;
         }
+      } else {
+        matchIdx = fullArticleText.indexOf(targetText);
       }
 
       if (matchIdx === -1) return;
