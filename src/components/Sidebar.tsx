@@ -71,6 +71,57 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
   const [paletteQuery, setPaletteQuery] = useState<string>("");
   const [selectedPaletteIndex, setSelectedPaletteIndex] = useState<number>(0);
   const [fontScale, setFontScale] = useState<"sm" | "md" | "lg">("sm");
+  const [readProgress, setReadProgress] = useState<number>(0);
+
+  const isArticlePage = /^\/(roadmap|fundamentals)\/[^/]+/.test(pathname);
+
+  useEffect(() => {
+    if (!isArticlePage) {
+      setReadProgress(0);
+      return;
+    }
+
+    const updateProgress = () => {
+      const article = document.querySelector("article");
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      if (scrollTop <= 0) {
+        setReadProgress(0);
+        return;
+      }
+
+      if (article) {
+        const rect = article.getBoundingClientRect();
+        const articleBottom = rect.bottom + scrollTop;
+        const totalScroll = articleBottom - window.innerHeight;
+        if (totalScroll > 0) {
+          setReadProgress(Math.min(100, Math.max(0, (scrollTop / totalScroll) * 100)));
+          return;
+        }
+      }
+
+      const docScroll =
+        document.documentElement.scrollHeight - window.innerHeight;
+      setReadProgress(
+        docScroll > 0 ? Math.min(100, Math.max(0, (scrollTop / docScroll) * 100)) : 100
+      );
+    };
+
+    updateProgress();
+    window.addEventListener("scroll", updateProgress, { passive: true });
+    window.addEventListener("resize", updateProgress);
+
+    let observer: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      observer = new ResizeObserver(updateProgress);
+      observer.observe(document.querySelector("article") || document.body);
+    }
+
+    return () => {
+      window.removeEventListener("scroll", updateProgress);
+      window.removeEventListener("resize", updateProgress);
+      observer?.disconnect();
+    };
+  }, [pathname, isArticlePage]);
 
   useEffect(() => {
     try {
@@ -842,6 +893,22 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
               )}
             </button>
           </div>
+
+          {isArticlePage && (
+            <div
+              role="progressbar"
+              aria-label="Article reading progress"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(readProgress)}
+              className="pointer-events-none absolute bottom-0 left-0 right-0 h-1 bg-border/40 overflow-hidden"
+            >
+              <div
+                className="h-full bg-primary transition-[width] duration-75 ease-out"
+                style={{ width: `${readProgress}%` }}
+              />
+            </div>
+          )}
         </header>
 
         <main className="flex-1 px-3 py-4 sm:px-6 sm:py-6 lg:px-8 max-w-7xl w-full mx-auto min-w-0 pb-20 lg:pb-8">

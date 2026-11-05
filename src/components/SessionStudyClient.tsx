@@ -127,7 +127,6 @@ export default function SessionStudyClient({
 
   const [copiedPrompt, setCopiedPrompt] = useState(false);
   const [activeSectionId, setActiveSectionId] = useState<string>("");
-  const [readProgress, setReadProgress] = useState<number>(0);
   const completed = isSessionCompleted(session.id);
   const personalNote = scratchpadNotes[session.id] || "";
   const sessionHighlights = getHighlightsForSource(session.id);
@@ -161,16 +160,9 @@ export default function SessionStudyClient({
     return items;
   }, [markdownContent]);
 
-  // Track scroll position for reading progress bar and active TOC section
+  // Track scroll position for active TOC section
   useEffect(() => {
     const handleScroll = () => {
-      const totalScroll =
-        document.documentElement.scrollHeight - window.innerHeight;
-      if (totalScroll > 0) {
-        const currentProgress = (window.scrollY / totalScroll) * 100;
-        setReadProgress(Math.min(100, Math.max(0, currentProgress)));
-      }
-
       // Check which heading is currently in view
       const headings = document.querySelectorAll<HTMLElement>("article h2, article h3");
       let currentActive = "";
@@ -210,14 +202,6 @@ export default function SessionStudyClient({
 
   return (
     <div className="relative space-y-8">
-      {/* Top Reading Progress Bar */}
-      <div className="fixed top-14 left-0 right-0 z-30 h-1 bg-border/40 pointer-events-none">
-        <div
-          className="h-full bg-primary transition-all duration-150"
-          style={{ width: `${readProgress}%` }}
-        />
-      </div>
-
       {/* 1. Header Bar */}
       <div className="rounded-2xl sm:rounded-3xl border border-border bg-card p-4 sm:p-6 md:p-8 shadow-xs">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
