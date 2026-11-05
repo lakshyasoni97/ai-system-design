@@ -30,6 +30,7 @@ import {
   ListChecks,
   Highlighter,
   Cloud,
+  CalendarDays,
 } from "lucide-react";
 import curriculumData from "@/data/curriculum.json";
 import projectsData from "@/data/projects.json";
@@ -119,10 +120,17 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
     if (!q) {
       return [
         {
+          id: "nav-plan",
+          category: "Navigation",
+          title: "Go to 10-Week Plan",
+          subtitle: "Phases, weekly schedule, sessions & case studies",
+          onSelect: () => router.push("/plan"),
+        },
+        {
           id: "nav-roles",
           category: "Navigation",
           title: "Go to Target Roles",
-          subtitle: "Role tracks, study weights & 8-week plan",
+          subtitle: "Role tracks, study weights & role must-dos",
           onSelect: () => router.push("/roles"),
         },
         {
@@ -150,7 +158,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
           id: "nav-curriculum",
           category: "Navigation",
           title: "Go to Curriculum Roadmap",
-          subtitle: "Explore all 20 sessions & interactive graph",
+          subtitle: "Explore all 31 sessions & interactive graph",
           onSelect: () => router.push("/curriculum"),
         },
         {
@@ -341,6 +349,9 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
     if (pathname.startsWith("/curriculum")) {
       return [{ label: "Curriculum", href: "/curriculum" }];
     }
+    if (pathname.startsWith("/plan")) {
+      return [{ label: "10-Week Plan", href: "/plan" }];
+    }
     if (pathname.startsWith("/roles")) {
       return [{ label: "Target Roles", href: "/roles" }];
     }
@@ -384,6 +395,11 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
       label: "Home",
       icon: LayoutDashboard,
       exact: true,
+    },
+    {
+      href: "/plan",
+      label: "10-Week Plan",
+      icon: CalendarDays,
     },
     {
       href: "/roles",
@@ -592,7 +608,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
               Curriculum Summary
             </span>
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              20 sessions across Distributed Backends, RAG, Agents, NLP, and LLMOps.
+              31 sessions across Backend, RAG, Agents, Serving, and LLMOps.
             </p>
             <Link
               href="/curriculum"

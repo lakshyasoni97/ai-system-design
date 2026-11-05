@@ -1,56 +1,52 @@
 # Observability, SLOs & Percentile Thinking
 
-> **Why this matters for AI systems:** a "working" LLM system can be fast and wrong. You need latency, error, cost **and quality** signals, and you need to debug multi-step agent runs.
+> **Status: SKELETON** (content to be written; follow `CONTENT_GUIDELINES.md`)
+> - **Phase 0** | **Week 1**
+> - **AI tie-in:** TTFT P99, agent traces, quality SLOs next to latency SLOs
 
-## 1. Percentiles, not averages
+---
 
-- Averages hide the tail. Report **P50 / P95 / P99**.
-- **Tail amplification:** if one request fans out to 10 backends each with P99 = 1 s, ~10% of requests hit at least one slow call. Mitigate with hedged requests, timeouts, fewer fan-out hops.
-- For streaming LLMs track **TTFT**, **inter-token latency**, and **total time** separately.
+## Part 1: Quick Summary
 
-## 2. SLI → SLO → error budget
+> TODO (3-4 bullets): plain-English meaning, why interviewers care, 10-second mental model.
 
-- **SLI:** a measured indicator (fraction of requests with TTFT < 2 s).
-- **SLO:** target for it (99% over 30 days).
-- **Error budget:** `1 − SLO`; spend it on releases/experiments, freeze risky changes when it is burned.
-- Alert on **burn rate** (fast + slow windows), not on raw thresholds.
+## Part 2: Topics to Cover (Study Checklist)
 
-## 3. The three pillars (+ one)
+- [ ] SLI/SLO/error budgets
+- [ ] Percentiles vs averages; P99 thinking
+- [ ] Distributed tracing and OpenTelemetry
+- [ ] LLM-specific metrics: TTFT, TPOT, goodput, token cost
+- [ ] Quality SLOs alongside latency SLOs
+- [ ] Alerting without noise; dashboards for agents
 
-| Signal | Answers | Tools |
-| :--- | :--- | :--- |
-| **Metrics** | Is something wrong? Trend? | Prometheus, Cloud Monitoring |
-| **Logs** | What happened exactly? | Cloud Logging, ELK |
-| **Traces** | Where did the time go across services? | OpenTelemetry, Cloud Trace, Jaeger |
-| **Profiles / events** | Why is CPU/memory high? | pprof, continuous profilers |
+## Part 3: First Principles & Analogies
 
-Use **RED** for services (Rate, Errors, Duration) and **USE** for resources (Utilization, Saturation, Errors).
+TODO
 
-## 4. LLM-specific observability
+## Part 4: Concept Blueprint
 
-- **Trace every step of an agent run:** a root span per request, child spans for retrieval, each LLM call, each tool call. Record model, prompt version, token counts, cost, cache hit/miss on span attributes.
-- **Cost metrics:** tokens and dollars per tenant / feature / model.
-- **Quality signals:** online evals on sampled traffic (groundedness, refusal rate, thumbs up/down, escalation-to-human rate), regression dashboards per prompt/model version.
-- **Retrieval health:** empty-result rate, similarity score distribution, reranker agreement.
-- **Safety:** guardrail trigger rates, PII detections, prompt-injection flags.
-- **Privacy:** redact PII before logging prompts; set retention limits.
+```mermaid
+flowchart LR
+    Q["Interview question"] --> C["Observability, SLOs & Percentile Thinking: core concept"]
+    C --> T["Trade-offs and numbers"]
+    T --> P["Production pattern"]
+    P --> R["Resume bridge"]
+```
 
-## 5. Deployment safety
+## Part 5: Trade-Off Table
 
-- **Canary / shadow / blue-green** for prompts and models, not just code. Shadow traffic compares new vs old outputs without user impact.
-- Version prompts, retrieval configs and model IDs together so any answer can be reproduced.
-- Feature flags allow instant rollback of a model change.
+| Option | Strength | Weakness | When to Pick / Watch Out For |
+| :--- | :--- | :--- | :--- |
+| TODO | TODO | TODO | TODO |
 
-## 6. Debugging flow (say this in interviews)
+## Part 6: Deep-Dive Mechanics
 
-1. Check dashboards: which SLI moved (latency / errors / quality / cost)?
-2. Slice by dimension: model version, tenant, region, route.
-3. Open a representative trace → find the slow/failed span.
-4. Reproduce with the stored inputs, fix, add an eval/regression test.
+TODO
 
-## 7. Interview check
+## Part 7: Production AI & Resume Tie-In
 
-1. Why is P99 more important than the mean for user-facing chat?
-2. Define an SLO for a RAG assistant that includes quality.
-3. What attributes would you put on each span in an agent trace?
-4. Quality dropped 5% after a model upgrade, with no error spike. How do you detect and handle it?
+TODO: TTFT P99, agent traces, quality SLOs next to latency SLOs.
+
+## Part 8: Interview Questions (Answered Simply)
+
+TODO

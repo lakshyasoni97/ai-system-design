@@ -1,51 +1,72 @@
-# Session 09: Agentic Topologies, Google ADK, MCP & A2A Protocols
+# Session 09: Agent Architectures: Planning Patterns, Tool Use, MCP & A2A
 
-> **100x Scale Defense Callout — Ready for Socratic Deep-Dive**
-> - **Resume Anchor:** Deloitte Multi-Agent Customer Support
-> - **Module Focus:** Deep-diving into Google ADK, LangGraph, distributed state, and sub-2s latency.
-> - **Workflow Tip:** Click **"Copy Socratic Prompt"** above, run your interactive study session in chat, and then type `/compile-session` to replace this blueprint with your full study notes, custom diagrams, and flashcards.
-
----
-
-## Section A — Executive Summary & Crisp Mental Model
-
-This session focuses on **Agentic Topologies, Google ADK, MCP & A2A Protocols** within **Module 3: Multi-Agent Orchestration & State**.
-
-### Core Socratic Study Prompt
-> *"Compare Supervisor/Orchestrator, Hierarchical, and Swarm agent patterns in LangGraph and Google ADK. Also explain MCP (Model Context Protocol) and A2A (Agent-to-Agent) in crisp terms, and how they standardize tool calling."*
-
-### Key Production Pillars to Defend
-1. **First-Principles Bottleneck Analysis:** Understand what breaks first when traffic scales 100x (CPU, Memory, Network I/O, Token Quota, or Tail Latency).
-2. **GCP & Python Stack Alignment:** Anchor every design decision in **FastAPI, Google ADK, LangGraph, Vertex AI, GKE, Cloud Run, Pub/Sub, Redis, ChromaDB, and BigQuery**.
-3. **Deterministic Reliability:** Pair probabilistic LLM calls with deterministic state checkpointing, idempotency keys, circuit breakers, and automated RAG Triad evaluations.
+> **Status: SKELETON** (content to be written; follow `CONTENT_GUIDELINES.md`)
+> - **Phase 1: Foundational Building Blocks** | **Week 4** | **Priority:** core | **Session type:** existing (upgraded scope)
+> - **Module:** Module 3: Agents, Memory & Latency
+> - **Resume anchor:** Deloitte Multi-Agent Customer Support
 
 ---
 
-## Section B — 100x Scale Architecture Diagram
+## Part 1: Quick Summary
+
+> TODO (3-4 bullets): what this is in plain English, why interviewers care, the 10-second mental model.
+
+## Part 2: Topics to Cover (Study Checklist)
+
+- [ ] Workflow vs agent: when a deterministic graph beats an autonomous loop
+- [ ] ReAct, plan-and-execute, reflection / critic loops, self-consistency
+- [ ] Topologies: supervisor, hierarchical, swarm/handoff, parallel fan-out
+- [ ] Tool design: granularity, schemas, idempotency, error messages the model can act on
+- [ ] MCP (tools/resources) and A2A (agent-to-agent): what each standardises and their security surface
+- [ ] Human-in-the-loop checkpoints and approval UX
+- [ ] Cost/latency of agent loops: step budgets and early termination
+
+## Part 3: First Principles & Analogies
+
+TODO: one everyday analogy per concept above, plus a concrete failure scenario.
+
+## Part 4: Concept Blueprint
 
 ```mermaid
 flowchart LR
-    Ingress["Client / Ingress Traffic\n(100x Scale Target)"] --> Gateway["FastAPI / Envoy Gateway\n(Auth, Rate Limit & Routing)"]
-    Gateway --> Core["Agentic Topologies, Google ADK, MCP & A2A Protocols\nCore Processing Layer"]
-    Core --> State[("Distributed State / Index\n(Redis / Vector DB / BigQuery)")]
-    Core --> Async[["Cloud Pub/Sub\nAsync Event Decoupling"]]
-    Async --> Audit[("Observability & Evals\n(OpenTelemetry + LLM Judge)")]
+    Q["Interview question"] --> C["Agent Architectures: core concept"]
+    C --> T["Trade-offs and numbers"]
+    T --> P["Production pattern"]
+    P --> R["Resume bridge"]
 ```
 
----
+TODO: replace with the real architecture / decision-tree diagram.
 
-## Section C — Trade-off Decision Matrix
+## Part 5: Trade-Off Decision Matrix
 
-| Option / Pattern | Latency Impact | Cost Profile | Operational Complexity | When to Choose at 100x Scale |
+| Option / Pattern | Latency | Cost | Complexity | When to Pick / Watch Out For |
 | :--- | :--- | :--- | :--- | :--- |
-| **Baseline / Single-Node** | Low at <10 QPS; degrades at spike | Lowest initial OpEx | Minimal | MVP & local PoC validation |
-| **Managed Serverless (GCP)** | P95 sensitive to cold starts | Pay-per-use (spiky workloads) | Low | Bursty editorial / internal enterprise tools |
-| **Distributed Cluster / Hybrid** | Sub-50ms P99 with warm pools | Best unit economics at high QPS | High (K8s / Sharding) | 24/7 mission-critical production traffic |
+| TODO option A | TODO | TODO | TODO | TODO |
+| TODO option B | TODO | TODO | TODO | TODO |
+| TODO option C | TODO | TODO | TODO | TODO |
 
----
+## Part 6: Deep-Dive Mechanics & Numbers
 
-## Section D — Resume Project Defense ("How I Used This / How It Breaks at 100x")
+TODO: the math, edge cases and "tricks" that separate a senior answer from a mid-level one.
 
-- **Target Project Tie-In:** **Deloitte Multi-Agent Customer Support**
-- **Production Context:** Connects directly to Lakshya Soni's production systems at **Deloitte** ($1.3M+ annual savings, <2s multi-agent TTFT, Multimodal Slide RAG) and **Network18** (600+ daily articles Multilingual NER at 80–90% F1, 85% effort reduction in AI Video Repurposing).
-- **Next Step:** Run `/compile-session` after discussing this topic in chat to populate exact latency math, failure recovery steps, and hostile Q&A for Session 09.
+## Part 7: Production AI & Resume Tie-In
+
+TODO: how this applies to production AI systems and to **Deloitte Multi-Agent Customer Support**; include a short annotated code or design snippet.
+
+## Part 8: Interview Questions (Answered Simply)
+
+TODO: 4-6 questions, each with **What they are really testing** and **How to answer simply** (spoken-English blockquote).
+
+## Canonical Problems Unlocked
+
+- [support-agent](/problems?id=support-agent)
+- [coding-agent](/problems?id=coding-agent)
+- [deep-research](/problems?id=deep-research)
+
+## Deliverable (Do This Before Moving On)
+
+- [ ] Agent pattern chooser: task type -> pattern -> failure mode -> guardrail.
+
+## Socratic Study Prompt
+
+> *"Teach me agent architectures: ReAct, plan-and-execute, reflection, supervisor vs swarm, tool design, and the MCP and A2A protocols. Then grill me on when NOT to use an agent, and on why my Deloitte system used a deterministic supervisor DAG."*

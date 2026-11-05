@@ -1,14 +1,142 @@
 {
   "title": "Module 0: Distributed Systems Fundamentals",
-  "focus": "The classic building blocks interviewers probe before (and underneath) any AI-specific question. Do this first.",
+  "focus": "Phase 0 (Week 1): the classic building blocks interviewers probe before (and underneath) any AI-specific question. Do this first.",
   "topics": [
-    { "id": "fund-01", "number": 1, "title": "Replication, Consistency & CAP/PACELC", "readTime": "15 min", "aiTieIn": "Vector DB replicas, Redis agent-state failover, multi-region Gemini fallbacks" },
-    { "id": "fund-02", "number": 2, "title": "Partitioning, Sharding & Consistent Hashing", "readTime": "14 min", "aiTieIn": "Sharding 100M+ vectors, per-tenant indexes, routing sessions to pods" },
-    { "id": "fund-03", "number": 3, "title": "Storage Engines & Choosing a Database", "readTime": "14 min", "aiTieIn": "Postgres+pgvector vs dedicated vector DB, BigQuery vs OLTP, checkpoint stores" },
-    { "id": "fund-04", "number": 4, "title": "Queues vs Logs & Delivery Semantics", "readTime": "13 min", "aiTieIn": "Pub/Sub for video jobs, Kafka-style ingestion for news, idempotent LLM workers" },
-    { "id": "fund-05", "number": 5, "title": "Reliability Patterns: Timeouts, Retries, Circuit Breakers, Backpressure", "readTime": "15 min", "aiTieIn": "Gemini 429s/timeouts, tool failures inside agent loops, graceful degradation" },
-    { "id": "fund-06", "number": 6, "title": "Caching & Rate Limiting Fundamentals", "readTime": "13 min", "aiTieIn": "Prompt/semantic caches, TPM quotas, per-tenant fairness" },
-    { "id": "fund-07", "number": 7, "title": "Back-of-the-Envelope Estimation Toolkit", "readTime": "14 min", "aiTieIn": "Tokens/sec, GPU RAM, vector index size, cost per 1k requests" },
-    { "id": "fund-08", "number": 8, "title": "Observability, SLOs & Percentile Thinking", "readTime": "12 min", "aiTieIn": "TTFT P99, agent traces, quality SLOs next to latency SLOs" }
+    {
+      "id": "fund-01",
+      "number": 1,
+      "title": "Replication, Consistency & CAP/PACELC",
+      "readTime": "15 min",
+      "aiTieIn": "Vector DB replicas, Redis agent-state failover, multi-region Gemini fallbacks",
+      "status": "written",
+      "topics": [
+        "Leader/follower, multi-leader, leaderless",
+        "Quorums (R+W>N), linearizability vs eventual",
+        "CAP and PACELC in practice",
+        "Failover and split brain"
+      ],
+      "phase": 0,
+      "week": 1
+    },
+    {
+      "id": "fund-02",
+      "number": 2,
+      "title": "Partitioning, Sharding & Consistent Hashing",
+      "readTime": "14 min",
+      "aiTieIn": "Sharding 100M+ vectors, per-tenant indexes, routing sessions to pods",
+      "status": "written",
+      "topics": [
+        "Hash vs range partitioning",
+        "Consistent hashing and virtual nodes",
+        "Hot keys and rebalancing",
+        "Per-tenant / per-shard routing"
+      ],
+      "phase": 0,
+      "week": 1
+    },
+    {
+      "id": "fund-03",
+      "number": 3,
+      "title": "Storage Engines & Choosing a Database",
+      "readTime": "14 min",
+      "aiTieIn": "Postgres+pgvector vs dedicated vector DB, BigQuery vs OLTP, checkpoint stores",
+      "status": "written",
+      "topics": [
+        "B-tree vs LSM storage engines",
+        "OLTP vs OLAP vs vector stores",
+        "Choosing a database (pgvector vs dedicated vector DB)",
+        "Transactions and isolation levels"
+      ],
+      "phase": 0,
+      "week": 1
+    },
+    {
+      "id": "fund-04",
+      "number": 4,
+      "title": "Queues vs Logs & Delivery Semantics",
+      "readTime": "13 min",
+      "aiTieIn": "Pub/Sub for video jobs, Kafka-style ingestion for news, idempotent LLM workers",
+      "status": "written",
+      "topics": [
+        "Queues vs logs (SQS vs Kafka semantics)",
+        "At-least-once, at-most-once, exactly-once",
+        "Idempotency, DLQ, outbox pattern",
+        "Ordering, partitions and consumer groups"
+      ],
+      "phase": 0,
+      "week": 1
+    },
+    {
+      "id": "fund-05",
+      "number": 5,
+      "title": "Reliability Patterns: Timeouts, Retries, Circuit Breakers, Backpressure",
+      "readTime": "15 min",
+      "aiTieIn": "Gemini 429s/timeouts, tool failures inside agent loops, graceful degradation",
+      "status": "skeleton",
+      "topics": [
+        "Timeouts, retries, exponential backoff with jitter",
+        "Circuit breakers, bulkheads, load shedding",
+        "Backpressure and queue depth limits",
+        "Saga / compensation for side-effecting calls",
+        "Graceful degradation ladders for LLM dependencies",
+        "Hedged requests and tail latency"
+      ],
+      "phase": 0,
+      "week": 1
+    },
+    {
+      "id": "fund-06",
+      "number": 6,
+      "title": "Caching & Rate Limiting Fundamentals",
+      "readTime": "13 min",
+      "aiTieIn": "Prompt/semantic caches, TPM quotas, per-tenant fairness",
+      "status": "skeleton",
+      "topics": [
+        "Cache-aside, write-through, write-back",
+        "Invalidation, TTL, stampede protection",
+        "Rate limiting algorithms (token bucket, sliding window)",
+        "Distributed rate limiting with Redis",
+        "Per-tenant fairness and priority lanes",
+        "Token-aware (TPM) limits for LLM APIs"
+      ],
+      "phase": 0,
+      "week": 1
+    },
+    {
+      "id": "fund-07",
+      "number": 7,
+      "title": "Back-of-the-Envelope Estimation Toolkit",
+      "readTime": "14 min",
+      "aiTieIn": "Tokens/sec, GPU RAM, vector index size, cost per 1k requests and cost per resolved task",
+      "status": "skeleton",
+      "topics": [
+        "Latency numbers every engineer should know",
+        "QPS, storage, bandwidth estimation method",
+        "LLM estimation: tokens/sec, concurrent streams, KV cache, GPU count",
+        "Vector index size and RAM estimation",
+        "Cost per 1k requests / per user / per resolved task",
+        "Sanity-checking numbers and stating assumptions"
+      ],
+      "phase": 0,
+      "week": 1
+    },
+    {
+      "id": "fund-08",
+      "number": 8,
+      "title": "Observability, SLOs & Percentile Thinking",
+      "readTime": "12 min",
+      "aiTieIn": "TTFT P99, agent traces, quality SLOs next to latency SLOs",
+      "status": "skeleton",
+      "topics": [
+        "SLI/SLO/error budgets",
+        "Percentiles vs averages; P99 thinking",
+        "Distributed tracing and OpenTelemetry",
+        "LLM-specific metrics: TTFT, TPOT, goodput, token cost",
+        "Quality SLOs alongside latency SLOs",
+        "Alerting without noise; dashboards for agents"
+      ],
+      "phase": 0,
+      "week": 1
+    }
   ]
 }

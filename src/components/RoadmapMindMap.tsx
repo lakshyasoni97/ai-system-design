@@ -65,7 +65,7 @@ interface RoadmapMindMapProps {
   searchQuery: string;
 }
 
-// Module styling & layout metadata (Radial around center: 1100, 680)
+// Module styling & layout metadata (Radial around center: 1400, 640)
 const MODULE_CONFIG: Record<
   string,
   {
@@ -77,92 +77,82 @@ const MODULE_CONFIG: Record<
     badgeBg: string;
     badgeText: string;
     pos: { x: number; y: number };
-    leafOffsets: { x: number; y: number }[];
   }
 > = {
   "mod-1": {
     code: "M1",
-    label: "Classical Backend & GCP",
+    label: "Backend, Caching & Capacity",
     color: "#059669", // emerald
     border: "border-emerald-500/40",
     bg: "bg-emerald-500/10",
     badgeBg: "bg-emerald-500/20",
     badgeText: "text-emerald-400",
-    pos: { x: 580, y: 340 },
-    leafOffsets: [
-      { x: -300, y: -160 },
-      { x: -300, y: -50 },
-      { x: -300, y: 60 },
-      { x: -300, y: 170 },
-    ],
+    pos: { x: 880, y: 340 },
   },
   "mod-2": {
     code: "M2",
-    label: "Enterprise RAG & Search",
+    label: "RAG, Search & Multimodal",
     color: "#4f46e5", // indigo
     border: "border-indigo-500/40",
     bg: "bg-indigo-500/10",
     badgeBg: "bg-indigo-500/20",
     badgeText: "text-indigo-400",
-    pos: { x: 1620, y: 340 },
-    leafOffsets: [
-      { x: 300, y: -160 },
-      { x: 300, y: -50 },
-      { x: 300, y: 60 },
-      { x: 300, y: 170 },
-    ],
+    pos: { x: 1920, y: 340 },
   },
   "mod-3": {
     code: "M3",
-    label: "Multi-Agent & State",
+    label: "Agents, Memory & Latency",
     color: "#8b5cf6", // violet
     border: "border-violet-500/40",
     bg: "bg-violet-500/10",
     badgeBg: "bg-violet-500/20",
     badgeText: "text-violet-400",
-    pos: { x: 1720, y: 880 },
-    leafOffsets: [
-      { x: 300, y: -140 },
-      { x: 300, y: -40 },
-      { x: 300, y: 60 },
-      { x: 300, y: 160 },
-    ],
+    pos: { x: 2020, y: 940 },
   },
   "mod-4": {
     code: "M4",
-    label: "High-Throughput & Serving",
+    label: "Models & Serving",
     color: "#d97706", // amber
     border: "border-amber-500/40",
     bg: "bg-amber-500/10",
     badgeBg: "bg-amber-500/20",
     badgeText: "text-amber-400",
-    pos: { x: 1100, y: 1120 },
-    leafOffsets: [
-      { x: -320, y: 140 },
-      { x: -110, y: 160 },
-      { x: 110, y: 160 },
-      { x: 320, y: 140 },
-    ],
+    pos: { x: 1400, y: 1120 },
   },
   "mod-5": {
     code: "M5",
-    label: "LLMOps, Evals & Mocks",
+    label: "LLMOps, Evals & Security",
     color: "#e11d48", // rose
     border: "border-rose-500/40",
     bg: "bg-rose-500/10",
     badgeBg: "bg-rose-500/20",
     badgeText: "text-rose-400",
-    pos: { x: 480, y: 880 },
-    leafOffsets: [
-      { x: -300, y: -140 },
-      { x: -300, y: -40 },
-      { x: -300, y: 60 },
-      { x: -300, y: 160 },
-    ],
+    pos: { x: 780, y: 940 },
   },
 };
 
-const CENTER_NODE = { x: 1100, y: 640 };
+const CANVAS_W = 2800;
+const CANVAS_H = 1500;
+
+// Lays out N session leaves around a module hub: side modules use 1-2 vertical columns,
+// the bottom module (mod-4) uses a wrapped grid. Supports any number of sessions.
+function getLeafOffset(modId: string, idx: number, n: number): { x: number; y: number } {
+  if (modId === "mod-4") {
+    const cols = 4;
+    const row = Math.floor(idx / cols);
+    const col = idx % cols;
+    const inRow = Math.min(cols, n - row * cols);
+    return { x: (col - (inRow - 1) / 2) * 270, y: 150 + row * 120 };
+  }
+  const side = modId === "mod-1" || modId === "mod-5" ? -1 : 1;
+  const perCol = n <= 5 ? n : Math.ceil(n / 2);
+  const col = Math.floor(idx / perCol);
+  const row = idx % perCol;
+  const inCol = Math.min(perCol, n - col * perCol);
+  return { x: side * (300 + col * 280), y: (row - (inCol - 1) / 2) * 120 };
+}
+
+const CENTER_NODE = { x: 1400, y: 640 };
 
 export default function RoadmapMindMap({
   modules,
@@ -255,12 +245,13 @@ export default function RoadmapMindMap({
   // Center on next up session or reset view
   const centerOnNextUp = () => {
     if (!nextUpSession) return;
-    const modConfig = MODULE_CONFIG[nextUpSession.moduleId];
+    const targetModId = nextUpSession.moduleId;
+    const modConfig = MODULE_CONFIG[targetModId];
     if (modConfig) {
       // Find session index in module
       const mod = modules.find((m) => m.id === nextUpSession.moduleId);
       const sIdx = mod?.sessions.findIndex((s) => s.id === nextUpSession.id) ?? 0;
-      const offset = modConfig.leafOffsets[sIdx] || { x: 0, y: 0 };
+      const offset = getLeafOffset(targetModId, sIdx, mod?.sessions.length ?? 1);
       const targetX = modConfig.pos.x + offset.x;
       const targetY = modConfig.pos.y + offset.y;
 
@@ -442,16 +433,16 @@ export default function RoadmapMindMap({
           style={{
             transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
             transition: isDragging ? "none" : "transform 140ms ease-out",
-            width: "2200px",
-            height: "1360px",
+            width: `${CANVAS_W}px`,
+            height: `${CANVAS_H}px`,
           }}
         >
           {/* SVG CONNECTOR LINES */}
           <svg
             className="absolute inset-0 pointer-events-none"
-            width="2200"
-            height="1360"
-            viewBox="0 0 2200 1360"
+            width={CANVAS_W}
+            height={CANVAS_H}
+            viewBox={`0 0 ${CANVAS_W} ${CANVAS_H}`}
           >
             <defs>
               <linearGradient id="hubToM1" x1="0%" y1="100%" x2="100%" y2="0%">
@@ -509,7 +500,7 @@ export default function RoadmapMindMap({
               if (!cfg) return null;
 
               return mod.sessions.map((s, idx) => {
-                const offset = cfg.leafOffsets[idx] || { x: 0, y: 0 };
+                const offset = getLeafOffset(mod.id, idx, mod.sessions.length);
                 const leafX = cfg.pos.x + offset.x;
                 const leafY = cfg.pos.y + offset.y;
 
@@ -572,7 +563,7 @@ export default function RoadmapMindMap({
                   {completionPct}%
                 </span>
                 <span className="text-[10px] text-muted-foreground">
-                  {completedSessions.length}/20 Done
+                  {completedSessions.length}/{allSessions.length} Done
                 </span>
               </div>
             </div>
@@ -644,7 +635,7 @@ export default function RoadmapMindMap({
             );
           })}
 
-          {/* 20 SESSION LEAF NODES */}
+          {/* SESSION LEAF NODES */}
           {modules.map((mod) => {
             const cfg = MODULE_CONFIG[mod.id];
             if (!cfg) return null;
@@ -657,7 +648,7 @@ export default function RoadmapMindMap({
                 moduleFocus: mod.focus,
               };
 
-              const offset = cfg.leafOffsets[sIdx] || { x: 0, y: 0 };
+              const offset = getLeafOffset(mod.id, sIdx, mod.sessions.length);
               const nodeX = cfg.pos.x + offset.x;
               const nodeY = cfg.pos.y + offset.y;
 

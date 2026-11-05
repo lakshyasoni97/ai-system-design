@@ -96,7 +96,13 @@ function ProblemsContent() {
               }`}
             >
               <div className="text-sm font-semibold text-foreground">{x.title.replace(/^Design an? /, "")}</div>
-              <div className="mt-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{x.difficulty}</div>
+              <div className="mt-1 flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                <span>{x.difficulty}</span>
+                <span className="text-primary">{x.tier}</span>
+                <span>W{x.week}</span>
+                {x.mustDo && <span className="text-accent">must-do</span>}
+                {x.status === "skeleton" && <span className="rounded bg-muted px-1">skeleton</span>}
+              </div>
             </button>
           ))}
           {visible.length === 0 && <p className="text-sm text-muted-foreground">No problems for this track.</p>}
@@ -112,6 +118,16 @@ function ProblemsContent() {
             </div>
             <h2 className="mt-2 text-xl font-bold text-foreground">{p.title}</h2>
             <p className="mt-2 text-sm leading-relaxed text-foreground/90">{p.prompt}</p>
+            <div className="mt-3 flex flex-wrap gap-2 font-mono text-[11px] text-muted-foreground">
+              <span className="rounded bg-primary/10 px-2 py-0.5 text-primary">tier: {p.tier}</span>
+              <span className="rounded bg-muted px-2 py-0.5">week {p.week}</span>
+              {p.mustDo && <span className="rounded bg-accent/10 px-2 py-0.5 text-accent">must-do</span>}
+            </div>
+            {p.status === "skeleton" && (
+              <p className="mt-3 rounded-lg border border-dashed border-border bg-muted/30 p-2.5 text-xs text-muted-foreground">
+                Skeleton: the reference solution is not written yet. Use the clarifying questions and deep-dive prompts to practise cold.
+              </p>
+            )}
           </div>
 
           <Section title="1. Clarifying questions to ask">
@@ -178,6 +194,12 @@ function ProblemsContent() {
                 <List items={p.followUps} />
               </Section>
             </>
+          )}
+
+          {p.upgradeNotes.length > 0 && (
+            <Section title="Planned upgrades to this reference solution">
+              <List items={p.upgradeNotes} />
+            </Section>
           )}
 
           <Section title="Connect to your experience & study">

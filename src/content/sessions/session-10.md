@@ -1,51 +1,72 @@
-# Session 10: Distributed State Checkpointing & Memory Architecture
+# Session 10: Agent State, Memory Tiers & Durable Execution
 
-> **100x Scale Defense Callout — Ready for Socratic Deep-Dive**
-> - **Resume Anchor:** Deloitte FastAPI Orchestrator on GKE
-> - **Module Focus:** Deep-diving into Google ADK, LangGraph, distributed state, and sub-2s latency.
-> - **Workflow Tip:** Click **"Copy Socratic Prompt"** above, run your interactive study session in chat, and then type `/compile-session` to replace this blueprint with your full study notes, custom diagrams, and flashcards.
-
----
-
-## Section A — Executive Summary & Crisp Mental Model
-
-This session focuses on **Distributed State Checkpointing & Memory Architecture** within **Module 3: Multi-Agent Orchestration & State**.
-
-### Core Socratic Study Prompt
-> *"My FastAPI orchestrator runs on multiple stateless GKE pods. Explain how agent state checkpointing works under the hood (using Redis/Postgres), and how to architect short-term session memory vs. long-term customer memory."*
-
-### Key Production Pillars to Defend
-1. **First-Principles Bottleneck Analysis:** Understand what breaks first when traffic scales 100x (CPU, Memory, Network I/O, Token Quota, or Tail Latency).
-2. **GCP & Python Stack Alignment:** Anchor every design decision in **FastAPI, Google ADK, LangGraph, Vertex AI, GKE, Cloud Run, Pub/Sub, Redis, ChromaDB, and BigQuery**.
-3. **Deterministic Reliability:** Pair probabilistic LLM calls with deterministic state checkpointing, idempotency keys, circuit breakers, and automated RAG Triad evaluations.
+> **Status: SKELETON** (content to be written; follow `CONTENT_GUIDELINES.md`)
+> - **Phase 1: Foundational Building Blocks** | **Week 4** | **Priority:** core | **Session type:** existing (upgraded scope)
+> - **Module:** Module 3: Agents, Memory & Latency
+> - **Resume anchor:** Deloitte FastAPI Orchestrator on GKE
 
 ---
 
-## Section B — 100x Scale Architecture Diagram
+## Part 1: Quick Summary
+
+> TODO (3-4 bullets): what this is in plain English, why interviewers care, the 10-second mental model.
+
+## Part 2: Topics to Cover (Study Checklist)
+
+- [ ] Working / episodic / semantic / procedural memory and where each lives
+- [ ] Checkpointing and resume semantics (LangGraph checkpointers, Redis/Postgres)
+- [ ] Durable execution engines (Temporal-style) vs queue + state machine
+- [ ] Memory write policy: what to store, summarise, expire, and verify
+- [ ] Retrieval over memory: recency/importance/relevance scoring
+- [ ] Multi-session identity, per-user isolation, and privacy/deletion (GDPR)
+- [ ] Long-running agent jobs: timeouts, heartbeats, cost caps
+
+## Part 3: First Principles & Analogies
+
+TODO: one everyday analogy per concept above, plus a concrete failure scenario.
+
+## Part 4: Concept Blueprint
 
 ```mermaid
 flowchart LR
-    Ingress["Client / Ingress Traffic\n(100x Scale Target)"] --> Gateway["FastAPI / Envoy Gateway\n(Auth, Rate Limit & Routing)"]
-    Gateway --> Core["Distributed State Checkpointing & Memory Architecture\nCore Processing Layer"]
-    Core --> State[("Distributed State / Index\n(Redis / Vector DB / BigQuery)")]
-    Core --> Async[["Cloud Pub/Sub\nAsync Event Decoupling"]]
-    Async --> Audit[("Observability & Evals\n(OpenTelemetry + LLM Judge)")]
+    Q["Interview question"] --> C["Agent State, Memory Tiers & Durable Execution: core concept"]
+    C --> T["Trade-offs and numbers"]
+    T --> P["Production pattern"]
+    P --> R["Resume bridge"]
 ```
 
----
+TODO: replace with the real architecture / decision-tree diagram.
 
-## Section C — Trade-off Decision Matrix
+## Part 5: Trade-Off Decision Matrix
 
-| Option / Pattern | Latency Impact | Cost Profile | Operational Complexity | When to Choose at 100x Scale |
+| Option / Pattern | Latency | Cost | Complexity | When to Pick / Watch Out For |
 | :--- | :--- | :--- | :--- | :--- |
-| **Baseline / Single-Node** | Low at <10 QPS; degrades at spike | Lowest initial OpEx | Minimal | MVP & local PoC validation |
-| **Managed Serverless (GCP)** | P95 sensitive to cold starts | Pay-per-use (spiky workloads) | Low | Bursty editorial / internal enterprise tools |
-| **Distributed Cluster / Hybrid** | Sub-50ms P99 with warm pools | Best unit economics at high QPS | High (K8s / Sharding) | 24/7 mission-critical production traffic |
+| TODO option A | TODO | TODO | TODO | TODO |
+| TODO option B | TODO | TODO | TODO | TODO |
+| TODO option C | TODO | TODO | TODO | TODO |
 
----
+## Part 6: Deep-Dive Mechanics & Numbers
 
-## Section D — Resume Project Defense ("How I Used This / How It Breaks at 100x")
+TODO: the math, edge cases and "tricks" that separate a senior answer from a mid-level one.
 
-- **Target Project Tie-In:** **Deloitte FastAPI Orchestrator on GKE**
-- **Production Context:** Connects directly to Lakshya Soni's production systems at **Deloitte** ($1.3M+ annual savings, <2s multi-agent TTFT, Multimodal Slide RAG) and **Network18** (600+ daily articles Multilingual NER at 80–90% F1, 85% effort reduction in AI Video Repurposing).
-- **Next Step:** Run `/compile-session` after discussing this topic in chat to populate exact latency math, failure recovery steps, and hostile Q&A for Session 10.
+## Part 7: Production AI & Resume Tie-In
+
+TODO: how this applies to production AI systems and to **Deloitte FastAPI Orchestrator on GKE**; include a short annotated code or design snippet.
+
+## Part 8: Interview Questions (Answered Simply)
+
+TODO: 4-6 questions, each with **What they are really testing** and **How to answer simply** (spoken-English blockquote).
+
+## Canonical Problems Unlocked
+
+- [ai-memory](/problems?id=ai-memory)
+- [deep-research](/problems?id=deep-research)
+- [support-agent](/problems?id=support-agent)
+
+## Deliverable (Do This Before Moving On)
+
+- [ ] Memory architecture diagram with write/read/expire policies.
+
+## Socratic Study Prompt
+
+> *"Teach me agent memory and state: working vs episodic vs semantic memory, checkpointing, durable execution (resume after crash), and long-running jobs. Then ask me to design memory for a personal assistant, including how to prevent memory poisoning."*

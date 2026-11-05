@@ -35,11 +35,11 @@ interface FlashcardPlayerProps {
 }
 
 const MODULE_LABELS: Record<string, string> = {
-  "Module 1": "Mod 1: Backend & GCP",
-  "Module 2": "Mod 2: Enterprise RAG",
-  "Module 3": "Mod 3: Multi-Agent",
-  "Module 4": "Mod 4: Data & Serving",
-  "Module 5": "Mod 5: LLMOps & Evals",
+  "Module 1": "Mod 1: Backend & Capacity",
+  "Module 2": "Mod 2: RAG & Multimodal",
+  "Module 3": "Mod 3: Agents & Latency",
+  "Module 4": "Mod 4: Models & Serving",
+  "Module 5": "Mod 5: LLMOps & Security",
 };
 
 export default function FlashcardPlayer({

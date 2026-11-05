@@ -1,51 +1,71 @@
-# Session 04: Multi-Tier Caching: Redis, Prompt & Semantic Caching
+# Session 04: Caching Tiers: Exact, Provider Prompt Caching & Semantic Caching
 
-> **100x Scale Defense Callout — Ready for Socratic Deep-Dive**
-> - **Resume Anchor:** Deloitte Customer Support & Sales RAG
-> - **Module Focus:** Defending FastAPI, GKE, Cloud Run, and Pub/Sub choices under heavy LLM traffic.
-> - **Workflow Tip:** Click **"Copy Socratic Prompt"** above, run your interactive study session in chat, and then type `/compile-session` to replace this blueprint with your full study notes, custom diagrams, and flashcards.
-
----
-
-## Section A — Executive Summary & Crisp Mental Model
-
-This session focuses on **Multi-Tier Caching: Redis, Prompt & Semantic Caching** within **Module 1: Classical Backend & GCP Scaling**.
-
-### Core Socratic Study Prompt
-> *"Compare Redis in-memory caching, Prompt Caching, and Semantic Caching (vector-based caching). Walk me through the math of when Semantic Caching actually saves money vs. when the embedding lookup adds too much latency."*
-
-### Key Production Pillars to Defend
-1. **First-Principles Bottleneck Analysis:** Understand what breaks first when traffic scales 100x (CPU, Memory, Network I/O, Token Quota, or Tail Latency).
-2. **GCP & Python Stack Alignment:** Anchor every design decision in **FastAPI, Google ADK, LangGraph, Vertex AI, GKE, Cloud Run, Pub/Sub, Redis, ChromaDB, and BigQuery**.
-3. **Deterministic Reliability:** Pair probabilistic LLM calls with deterministic state checkpointing, idempotency keys, circuit breakers, and automated RAG Triad evaluations.
+> **Status: SKELETON** (content to be written; follow `CONTENT_GUIDELINES.md`)
+> - **Phase 2: Production Optimization** | **Week 6** | **Priority:** core | **Session type:** existing (upgraded scope)
+> - **Module:** Module 1: Backend, Caching & Capacity Planning
+> - **Resume anchor:** Deloitte Customer Support & Sales RAG
 
 ---
 
-## Section B — 100x Scale Architecture Diagram
+## Part 1: Quick Summary
+
+> TODO (3-4 bullets): what this is in plain English, why interviewers care, the 10-second mental model.
+
+## Part 2: Topics to Cover (Study Checklist)
+
+- [ ] Exact-match response caching and key design (model, prompt, params, tenant)
+- [ ] Provider prompt caching: layout rules (stable prefix first), discounts, TTL
+- [ ] Semantic cache: similarity threshold, false-hit risk, verification, per-tenant isolation
+- [ ] Retrieval / embedding / tool-result caches and invalidation
+- [ ] Hit-rate x savings math and when caching is NOT worth it
+- [ ] Cache stampede, TTL and freshness for time-sensitive answers
+
+## Part 3: First Principles & Analogies
+
+TODO: one everyday analogy per concept above, plus a concrete failure scenario.
+
+## Part 4: Concept Blueprint
 
 ```mermaid
 flowchart LR
-    Ingress["Client / Ingress Traffic\n(100x Scale Target)"] --> Gateway["FastAPI / Envoy Gateway\n(Auth, Rate Limit & Routing)"]
-    Gateway --> Core["Multi-Tier Caching: Redis, Prompt & Semantic Caching\nCore Processing Layer"]
-    Core --> State[("Distributed State / Index\n(Redis / Vector DB / BigQuery)")]
-    Core --> Async[["Cloud Pub/Sub\nAsync Event Decoupling"]]
-    Async --> Audit[("Observability & Evals\n(OpenTelemetry + LLM Judge)")]
+    Q["Interview question"] --> C["Caching Tiers: core concept"]
+    C --> T["Trade-offs and numbers"]
+    T --> P["Production pattern"]
+    P --> R["Resume bridge"]
 ```
 
----
+TODO: replace with the real architecture / decision-tree diagram.
 
-## Section C — Trade-off Decision Matrix
+## Part 5: Trade-Off Decision Matrix
 
-| Option / Pattern | Latency Impact | Cost Profile | Operational Complexity | When to Choose at 100x Scale |
+| Option / Pattern | Latency | Cost | Complexity | When to Pick / Watch Out For |
 | :--- | :--- | :--- | :--- | :--- |
-| **Baseline / Single-Node** | Low at <10 QPS; degrades at spike | Lowest initial OpEx | Minimal | MVP & local PoC validation |
-| **Managed Serverless (GCP)** | P95 sensitive to cold starts | Pay-per-use (spiky workloads) | Low | Bursty editorial / internal enterprise tools |
-| **Distributed Cluster / Hybrid** | Sub-50ms P99 with warm pools | Best unit economics at high QPS | High (K8s / Sharding) | 24/7 mission-critical production traffic |
+| TODO option A | TODO | TODO | TODO | TODO |
+| TODO option B | TODO | TODO | TODO | TODO |
+| TODO option C | TODO | TODO | TODO | TODO |
 
----
+## Part 6: Deep-Dive Mechanics & Numbers
 
-## Section D — Resume Project Defense ("How I Used This / How It Breaks at 100x")
+TODO: the math, edge cases and "tricks" that separate a senior answer from a mid-level one.
 
-- **Target Project Tie-In:** **Deloitte Customer Support & Sales RAG**
-- **Production Context:** Connects directly to Lakshya Soni's production systems at **Deloitte** ($1.3M+ annual savings, <2s multi-agent TTFT, Multimodal Slide RAG) and **Network18** (600+ daily articles Multilingual NER at 80–90% F1, 85% effort reduction in AI Video Repurposing).
-- **Next Step:** Run `/compile-session` after discussing this topic in chat to populate exact latency math, failure recovery steps, and hostile Q&A for Session 04.
+## Part 7: Production AI & Resume Tie-In
+
+TODO: how this applies to production AI systems and to **Deloitte Customer Support & Sales RAG**; include a short annotated code or design snippet.
+
+## Part 8: Interview Questions (Answered Simply)
+
+TODO: 4-6 questions, each with **What they are really testing** and **How to answer simply** (spoken-English blockquote).
+
+## Canonical Problems Unlocked
+
+- [chat-assistant](/problems?id=chat-assistant)
+- [llm-gateway](/problems?id=llm-gateway)
+- [support-agent](/problems?id=support-agent)
+
+## Deliverable (Do This Before Moving On)
+
+- [ ] Cache hierarchy diagram with expected hit rates and $ saved.
+
+## Socratic Study Prompt
+
+> *"Teach me every caching layer for LLM apps: exact-match, provider prompt caching, KV prefix caching, semantic caching (and its false-hit risk), retrieval and embedding caches. Give me hit-rate x cost math and ask me how to make a semantic cache safe for multi-tenant data."*

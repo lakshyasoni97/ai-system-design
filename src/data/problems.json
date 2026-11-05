@@ -3,7 +3,11 @@
     "id": "enterprise-rag",
     "title": "Design an Enterprise Knowledge Assistant (RAG over company documents)",
     "difficulty": "Medium",
-    "tracks": ["applied-llm", "solutions-architect", "ml-engineer"],
+    "tracks": [
+      "applied-llm",
+      "solutions-architect",
+      "ml-engineer"
+    ],
     "prompt": "Design a Q&A assistant over 5M internal documents (PDFs, slides, wikis) for 50,000 employees. Answers must cite sources and respect per-document access permissions.",
     "clarifying": [
       "Document types, languages, and update frequency? How fresh must answers be?",
@@ -26,96 +30,63 @@
     ],
     "mermaid": "flowchart LR\n  Src[Doc sources] --> Q[Ingest queue]\n  Q --> P[Parse + chunk]\n  P --> E[Embed]\n  E --> V[(Vector index + ACL metadata)]\n  P --> B[(BM25 index)]\n  U[User] --> API[API + AuthZ]\n  API --> R[Hybrid retrieve + rerank]\n  R --> V\n  R --> B\n  R --> L[LLM + guardrails]\n  L --> U",
     "deepDives": [
-      { "q": "How do you guarantee a junior analyst never sees partner-only content?", "a": "Pre-filter by ACL metadata inside the ANN query (not post-filter, which leaks via score/side-channels and hurts recall). Resolve group membership server-side from the identity provider, never trust client claims. Reindex or update metadata on permission change and keep a short cache TTL for group lookups. Add an audit log and a test suite of permission red-team queries. Also ensure caches (semantic cache, response cache) are keyed by access scope." },
-      { "q": "Answers are wrong though retrieval 'looks fine'. How do you debug?", "a": "Separate retrieval from generation. Measure context recall/precision against a labelled set; inspect chunking (tables, slide images), query rewriting, and top-k/rerank settings. If context contains the answer but the model ignores it, adjust prompt, ordering (lost-in-the-middle), or use a stronger model. Add faithfulness checks and abstain when evidence is weak." },
-      { "q": "How do you handle 100M chunks?", "a": "Quantize (scalar/PQ) to cut RAM, shard by tenant or hash with scatter-gather top-k, keep replicas for tail latency, use disk-based ANN for cold data, and route queries with metadata filters/partitions to reduce search space." }
+      {
+        "q": "How do you guarantee a junior analyst never sees partner-only content?",
+        "a": "Pre-filter by ACL metadata inside the ANN query (not post-filter, which leaks via score/side-channels and hurts recall). Resolve group membership server-side from the identity provider, never trust client claims. Reindex or update metadata on permission change and keep a short cache TTL for group lookups. Add an audit log and a test suite of permission red-team queries. Also ensure caches (semantic cache, response cache) are keyed by access scope."
+      },
+      {
+        "q": "Answers are wrong though retrieval 'looks fine'. How do you debug?",
+        "a": "Separate retrieval from generation. Measure context recall/precision against a labelled set; inspect chunking (tables, slide images), query rewriting, and top-k/rerank settings. If context contains the answer but the model ignores it, adjust prompt, ordering (lost-in-the-middle), or use a stronger model. Add faithfulness checks and abstain when evidence is weak."
+      },
+      {
+        "q": "How do you handle 100M chunks?",
+        "a": "Quantize (scalar/PQ) to cut RAM, shard by tenant or hash with scatter-gather top-k, keep replicas for tail latency, use disk-based ANN for cold data, and route queries with metadata filters/partitions to reduce search space."
+      }
     ],
     "tradeoffs": [
       "Chunk size: small = precise but loses context; large = noisy and costly",
       "Self-host open model vs managed API: data control vs ops burden and quality",
       "Per-tenant indexes (isolation) vs shared index with filters (cost)"
     ],
-    "failureModes": ["Stale index after document deletion", "Prompt injection inside retrieved documents", "Reranker latency spikes", "ACL sync lag"],
+    "failureModes": [
+      "Stale index after document deletion",
+      "Prompt injection inside retrieved documents",
+      "Reranker latency spikes",
+      "ACL sync lag"
+    ],
     "resumeTie": "Deloitte Internal Asset Discovery (slide-to-image RAG on ChromaDB): explain what you shipped, then scale it with this design.",
-    "relatedSessions": ["session-05", "session-06", "session-07", "session-08", "session-17"],
-    "followUps": ["Add multimodal (charts/images)?", "Support 10 languages?", "Cut cost 50%?"]
-  },
-  {
-    "id": "chat-assistant",
-    "title": "Design a ChatGPT-style Conversational Assistant",
-    "difficulty": "Medium–Hard",
-    "tracks": ["applied-llm", "agent-platform", "llm-infra", "ml-engineer"],
-    "prompt": "Design a multi-turn chat product with streaming responses for 10M weekly users, with conversation history, file uploads and model selection.",
-    "clarifying": [
-      "Peak concurrent conversations and average turns per conversation?",
-      "Which models (self-hosted vs API)? Multi-model routing?",
-      "History retention, search over past chats, sharing?",
-      "Tools (web search, code), file types, and safety requirements?"
+    "relatedSessions": [
+      "session-05",
+      "session-06",
+      "session-07",
+      "session-08",
+      "session-17"
     ],
-    "estimation": [
-      "10M WAU, ~3M DAU × 10 messages/day = 30M msgs/day ≈ 350 QPS avg, ~1.5k QPS peak",
-      "Streaming: avg response 500 tokens at ~50 tok/s → ~10 s per response → concurrency ≈ 1.5k × 10 ≈ 15k open streams at peak",
-      "Context grows per turn; KV cache memory per concurrent sequence limits GPU concurrency if self-hosted"
+    "followUps": [
+      "Add multimodal (charts/images)?",
+      "Support 10 languages?",
+      "Cut cost 50%?"
     ],
-    "architecture": [
-      "Edge: CDN/WAF → API gateway (auth, rate limit by user and tokens) → chat service over SSE/WebSocket",
-      "Chat service is stateless; conversation state in a durable store (Postgres/Cassandra) with recent turns cached in Redis",
-      "Context builder: system prompt + summarized older turns + recent turns + retrieved memory; enforce token budget",
-      "Inference router: pick model by plan/task, queue with priority, stream tokens back; fallback model on failure",
-      "Async: title generation, moderation, memory extraction, analytics through a queue"
-    ],
-    "mermaid": "flowchart LR\n  C[Client SSE] --> GW[Gateway: auth + limits]\n  GW --> CS[Chat service]\n  CS --> H[(History DB)]\n  CS --> RC[(Redis cache)]\n  CS --> CB[Context builder]\n  CB --> RT[Model router]\n  RT --> M1[Model pool A]\n  RT --> M2[Model pool B]\n  CS --> Q[Async queue]\n  Q --> W[Moderation + memory + analytics]",
-    "deepDives": [
-      { "q": "A user disconnects mid-stream. What happens?", "a": "Keep generation decoupled from the connection: write tokens to a per-message buffer (Redis stream); the client resumes by message id and offset. Decide policy: cancel upstream generation on disconnect to save cost, or finish and persist. Persist the final message idempotently using a message id." },
-      { "q": "How do you handle very long conversations?", "a": "Rolling summaries plus recent window, retrieval over older turns/memory store, and hard token budgets per request. Summarize asynchronously after turns to avoid adding latency." },
-      { "q": "How do you protect GPUs during a spike?", "a": "Admission control with queue timeouts, priority tiers, load shedding with friendly errors, autoscaling on queue depth and tokens/s, and overflow to a secondary provider." }
-    ],
-    "tradeoffs": ["SSE (simple, one-way, proxy friendly) vs WebSocket (bi-directional)", "Summarize vs truncate history", "Dedicated capacity vs shared pool with priorities"],
-    "failureModes": ["Duplicate messages on retry", "Hot conversation key", "Provider outage", "Unbounded context cost"],
-    "resumeTie": "Deloitte multi-agent support orchestrator: streaming, TTFT < 2 s budget, Redis state.",
-    "relatedSessions": ["session-10", "session-11", "session-03", "session-15", "session-19"],
-    "followUps": ["Add web-search tool?", "Voice mode?", "Enterprise data isolation?"]
-  },
-  {
-    "id": "llm-gateway",
-    "title": "Design an Enterprise LLM Gateway",
-    "difficulty": "Medium",
-    "tracks": ["applied-llm", "agent-platform", "llm-infra"],
-    "prompt": "Teams across a company call several LLM providers directly. Design a central gateway providing auth, quotas, routing, fallback, caching, guardrails and cost attribution.",
-    "clarifying": [
-      "How many teams/apps and total QPS? Latency overhead allowed (e.g. < 20 ms)?",
-      "Providers and models; streaming required? Self-hosted models too?",
-      "Budget enforcement: hard stop or alert? Per team, per key, per user?",
-      "Compliance: prompt logging, PII redaction, regional data rules?"
-    ],
-    "estimation": [
-      "2,000 req/s peak, mostly streaming, average 3 s → ~6k concurrent connections; gateway must be async and horizontally scalable",
-      "Token metering: log input/output tokens per request — 2,000 × 86,400 ≈ 170M events/day max → write via queue to analytics store"
-    ],
-    "architecture": [
-      "Stateless gateway pods (async) behind a load balancer; unified OpenAI-compatible API surface",
-      "AuthN (API keys/OIDC) → policy engine (allowed models, budgets) → rate limiter (Redis token bucket on RPM and TPM with reservation) → cache → router → provider adapter",
-      "Router: rules + cost/latency/health-aware; complexity classifier to send easy prompts to a cheaper model; circuit breakers and region/provider fallback",
-      "Guardrails hooks: PII redaction, injection checks, output filters (configurable per team)",
-      "Metering: emit usage events asynchronously → queue → warehouse; dashboards and budget alerts"
-    ],
-    "mermaid": "flowchart LR\n  A[Apps] --> G[Gateway]\n  G --> AU[Auth + policy]\n  AU --> RL[Rate limit RPM/TPM]\n  RL --> CA[Cache]\n  CA --> RO[Router + fallback]\n  RO --> P1[Provider A]\n  RO --> P2[Provider B]\n  RO --> P3[Self-hosted]\n  G --> U[Usage events]\n  U --> W[(Warehouse + budgets)]",
-    "deepDives": [
-      { "q": "How do you enforce a TPM quota when output length is unknown?", "a": "Reserve tokens = input count + max_tokens (or an estimate) before the call, then reconcile with actual usage after completion and refund the difference. Use Redis atomic scripts keyed by team and model. For streaming, update on completion; also cap max_tokens." },
-      { "q": "Gateway is a single point of failure — how do you make it safe?", "a": "Stateless replicas across zones, minimal critical-path dependencies (local policy cache, Redis degradation mode that fails open/closed deliberately), async metering, canary deploys, and client SDK fallback to direct provider only for approved emergencies." },
-      { "q": "How does routing by complexity avoid quality regressions?", "a": "Shadow-evaluate router decisions against a golden set, start conservative (route only clearly simple intents), monitor quality metrics per route, and allow per-team overrides." }
-    ],
-    "tradeoffs": ["Build vs buy (LiteLLM, managed gateways)", "Fail-open vs fail-closed on limiter outage", "Semantic cache gains vs leakage risk"],
-    "failureModes": ["Retry storm to provider", "Metering lag allows overspend", "Provider schema drift", "Logging sensitive prompts"],
-    "resumeTie": "Cross-platform AI architecture with $1.3M+ savings — frame as cost governance and routing.",
-    "relatedSessions": ["session-03", "session-04", "session-19"],
-    "followUps": ["Multi-region active-active?", "Per-user budgets?", "Support batch/async APIs?"]
+    "tier": "must-know",
+    "week": 3,
+    "mustDo": true,
+    "status": "written",
+    "upgradeNotes": [
+      "Rescope to 100M+ documents: ingestion throughput, index sizing, sharding",
+      "Add ACL-aware retrieval and permission-sync lag",
+      "Add freshness / delete propagation and re-embedding migration",
+      "Add eval plan: retrieval metrics + RAG triad + online signals"
+    ]
   },
   {
     "id": "support-agent",
     "title": "Design a Multi-Agent Customer Support System",
     "difficulty": "Hard",
-    "tracks": ["applied-llm", "agent-platform", "solutions-architect"],
+    "tracks": [
+      "applied-llm",
+      "agent-platform",
+      "solutions-architect"
+    ],
     "prompt": "Design an AI support system handling 100k tickets/day across chat and email: it should answer from the knowledge base, take actions (refund, reset, update order) safely, and escalate to humans.",
     "clarifying": [
       "Which actions are allowed autonomously vs needing approval? Financial limits?",
@@ -137,88 +108,129 @@
     ],
     "mermaid": "flowchart TD\n  In[Chat / email] --> GR[Guardrails: PII + injection]\n  GR --> SUP[Supervisor / router]\n  SUP --> FAQ[FAQ RAG agent]\n  SUP --> ORD[Order agent]\n  SUP --> BIL[Billing agent]\n  ORD --> TG[Tool gateway: scoped IAM + idempotency]\n  BIL --> TG\n  TG --> SOR[(CRM / billing / OMS)]\n  SUP --> ST[(State: Redis + Postgres)]\n  SUP --> HUM[Human escalation]",
     "deepDives": [
-      { "q": "A refund tool call fails after the order was already cancelled. What now?", "a": "Treat the workflow as a saga: record each completed step in state, make each tool idempotent with a key, attempt the compensating action or route to human with full context when automatic compensation is unsafe. Never let the LLM decide to retry non-idempotent actions blindly; the orchestrator owns retry policy." },
-      { "q": "How do you prevent prompt injection from a customer email causing a harmful action?", "a": "Treat all user/retrieved text as untrusted. Enforce permissions in the tool gateway, not the prompt: scoped credentials, allow-lists, amount limits, confirmation for sensitive actions, and separation between reading untrusted content and holding powerful tools. Add injection classifiers and output validation." },
-      { "q": "Agents loop or burn tokens. How do you stop that?", "a": "Max steps and token budgets per ticket, loop detection (repeated tool/args), timeouts, and a deterministic fallback to human handoff." }
+      {
+        "q": "A refund tool call fails after the order was already cancelled. What now?",
+        "a": "Treat the workflow as a saga: record each completed step in state, make each tool idempotent with a key, attempt the compensating action or route to human with full context when automatic compensation is unsafe. Never let the LLM decide to retry non-idempotent actions blindly; the orchestrator owns retry policy."
+      },
+      {
+        "q": "How do you prevent prompt injection from a customer email causing a harmful action?",
+        "a": "Treat all user/retrieved text as untrusted. Enforce permissions in the tool gateway, not the prompt: scoped credentials, allow-lists, amount limits, confirmation for sensitive actions, and separation between reading untrusted content and holding powerful tools. Add injection classifiers and output validation."
+      },
+      {
+        "q": "Agents loop or burn tokens. How do you stop that?",
+        "a": "Max steps and token budgets per ticket, loop detection (repeated tool/args), timeouts, and a deterministic fallback to human handoff."
+      }
     ],
-    "tradeoffs": ["Supervisor vs swarm topology", "One strong model vs small router + specialists", "Autonomy vs approval cost"],
-    "failureModes": ["Stale KB answers", "Duplicate actions on retry", "Tool API outage", "Language mismatch"],
+    "tradeoffs": [
+      "Supervisor vs swarm topology",
+      "One strong model vs small router + specialists",
+      "Autonomy vs approval cost"
+    ],
+    "failureModes": [
+      "Stale KB answers",
+      "Duplicate actions on retry",
+      "Tool API outage",
+      "Language mismatch"
+    ],
     "resumeTie": "Deloitte enterprise multi-agent support (24–48 h → near-instant): this is your flagship story.",
-    "relatedSessions": ["session-09", "session-10", "session-11", "session-12", "session-18"],
-    "followUps": ["Voice channel?", "Proactive support?", "Measure quality without labels?"]
+    "relatedSessions": [
+      "session-09",
+      "session-10",
+      "session-11",
+      "session-12",
+      "session-18"
+    ],
+    "followUps": [
+      "Voice channel?",
+      "Proactive support?",
+      "Measure quality without labels?"
+    ],
+    "tier": "must-know",
+    "week": 4,
+    "mustDo": true,
+    "status": "written",
+    "upgradeNotes": [
+      "Add agent-security threat model (indirect injection via customer email, tool misuse)",
+      "Add online eval: deflection, CSAT, escalation rate"
+    ]
   },
   {
-    "id": "content-moderation",
-    "title": "Design a Real-Time Content Moderation / Classification Pipeline",
-    "difficulty": "Medium",
-    "tracks": ["applied-llm", "ml-engineer", "solutions-architect"],
-    "prompt": "Classify and moderate 20,000 user-generated posts per second (text + images) with decisions within 200 ms for blocking and richer asynchronous review.",
-    "clarifying": [
-      "Policy categories, severity levels, and regional policy differences?",
-      "Precision vs recall priority per category? Cost of false positives?",
-      "Latency: inline block vs post-publish review? Appeals workflow?",
-      "Languages and modalities?"
-    ],
-    "estimation": [
-      "20k QPS peak; if a small model does 500 QPS per GPU with batching → ~40 GPUs plus headroom; CPU-distilled models can reduce that",
-      "Only ~1–5% should reach an LLM/human review tier — the funnel makes cost viable"
-    ],
-    "architecture": [
-      "Tier 0: cheap rules, hashes of known-bad content, blocklists (microseconds)",
-      "Tier 1: small distilled classifier (text + image) with dynamic batching and quantization, deciding allow/block/uncertain",
-      "Tier 2: LLM or multimodal model for uncertain items, async with queue",
-      "Tier 3: human review queue with prioritization; decisions feed training data",
-      "Decision store + audit trail; threshold configs per region/policy; shadow mode for new models"
-    ],
-    "mermaid": "flowchart LR\n  P[Post] --> T0[Rules + hash match]\n  T0 --> T1[Fast classifier]\n  T1 -- clear --> D[Decision store]\n  T1 -- uncertain --> Q[Queue]\n  Q --> T2[LLM / multimodal]\n  T2 --> H[Human review]\n  H --> D\n  H --> TR[(Training data)]",
-    "deepDives": [
-      { "q": "How do you keep the fast classifier from degrading over time?", "a": "Monitor input drift and score distributions, sample decisions for human labelling, schedule retraining on reviewed data, maintain a fixed golden set for regressions, and use shadow deployment before promotion." },
-      { "q": "Handling a burst when a new attack pattern appears?", "a": "Autoscale on queue lag, add temporary rules in Tier 0 for quick containment, then retrain; use priority queues so high-severity categories are reviewed first." }
-    ],
-    "tradeoffs": ["Inline vs async enforcement", "Thresholds per category (precision/recall)", "Distilled model vs LLM cost"],
-    "failureModes": ["Adversarial evasion", "Over-blocking a language", "Label noise from reviewers"],
-    "resumeTie": "Network18 multilingual NER at high throughput (80–90% F1) — reuse the serving + batching story.",
-    "relatedSessions": ["session-14", "session-13", "session-17", "session-18"],
-    "followUps": ["Add appeals?", "Per-country policy?", "Explainability requirements?"]
-  },
-  {
-    "id": "coding-agent",
-    "title": "Design a Cloud Coding Agent (runs tasks in sandboxes)",
+    "id": "answer-engine",
+    "title": "Design a Perplexity-style Web Answer Engine",
     "difficulty": "Hard",
-    "tracks": ["agent-platform"],
-    "prompt": "Design a service where users assign coding tasks; an agent clones the repo, edits files, runs tests in an isolated sandbox, and opens a pull request.",
+    "tracks": [
+      "applied-llm",
+      "agent-platform"
+    ],
+    "tier": "high-freq",
+    "week": 4,
+    "mustDo": true,
+    "status": "skeleton",
+    "prompt": "Design a service that answers open-ended questions with cited answers by searching the live web, serving 5M queries/day with first token in under 2 seconds.",
     "clarifying": [
-      "Concurrent tasks and typical duration (minutes to hours)?",
-      "Repo sizes, languages, private repo credentials, network access policy?",
-      "Human approval steps? Cost cap per task?"
+      "Freshness requirements and query mix (news, factual, research)?",
+      "Own crawler/index vs third-party search APIs?",
+      "Citation accuracy requirements and handling conflicting sources?",
+      "Latency target and cost per query?"
     ],
     "estimation": [
-      "10k tasks/day, avg 15 min, so ~100 concurrent sandboxes average, peak 500; each ~2 vCPU/4 GB → plan warm pools",
-      "LLM tokens dominate cost: context re-reads of large repos → prefix caching and retrieval over code"
+      "TODO: back-of-envelope estimation (QPS, tokens, GPUs/storage, cost)"
     ],
     "architecture": [
-      "Task API → durable workflow engine (resumable steps) → sandbox scheduler",
-      "Sandbox: microVM/gVisor container with repo checkout, no secrets, egress allow-list, CPU/mem/time limits",
-      "Agent loop runs outside the sandbox; tools (read/edit/run) are RPC into the sandbox",
-      "Checkpoint after every tool call; artifacts (diffs, logs) in object storage; stream progress to UI",
-      "Git integration via short-lived scoped tokens; PR creation by a trusted service, not the agent"
+      "TODO: write the reference architecture outline (components, data flow, storage, serving)"
     ],
-    "mermaid": "flowchart LR\n  U[User] --> API[Task API]\n  API --> WF[Durable workflow]\n  WF --> AG[Agent loop]\n  AG --> LLM[LLM]\n  AG --> SB[Sandbox microVM]\n  SB --> REPO[(Repo checkout)]\n  WF --> ART[(Artifacts)]\n  WF --> GH[PR service]",
+    "mermaid": "flowchart LR\n  R[\"Requirements and SLOs\"] --> A[\"TODO: reference architecture\"]\n  A --> E[\"Evaluation and safety\"]",
     "deepDives": [
-      { "q": "How do you secure running untrusted generated code?", "a": "Strong isolation (microVM or gVisor), no ambient credentials, network egress allow-list, resource and time limits, read-only base images, ephemeral filesystem, and a separate trusted component for pushing to git." },
-      { "q": "How do you resume after the worker crashes mid-task?", "a": "Durable orchestration with persisted event history; replay deterministic orchestration code, re-create or snapshot the sandbox, and make tool calls idempotent (e.g. reapply patches by content hash)." }
+      {
+        "q": "How do you plan the search: when one query, when many?",
+        "a": "TODO: write the reference answer."
+      },
+      {
+        "q": "How do you guarantee every claim is grounded in a cited source?",
+        "a": "TODO: write the reference answer."
+      },
+      {
+        "q": "How do you cut time-to-first-token while still retrieving?",
+        "a": "TODO: write the reference answer."
+      },
+      {
+        "q": "How do you defend against prompt injection from web pages?",
+        "a": "TODO: write the reference answer."
+      }
     ],
-    "tradeoffs": ["Sandbox snapshot/restore vs rebuild", "Long context vs retrieval over code", "Autonomy vs approvals"],
-    "failureModes": ["Infinite loops", "Dependency install flakiness", "Secrets exfiltration attempts", "Cost runaway"],
-    "resumeTie": "Your orchestration/state and failure-handling experience transfers directly; be explicit that sandboxing is new learning.",
-    "relatedSessions": ["session-10", "session-12", "session-18"],
-    "followUps": ["Parallel agents on one repo?", "Eval harness for the agent?", "Prompt caching strategy?"]
+    "tradeoffs": [
+      "Own index vs search API",
+      "Depth of retrieval vs latency",
+      "Streaming early vs waiting for sources"
+    ],
+    "failureModes": [
+      "Spam / SEO-poisoned pages",
+      "Stale cache for breaking news",
+      "Citations that do not support the claim"
+    ],
+    "resumeTie": "Network18 Sales Intelligence RAG (web scraping + RAG + summarisation) is your closest project.",
+    "relatedSessions": [
+      "session-06",
+      "session-25",
+      "session-26",
+      "session-11",
+      "session-31"
+    ],
+    "followUps": [
+      "Follow-up questions with conversation context?",
+      "Shopping/vertical modes?",
+      "Personalization?"
+    ],
+    "upgradeNotes": []
   },
   {
     "id": "inference-serving",
     "title": "Design a High-Throughput Model Serving Platform",
     "difficulty": "Hard",
-    "tracks": ["llm-infra", "ml-engineer"],
+    "tracks": [
+      "llm-infra",
+      "ml-engineer"
+    ],
     "prompt": "Serve both a fine-tuned 7B LLM and a BERT-class NER model at 5,000 QPS combined, with P99 latency targets and cost efficiency on GPUs.",
     "clarifying": [
       "Latency vs throughput per model; streaming for the LLM?",
@@ -239,20 +251,957 @@
     ],
     "mermaid": "flowchart LR\n  C[Clients] --> GW[Gateway]\n  GW --> R[Router]\n  R --> L[LLM pool: vLLM]\n  R --> N[NER pool: Triton + ONNX]\n  L --> G1[(GPU nodes)]\n  N --> G2[(GPU nodes)]\n  A[Autoscaler: queue depth] --> L\n  A --> N",
     "deepDives": [
-      { "q": "What is continuous batching and why does it matter?", "a": "Instead of waiting for a whole batch to finish, the scheduler admits new sequences each decode iteration and retires finished ones, keeping GPUs busy and improving throughput and tail latency versus static batching." },
-      { "q": "Cold starts when scaling GPU pods?", "a": "Keep a minimum warm pool, preload weights from fast local/cached storage, use image/weight caching on nodes, scale ahead on predictive signals, and shed or queue with timeouts during ramp-up." }
+      {
+        "q": "What is continuous batching and why does it matter?",
+        "a": "Instead of waiting for a whole batch to finish, the scheduler admits new sequences each decode iteration and retires finished ones, keeping GPUs busy and improving throughput and tail latency versus static batching."
+      },
+      {
+        "q": "Cold starts when scaling GPU pods?",
+        "a": "Keep a minimum warm pool, preload weights from fast local/cached storage, use image/weight caching on nodes, scale ahead on predictive signals, and shed or queue with timeouts during ramp-up."
+      }
     ],
-    "tradeoffs": ["Quantization quality loss vs cost", "Self-hosting vs API at your volume", "Bigger batch (throughput) vs latency"],
-    "failureModes": ["OOM from long contexts", "Noisy-neighbour interference", "Slow model rollout", "GPU node failures"],
+    "tradeoffs": [
+      "Quantization quality loss vs cost",
+      "Self-hosting vs API at your volume",
+      "Bigger batch (throughput) vs latency"
+    ],
+    "failureModes": [
+      "OOM from long contexts",
+      "Noisy-neighbour interference",
+      "Slow model rollout",
+      "GPU node failures"
+    ],
     "resumeTie": "Network18 NER serving; frame the cost savings honestly and be prepared to estimate GPU needs.",
-    "relatedSessions": ["session-14", "session-15", "session-19"],
-    "followUps": ["Multi-LoRA serving?", "Speculative decoding?", "Spot GPU instances?"]
+    "relatedSessions": [
+      "session-14",
+      "session-15",
+      "session-19"
+    ],
+    "followUps": [
+      "Multi-LoRA serving?",
+      "Speculative decoding?",
+      "Spot GPU instances?"
+    ],
+    "tier": "high-freq",
+    "week": 5,
+    "mustDo": true,
+    "status": "written",
+    "upgradeNotes": [
+      "Add prefill/decode disaggregation and chunked prefill",
+      "Add multi-LoRA serving and speculative decoding trade-offs",
+      "Add GPU autoscaling on queue depth / KV utilisation"
+    ]
+  },
+  {
+    "id": "chat-assistant",
+    "title": "Design a ChatGPT-style Conversational Assistant",
+    "difficulty": "Medium–Hard",
+    "tracks": [
+      "applied-llm",
+      "agent-platform",
+      "llm-infra",
+      "ml-engineer"
+    ],
+    "prompt": "Design a multi-turn chat product with streaming responses for 10M weekly users, with conversation history, file uploads and model selection.",
+    "clarifying": [
+      "Peak concurrent conversations and average turns per conversation?",
+      "Which models (self-hosted vs API)? Multi-model routing?",
+      "History retention, search over past chats, sharing?",
+      "Tools (web search, code), file types, and safety requirements?"
+    ],
+    "estimation": [
+      "10M WAU, ~3M DAU × 10 messages/day = 30M msgs/day ≈ 350 QPS avg, ~1.5k QPS peak",
+      "Streaming: avg response 500 tokens at ~50 tok/s → ~10 s per response → concurrency ≈ 1.5k × 10 ≈ 15k open streams at peak",
+      "Context grows per turn; KV cache memory per concurrent sequence limits GPU concurrency if self-hosted"
+    ],
+    "architecture": [
+      "Edge: CDN/WAF → API gateway (auth, rate limit by user and tokens) → chat service over SSE/WebSocket",
+      "Chat service is stateless; conversation state in a durable store (Postgres/Cassandra) with recent turns cached in Redis",
+      "Context builder: system prompt + summarized older turns + recent turns + retrieved memory; enforce token budget",
+      "Inference router: pick model by plan/task, queue with priority, stream tokens back; fallback model on failure",
+      "Async: title generation, moderation, memory extraction, analytics through a queue"
+    ],
+    "mermaid": "flowchart LR\n  C[Client SSE] --> GW[Gateway: auth + limits]\n  GW --> CS[Chat service]\n  CS --> H[(History DB)]\n  CS --> RC[(Redis cache)]\n  CS --> CB[Context builder]\n  CB --> RT[Model router]\n  RT --> M1[Model pool A]\n  RT --> M2[Model pool B]\n  CS --> Q[Async queue]\n  Q --> W[Moderation + memory + analytics]",
+    "deepDives": [
+      {
+        "q": "A user disconnects mid-stream. What happens?",
+        "a": "Keep generation decoupled from the connection: write tokens to a per-message buffer (Redis stream); the client resumes by message id and offset. Decide policy: cancel upstream generation on disconnect to save cost, or finish and persist. Persist the final message idempotently using a message id."
+      },
+      {
+        "q": "How do you handle very long conversations?",
+        "a": "Rolling summaries plus recent window, retrieval over older turns/memory store, and hard token budgets per request. Summarize asynchronously after turns to avoid adding latency."
+      },
+      {
+        "q": "How do you protect GPUs during a spike?",
+        "a": "Admission control with queue timeouts, priority tiers, load shedding with friendly errors, autoscaling on queue depth and tokens/s, and overflow to a secondary provider."
+      }
+    ],
+    "tradeoffs": [
+      "SSE (simple, one-way, proxy friendly) vs WebSocket (bi-directional)",
+      "Summarize vs truncate history",
+      "Dedicated capacity vs shared pool with priorities"
+    ],
+    "failureModes": [
+      "Duplicate messages on retry",
+      "Hot conversation key",
+      "Provider outage",
+      "Unbounded context cost"
+    ],
+    "resumeTie": "Deloitte multi-agent support orchestrator: streaming, TTFT < 2 s budget, Redis state.",
+    "relatedSessions": [
+      "session-10",
+      "session-11",
+      "session-03",
+      "session-15",
+      "session-19"
+    ],
+    "followUps": [
+      "Add web-search tool?",
+      "Voice mode?",
+      "Enterprise data isolation?"
+    ],
+    "tier": "must-know",
+    "week": 6,
+    "mustDo": true,
+    "status": "written",
+    "upgradeNotes": [
+      "Add long-term memory and personalization deep dive",
+      "Add multi-model routing + provider prompt caching economics",
+      "Add safety / moderation path and abuse controls"
+    ]
+  },
+  {
+    "id": "llm-gateway",
+    "title": "Design an Enterprise LLM Gateway",
+    "difficulty": "Medium",
+    "tracks": [
+      "applied-llm",
+      "agent-platform",
+      "llm-infra"
+    ],
+    "prompt": "Teams across a company call several LLM providers directly. Design a central gateway providing auth, quotas, routing, fallback, caching, guardrails and cost attribution.",
+    "clarifying": [
+      "How many teams/apps and total QPS? Latency overhead allowed (e.g. < 20 ms)?",
+      "Providers and models; streaming required? Self-hosted models too?",
+      "Budget enforcement: hard stop or alert? Per team, per key, per user?",
+      "Compliance: prompt logging, PII redaction, regional data rules?"
+    ],
+    "estimation": [
+      "2,000 req/s peak, mostly streaming, average 3 s → ~6k concurrent connections; gateway must be async and horizontally scalable",
+      "Token metering: log input/output tokens per request — 2,000 × 86,400 ≈ 170M events/day max → write via queue to analytics store"
+    ],
+    "architecture": [
+      "Stateless gateway pods (async) behind a load balancer; unified OpenAI-compatible API surface",
+      "AuthN (API keys/OIDC) → policy engine (allowed models, budgets) → rate limiter (Redis token bucket on RPM and TPM with reservation) → cache → router → provider adapter",
+      "Router: rules + cost/latency/health-aware; complexity classifier to send easy prompts to a cheaper model; circuit breakers and region/provider fallback",
+      "Guardrails hooks: PII redaction, injection checks, output filters (configurable per team)",
+      "Metering: emit usage events asynchronously → queue → warehouse; dashboards and budget alerts"
+    ],
+    "mermaid": "flowchart LR\n  A[Apps] --> G[Gateway]\n  G --> AU[Auth + policy]\n  AU --> RL[Rate limit RPM/TPM]\n  RL --> CA[Cache]\n  CA --> RO[Router + fallback]\n  RO --> P1[Provider A]\n  RO --> P2[Provider B]\n  RO --> P3[Self-hosted]\n  G --> U[Usage events]\n  U --> W[(Warehouse + budgets)]",
+    "deepDives": [
+      {
+        "q": "How do you enforce a TPM quota when output length is unknown?",
+        "a": "Reserve tokens = input count + max_tokens (or an estimate) before the call, then reconcile with actual usage after completion and refund the difference. Use Redis atomic scripts keyed by team and model. For streaming, update on completion; also cap max_tokens."
+      },
+      {
+        "q": "Gateway is a single point of failure — how do you make it safe?",
+        "a": "Stateless replicas across zones, minimal critical-path dependencies (local policy cache, Redis degradation mode that fails open/closed deliberately), async metering, canary deploys, and client SDK fallback to direct provider only for approved emergencies."
+      },
+      {
+        "q": "How does routing by complexity avoid quality regressions?",
+        "a": "Shadow-evaluate router decisions against a golden set, start conservative (route only clearly simple intents), monitor quality metrics per route, and allow per-team overrides."
+      }
+    ],
+    "tradeoffs": [
+      "Build vs buy (LiteLLM, managed gateways)",
+      "Fail-open vs fail-closed on limiter outage",
+      "Semantic cache gains vs leakage risk"
+    ],
+    "failureModes": [
+      "Retry storm to provider",
+      "Metering lag allows overspend",
+      "Provider schema drift",
+      "Logging sensitive prompts"
+    ],
+    "resumeTie": "Cross-platform AI architecture with $1.3M+ savings — frame as cost governance and routing.",
+    "relatedSessions": [
+      "session-03",
+      "session-04",
+      "session-19"
+    ],
+    "followUps": [
+      "Multi-region active-active?",
+      "Per-user budgets?",
+      "Support batch/async APIs?"
+    ],
+    "tier": "must-know",
+    "week": 6,
+    "mustDo": false,
+    "status": "written",
+    "upgradeNotes": [
+      "Add routing cascades and cost-per-resolved-task metric"
+    ]
+  },
+  {
+    "id": "eval-platform",
+    "title": "Design an LLM Evaluation & Observability Platform",
+    "difficulty": "Medium-Hard",
+    "tracks": [
+      "agent-platform",
+      "applied-llm",
+      "llm-infra",
+      "ml-engineer"
+    ],
+    "tier": "differentiator",
+    "week": 7,
+    "mustDo": true,
+    "status": "skeleton",
+    "prompt": "Design a platform where teams trace LLM/agent calls, build datasets, run offline evals and monitor production quality across 200 apps.",
+    "clarifying": [
+      "Trace volume and retention? PII constraints?",
+      "Eval types: code-based, LLM-judge, human?",
+      "Integration into CI and release gates?",
+      "Multi-tenant requirements?"
+    ],
+    "estimation": [
+      "TODO: back-of-envelope estimation (QPS, tokens, GPUs/storage, cost)"
+    ],
+    "architecture": [
+      "TODO: write the reference architecture outline (components, data flow, storage, serving)"
+    ],
+    "mermaid": "flowchart LR\n  R[\"Requirements and SLOs\"] --> A[\"TODO: reference architecture\"]\n  A --> E[\"Evaluation and safety\"]",
+    "deepDives": [
+      {
+        "q": "How do you store and query billions of traces with large payloads?",
+        "a": "TODO: write the reference answer."
+      },
+      {
+        "q": "How do you keep LLM-judge scores trustworthy and cheap?",
+        "a": "TODO: write the reference answer."
+      },
+      {
+        "q": "How do you turn production failures into regression datasets?",
+        "a": "TODO: write the reference answer."
+      },
+      {
+        "q": "How do you detect quality drift in production?",
+        "a": "TODO: write the reference answer."
+      }
+    ],
+    "tradeoffs": [
+      "Sampling vs full capture",
+      "LLM judge vs human review",
+      "Real-time vs batch scoring"
+    ],
+    "failureModes": [
+      "Judge model drift",
+      "PII leakage in traces",
+      "Eval set overfitting"
+    ],
+    "resumeTie": "Deloitte multi-agent evals & LLMOps work is the tie-in.",
+    "relatedSessions": [
+      "session-17",
+      "session-30",
+      "session-18"
+    ],
+    "followUps": [
+      "Prompt management/versioning?",
+      "Agent trajectory visualisation?",
+      "Cost attribution?"
+    ],
+    "upgradeNotes": []
+  },
+  {
+    "id": "text-to-sql",
+    "title": "Design a Text-to-SQL / Analytics Agent over a Data Warehouse",
+    "difficulty": "Medium-Hard",
+    "tracks": [
+      "applied-llm",
+      "solutions-architect",
+      "ml-engineer"
+    ],
+    "tier": "high-freq",
+    "week": 7,
+    "mustDo": true,
+    "status": "skeleton",
+    "prompt": "Let business users ask questions in natural language over a 5,000-table warehouse and get correct, permission-safe answers and charts.",
+    "clarifying": [
+      "Schema size, semantic layer availability, BI tool integration?",
+      "Accuracy requirements and who verifies results?",
+      "Row/column-level security and PII?",
+      "Latency and warehouse cost limits?"
+    ],
+    "estimation": [
+      "TODO: back-of-envelope estimation (QPS, tokens, GPUs/storage, cost)"
+    ],
+    "architecture": [
+      "TODO: write the reference architecture outline (components, data flow, storage, serving)"
+    ],
+    "mermaid": "flowchart LR\n  R[\"Requirements and SLOs\"] --> A[\"TODO: reference architecture\"]\n  A --> E[\"Evaluation and safety\"]",
+    "deepDives": [
+      {
+        "q": "How do you find the right tables among 5,000 (schema retrieval)?",
+        "a": "TODO: write the reference answer."
+      },
+      {
+        "q": "How do you prevent wrong-but-plausible answers?",
+        "a": "TODO: write the reference answer."
+      },
+      {
+        "q": "How do you enforce permissions and prevent destructive/expensive queries?",
+        "a": "TODO: write the reference answer."
+      },
+      {
+        "q": "How do you evaluate accuracy (execution accuracy, golden queries)?",
+        "a": "TODO: write the reference answer."
+      }
+    ],
+    "tradeoffs": [
+      "Semantic layer vs raw schema",
+      "Autonomy vs approval",
+      "Fine-tune vs prompt+retrieval"
+    ],
+    "failureModes": [
+      "Ambiguous metrics (revenue?)",
+      "Expensive full-table scans",
+      "SQL injection via prompt"
+    ],
+    "resumeTie": "Network18 Enterprise Reporting Automation (BigQuery/PySpark) is the data-side tie-in.",
+    "relatedSessions": [
+      "session-25",
+      "session-26",
+      "session-08",
+      "session-16",
+      "session-31"
+    ],
+    "followUps": [
+      "Dashboards generation?",
+      "Follow-up question context?",
+      "Self-correcting on SQL errors?"
+    ],
+    "upgradeNotes": []
+  },
+  {
+    "id": "voice-agent",
+    "title": "Design a Real-Time Multimodal Voice Agent",
+    "difficulty": "Hard",
+    "tracks": [
+      "agent-platform",
+      "llm-infra",
+      "applied-llm"
+    ],
+    "tier": "high-freq",
+    "week": 8,
+    "mustDo": true,
+    "status": "skeleton",
+    "prompt": "Design a phone/web voice assistant with sub-800 ms response latency, natural interruption (barge-in), tool use, and 100k concurrent calls.",
+    "clarifying": [
+      "Telephony (PSTN/SIP) vs browser (WebRTC)? Languages and accents?",
+      "Cascaded ASR->LLM->TTS vs native speech-to-speech?",
+      "Tool calls during the conversation? Compliance and recording?",
+      "Concurrency and cost per minute targets?"
+    ],
+    "estimation": [
+      "TODO: back-of-envelope estimation (QPS, tokens, GPUs/storage, cost)"
+    ],
+    "architecture": [
+      "TODO: write the reference architecture outline (components, data flow, storage, serving)"
+    ],
+    "mermaid": "flowchart LR\n  R[\"Requirements and SLOs\"] --> A[\"TODO: reference architecture\"]\n  A --> E[\"Evaluation and safety\"]",
+    "deepDives": [
+      {
+        "q": "Where does the 800 ms go? Give a latency waterfall.",
+        "a": "TODO: write the reference answer."
+      },
+      {
+        "q": "How do you detect end-of-turn and handle barge-in?",
+        "a": "TODO: write the reference answer."
+      },
+      {
+        "q": "How do you scale stateful streaming connections?",
+        "a": "TODO: write the reference answer."
+      },
+      {
+        "q": "How do you handle background noise, accents and ASR errors?",
+        "a": "TODO: write the reference answer."
+      }
+    ],
+    "tradeoffs": [
+      "Cascaded vs speech-to-speech",
+      "Quality of TTS vs latency",
+      "Edge vs central inference"
+    ],
+    "failureModes": [
+      "Barge-in race conditions",
+      "ASR hallucination on noise",
+      "Long tool call causing dead air"
+    ],
+    "resumeTie": "Reuse the Deloitte <2s multi-agent latency-budget story; extend it to a streaming audio pipeline.",
+    "relatedSessions": [
+      "session-07",
+      "session-11",
+      "session-28",
+      "session-31"
+    ],
+    "followUps": [
+      "Outbound calling campaigns?",
+      "Emotion / sentiment awareness?",
+      "Multi-party calls?"
+    ],
+    "upgradeNotes": []
+  },
+  {
+    "id": "code-assistant",
+    "title": "Design a Copilot-style Code Completion & Repo-Aware Assistant",
+    "difficulty": "Hard",
+    "tracks": [
+      "agent-platform",
+      "llm-infra",
+      "applied-llm"
+    ],
+    "tier": "high-freq",
+    "week": 8,
+    "mustDo": true,
+    "status": "skeleton",
+    "prompt": "Design an IDE assistant offering inline completions under 200 ms and a repo-aware chat for 1M developers.",
+    "clarifying": [
+      "Completion vs chat vs agent mode requirements?",
+      "Repo size and privacy (code never leaves the machine)?",
+      "Languages and IDE integration?",
+      "Latency and acceptance-rate targets?"
+    ],
+    "estimation": [
+      "TODO: back-of-envelope estimation (QPS, tokens, GPUs/storage, cost)"
+    ],
+    "architecture": [
+      "TODO: write the reference architecture outline (components, data flow, storage, serving)"
+    ],
+    "mermaid": "flowchart LR\n  R[\"Requirements and SLOs\"] --> A[\"TODO: reference architecture\"]\n  A --> E[\"Evaluation and safety\"]",
+    "deepDives": [
+      {
+        "q": "How do you get a fill-in-the-middle completion under 200 ms?",
+        "a": "TODO: write the reference answer."
+      },
+      {
+        "q": "How do you retrieve relevant context from a huge repo (code chunking, symbols, embeddings)?",
+        "a": "TODO: write the reference answer."
+      },
+      {
+        "q": "How do you cancel/debounce requests while the user types?",
+        "a": "TODO: write the reference answer."
+      },
+      {
+        "q": "How do you measure quality online (acceptance rate, retention)?",
+        "a": "TODO: write the reference answer."
+      }
+    ],
+    "tradeoffs": [
+      "Small fast model vs large model",
+      "Local vs cloud inference",
+      "Index freshness vs cost"
+    ],
+    "failureModes": [
+      "Stale index after edits",
+      "Secrets in context",
+      "Suggesting licensed code"
+    ],
+    "resumeTie": "Pairs with the Network18/Deloitte pipelines for retrieval; the latency story is new.",
+    "relatedSessions": [
+      "session-23",
+      "session-15",
+      "session-28",
+      "session-26"
+    ],
+    "followUps": [
+      "Multi-file edits?",
+      "Test generation?",
+      "Org-specific fine-tuning?"
+    ],
+    "upgradeNotes": []
+  },
+  {
+    "id": "coding-agent",
+    "title": "Design a Cloud Coding Agent (runs tasks in sandboxes)",
+    "difficulty": "Hard",
+    "tracks": [
+      "agent-platform"
+    ],
+    "prompt": "Design a service where users assign coding tasks; an agent clones the repo, edits files, runs tests in an isolated sandbox, and opens a pull request.",
+    "clarifying": [
+      "Concurrent tasks and typical duration (minutes to hours)?",
+      "Repo sizes, languages, private repo credentials, network access policy?",
+      "Human approval steps? Cost cap per task?"
+    ],
+    "estimation": [
+      "10k tasks/day, avg 15 min, so ~100 concurrent sandboxes average, peak 500; each ~2 vCPU/4 GB → plan warm pools",
+      "LLM tokens dominate cost: context re-reads of large repos → prefix caching and retrieval over code"
+    ],
+    "architecture": [
+      "Task API → durable workflow engine (resumable steps) → sandbox scheduler",
+      "Sandbox: microVM/gVisor container with repo checkout, no secrets, egress allow-list, CPU/mem/time limits",
+      "Agent loop runs outside the sandbox; tools (read/edit/run) are RPC into the sandbox",
+      "Checkpoint after every tool call; artifacts (diffs, logs) in object storage; stream progress to UI",
+      "Git integration via short-lived scoped tokens; PR creation by a trusted service, not the agent"
+    ],
+    "mermaid": "flowchart LR\n  U[User] --> API[Task API]\n  API --> WF[Durable workflow]\n  WF --> AG[Agent loop]\n  AG --> LLM[LLM]\n  AG --> SB[Sandbox microVM]\n  SB --> REPO[(Repo checkout)]\n  WF --> ART[(Artifacts)]\n  WF --> GH[PR service]",
+    "deepDives": [
+      {
+        "q": "How do you secure running untrusted generated code?",
+        "a": "Strong isolation (microVM or gVisor), no ambient credentials, network egress allow-list, resource and time limits, read-only base images, ephemeral filesystem, and a separate trusted component for pushing to git."
+      },
+      {
+        "q": "How do you resume after the worker crashes mid-task?",
+        "a": "Durable orchestration with persisted event history; replay deterministic orchestration code, re-create or snapshot the sandbox, and make tool calls idempotent (e.g. reapply patches by content hash)."
+      }
+    ],
+    "tradeoffs": [
+      "Sandbox snapshot/restore vs rebuild",
+      "Long context vs retrieval over code",
+      "Autonomy vs approvals"
+    ],
+    "failureModes": [
+      "Infinite loops",
+      "Dependency install flakiness",
+      "Secrets exfiltration attempts",
+      "Cost runaway"
+    ],
+    "resumeTie": "Your orchestration/state and failure-handling experience transfers directly; be explicit that sandboxing is new learning.",
+    "relatedSessions": [
+      "session-10",
+      "session-12",
+      "session-18"
+    ],
+    "followUps": [
+      "Parallel agents on one repo?",
+      "Eval harness for the agent?",
+      "Prompt caching strategy?"
+    ],
+    "tier": "high-freq",
+    "week": 8,
+    "mustDo": true,
+    "status": "written",
+    "upgradeNotes": [
+      "Add sandbox security (network egress, secrets) and prompt-injection from repo content"
+    ]
+  },
+  {
+    "id": "deep-research",
+    "title": "Design a Long-Running Deep Research Agent",
+    "difficulty": "Hard",
+    "tracks": [
+      "agent-platform",
+      "applied-llm"
+    ],
+    "tier": "differentiator",
+    "week": 8,
+    "mustDo": false,
+    "status": "skeleton",
+    "prompt": "Design an agent that spends 5-30 minutes researching a question across web and private sources and produces a cited report.",
+    "clarifying": [
+      "Sources (web/private) and report format?",
+      "Cost cap per task and acceptable duration?",
+      "Interactivity: can the user steer mid-run?",
+      "Quality bar: citation precision, coverage?"
+    ],
+    "estimation": [
+      "TODO: back-of-envelope estimation (QPS, tokens, GPUs/storage, cost)"
+    ],
+    "architecture": [
+      "TODO: write the reference architecture outline (components, data flow, storage, serving)"
+    ],
+    "mermaid": "flowchart LR\n  R[\"Requirements and SLOs\"] --> A[\"TODO: reference architecture\"]\n  A --> E[\"Evaluation and safety\"]",
+    "deepDives": [
+      {
+        "q": "How do you plan, branch and merge sub-research?",
+        "a": "TODO: write the reference answer."
+      },
+      {
+        "q": "How do you make the run durable and resumable?",
+        "a": "TODO: write the reference answer."
+      },
+      {
+        "q": "How do you control cost and avoid infinite exploration?",
+        "a": "TODO: write the reference answer."
+      },
+      {
+        "q": "How do you evaluate a report with no single ground truth?",
+        "a": "TODO: write the reference answer."
+      }
+    ],
+    "tradeoffs": [
+      "Breadth vs depth of exploration",
+      "Single agent vs parallel sub-agents",
+      "Verification passes vs cost"
+    ],
+    "failureModes": [
+      "Runaway loops",
+      "Source hallucination",
+      "Context overflow in long runs"
+    ],
+    "resumeTie": "Extends the Deloitte supervisor + sub-agent design to long-running durable execution.",
+    "relatedSessions": [
+      "session-09",
+      "session-10",
+      "session-25",
+      "session-12",
+      "session-31"
+    ],
+    "followUps": [
+      "Human-in-the-loop clarification?",
+      "Scheduled recurring research?",
+      "Private-data research with ACLs?"
+    ],
+    "upgradeNotes": []
+  },
+  {
+    "id": "llm-search-recsys",
+    "title": "Design LLM-Augmented Semantic Search & Recommendations (E-commerce)",
+    "difficulty": "Medium-Hard",
+    "tracks": [
+      "applied-llm",
+      "ml-engineer"
+    ],
+    "tier": "differentiator",
+    "week": 9,
+    "mustDo": false,
+    "status": "skeleton",
+    "prompt": "Design product search and recommendations for 50M items and 20k QPS that blends embeddings, ranking models and LLM understanding.",
+    "clarifying": [
+      "Query types and catalog size, multilingual?",
+      "Business metrics (CTR, conversion, revenue)?",
+      "Latency budget and personalization data?",
+      "Cold-start items and users?"
+    ],
+    "estimation": [
+      "TODO: back-of-envelope estimation (QPS, tokens, GPUs/storage, cost)"
+    ],
+    "architecture": [
+      "TODO: write the reference architecture outline (components, data flow, storage, serving)"
+    ],
+    "mermaid": "flowchart LR\n  R[\"Requirements and SLOs\"] --> A[\"TODO: reference architecture\"]\n  A --> E[\"Evaluation and safety\"]",
+    "deepDives": [
+      {
+        "q": "How do you combine lexical, embedding and learned ranking stages?",
+        "a": "TODO: write the reference answer."
+      },
+      {
+        "q": "Where does the LLM sit: query understanding, re-ranking, explanation, or offline enrichment?",
+        "a": "TODO: write the reference answer."
+      },
+      {
+        "q": "How do you evaluate offline and run online experiments?",
+        "a": "TODO: write the reference answer."
+      },
+      {
+        "q": "How do you keep embeddings fresh for a changing catalog?",
+        "a": "TODO: write the reference answer."
+      }
+    ],
+    "tradeoffs": [
+      "LLM online vs offline enrichment",
+      "Relevance vs diversity vs revenue",
+      "Latency vs ranking quality"
+    ],
+    "failureModes": [
+      "Embedding drift",
+      "Position bias in feedback",
+      "Popularity feedback loops"
+    ],
+    "resumeTie": "Network18 Sales/News retrieval work; ranking and experimentation are the new parts.",
+    "relatedSessions": [
+      "session-05",
+      "session-06",
+      "session-24",
+      "session-30"
+    ],
+    "followUps": [
+      "Conversational shopping assistant?",
+      "Visual search?",
+      "Personalised re-ranking?"
+    ],
+    "upgradeNotes": []
+  },
+  {
+    "id": "finetune-platform",
+    "title": "Design a Fine-Tuning / Model Customization Platform",
+    "difficulty": "Hard",
+    "tracks": [
+      "llm-infra",
+      "ml-engineer",
+      "applied-llm"
+    ],
+    "tier": "differentiator",
+    "week": 9,
+    "mustDo": true,
+    "status": "skeleton",
+    "prompt": "Design a platform where customers upload data, fine-tune open models (LoRA), evaluate them and deploy them behind an API at scale.",
+    "clarifying": [
+      "Customer count, data sizes, models supported?",
+      "Training method (SFT, DPO) and isolation requirements?",
+      "SLAs for training duration and serving latency?",
+      "Cost model and GPU availability?"
+    ],
+    "estimation": [
+      "TODO: back-of-envelope estimation (QPS, tokens, GPUs/storage, cost)"
+    ],
+    "architecture": [
+      "TODO: write the reference architecture outline (components, data flow, storage, serving)"
+    ],
+    "mermaid": "flowchart LR\n  R[\"Requirements and SLOs\"] --> A[\"TODO: reference architecture\"]\n  A --> E[\"Evaluation and safety\"]",
+    "deepDives": [
+      {
+        "q": "How do you schedule training jobs fairly on a shared GPU cluster?",
+        "a": "TODO: write the reference answer."
+      },
+      {
+        "q": "How do you serve thousands of adapters cheaply (multi-LoRA)?",
+        "a": "TODO: write the reference answer."
+      },
+      {
+        "q": "How do you gate deployment on automated evals?",
+        "a": "TODO: write the reference answer."
+      },
+      {
+        "q": "How do you protect customer data and prevent leakage across tenants?",
+        "a": "TODO: write the reference answer."
+      }
+    ],
+    "tradeoffs": [
+      "Dedicated vs shared GPUs",
+      "Full fine-tune vs LoRA",
+      "Eager vs lazy adapter loading"
+    ],
+    "failureModes": [
+      "Training job preemption",
+      "Data poisoning",
+      "Adapter regression vs base model"
+    ],
+    "resumeTie": "Network18 multilingual NER fine-tuning is your hands-on tie-in; generalise to LLM adapters.",
+    "relatedSessions": [
+      "session-27",
+      "session-28",
+      "session-17",
+      "session-29"
+    ],
+    "followUps": [
+      "Distillation-as-a-service?",
+      "Continuous fine-tuning from feedback?",
+      "Bring-your-own-model?"
+    ],
+    "upgradeNotes": []
+  },
+  {
+    "id": "multimodal-pipeline",
+    "title": "Design a Video Understanding & Generation Pipeline (Async GPU)",
+    "difficulty": "Hard",
+    "tracks": [
+      "applied-llm",
+      "llm-infra",
+      "ml-engineer",
+      "agent-platform"
+    ],
+    "tier": "differentiator",
+    "week": 9,
+    "mustDo": false,
+    "status": "skeleton",
+    "prompt": "Design a pipeline that ingests user videos, understands them (transcript, scenes, highlights), and generates clips/captions/derivative videos at 50k videos/day.",
+    "clarifying": [
+      "Video length distribution, output formats, SLA per job?",
+      "Understanding only, or generation (diffusion/avatar) as well?",
+      "Cost per video target?",
+      "Moderation and rights requirements?"
+    ],
+    "estimation": [
+      "TODO: back-of-envelope estimation (QPS, tokens, GPUs/storage, cost)"
+    ],
+    "architecture": [
+      "TODO: write the reference architecture outline (components, data flow, storage, serving)"
+    ],
+    "mermaid": "flowchart LR\n  R[\"Requirements and SLOs\"] --> A[\"TODO: reference architecture\"]\n  A --> E[\"Evaluation and safety\"]",
+    "deepDives": [
+      {
+        "q": "How do you split a long video into parallel GPU/CPU stages?",
+        "a": "TODO: write the reference answer."
+      },
+      {
+        "q": "How do you control cost of frame-level VLM analysis?",
+        "a": "TODO: write the reference answer."
+      },
+      {
+        "q": "How do you serve diffusion/generation models efficiently?",
+        "a": "TODO: write the reference answer."
+      },
+      {
+        "q": "How do you report progress and make jobs resumable?",
+        "a": "TODO: write the reference answer."
+      }
+    ],
+    "tradeoffs": [
+      "Frame sampling density vs cost",
+      "Batch GPU vs serverless GPU",
+      "Streaming vs store-and-forward"
+    ],
+    "failureModes": [
+      "Poison videos stalling workers",
+      "GPU preemption mid-job",
+      "Moderation false negatives"
+    ],
+    "resumeTie": "Network18 AI Video Repurposing Engine is the direct tie-in; this is its 100x redesign.",
+    "relatedSessions": [
+      "session-07",
+      "session-22",
+      "session-29",
+      "session-02"
+    ],
+    "followUps": [
+      "Live-stream support?",
+      "Personalised clips?",
+      "Multilingual dubbing?"
+    ],
+    "upgradeNotes": []
+  },
+  {
+    "id": "content-moderation",
+    "title": "Design a Real-Time Content Moderation / Classification Pipeline",
+    "difficulty": "Medium",
+    "tracks": [
+      "applied-llm",
+      "ml-engineer",
+      "solutions-architect"
+    ],
+    "prompt": "Classify and moderate 20,000 user-generated posts per second (text + images) with decisions within 200 ms for blocking and richer asynchronous review.",
+    "clarifying": [
+      "Policy categories, severity levels, and regional policy differences?",
+      "Precision vs recall priority per category? Cost of false positives?",
+      "Latency: inline block vs post-publish review? Appeals workflow?",
+      "Languages and modalities?"
+    ],
+    "estimation": [
+      "20k QPS peak; if a small model does 500 QPS per GPU with batching → ~40 GPUs plus headroom; CPU-distilled models can reduce that",
+      "Only ~1–5% should reach an LLM/human review tier — the funnel makes cost viable"
+    ],
+    "architecture": [
+      "Tier 0: cheap rules, hashes of known-bad content, blocklists (microseconds)",
+      "Tier 1: small distilled classifier (text + image) with dynamic batching and quantization, deciding allow/block/uncertain",
+      "Tier 2: LLM or multimodal model for uncertain items, async with queue",
+      "Tier 3: human review queue with prioritization; decisions feed training data",
+      "Decision store + audit trail; threshold configs per region/policy; shadow mode for new models"
+    ],
+    "mermaid": "flowchart LR\n  P[Post] --> T0[Rules + hash match]\n  T0 --> T1[Fast classifier]\n  T1 -- clear --> D[Decision store]\n  T1 -- uncertain --> Q[Queue]\n  Q --> T2[LLM / multimodal]\n  T2 --> H[Human review]\n  H --> D\n  H --> TR[(Training data)]",
+    "deepDives": [
+      {
+        "q": "How do you keep the fast classifier from degrading over time?",
+        "a": "Monitor input drift and score distributions, sample decisions for human labelling, schedule retraining on reviewed data, maintain a fixed golden set for regressions, and use shadow deployment before promotion."
+      },
+      {
+        "q": "Handling a burst when a new attack pattern appears?",
+        "a": "Autoscale on queue lag, add temporary rules in Tier 0 for quick containment, then retrain; use priority queues so high-severity categories are reviewed first."
+      }
+    ],
+    "tradeoffs": [
+      "Inline vs async enforcement",
+      "Thresholds per category (precision/recall)",
+      "Distilled model vs LLM cost"
+    ],
+    "failureModes": [
+      "Adversarial evasion",
+      "Over-blocking a language",
+      "Label noise from reviewers"
+    ],
+    "resumeTie": "Network18 multilingual NER at high throughput (80–90% F1) — reuse the serving + batching story.",
+    "relatedSessions": [
+      "session-14",
+      "session-13",
+      "session-17",
+      "session-18"
+    ],
+    "followUps": [
+      "Add appeals?",
+      "Per-country policy?",
+      "Explainability requirements?"
+    ],
+    "tier": "differentiator",
+    "week": 9,
+    "mustDo": false,
+    "status": "written",
+    "upgradeNotes": []
+  },
+  {
+    "id": "ai-memory",
+    "title": "Design a Personal AI Memory System",
+    "difficulty": "Medium-Hard",
+    "tracks": [
+      "agent-platform",
+      "applied-llm"
+    ],
+    "tier": "differentiator",
+    "week": 9,
+    "mustDo": false,
+    "status": "skeleton",
+    "prompt": "Design long-term memory for an assistant used by 50M users that remembers preferences and facts across sessions, safely.",
+    "clarifying": [
+      "What gets remembered (facts, preferences, episodes)?",
+      "User control and deletion requirements (privacy/GDPR)?",
+      "Latency overhead allowed per turn?",
+      "Multi-device and shared-memory scenarios?"
+    ],
+    "estimation": [
+      "TODO: back-of-envelope estimation (QPS, tokens, GPUs/storage, cost)"
+    ],
+    "architecture": [
+      "TODO: write the reference architecture outline (components, data flow, storage, serving)"
+    ],
+    "mermaid": "flowchart LR\n  R[\"Requirements and SLOs\"] --> A[\"TODO: reference architecture\"]\n  A --> E[\"Evaluation and safety\"]",
+    "deepDives": [
+      {
+        "q": "How do you decide what to write to memory, and how do you resolve conflicts/updates?",
+        "a": "TODO: write the reference answer."
+      },
+      {
+        "q": "How do you retrieve the right memories within a token budget?",
+        "a": "TODO: write the reference answer."
+      },
+      {
+        "q": "How do you defend against memory poisoning via injected content?",
+        "a": "TODO: write the reference answer."
+      },
+      {
+        "q": "How do you support complete user deletion?",
+        "a": "TODO: write the reference answer."
+      }
+    ],
+    "tradeoffs": [
+      "Write-time extraction vs read-time summarisation",
+      "Structured vs free-text memory",
+      "Per-user index vs shared index"
+    ],
+    "failureModes": [
+      "Wrong/stale memory persisted",
+      "Poisoned memory",
+      "Privacy leakage across users"
+    ],
+    "resumeTie": "Builds on Deloitte agent state/checkpointing and Redis memory design.",
+    "relatedSessions": [
+      "session-10",
+      "session-26",
+      "session-31"
+    ],
+    "followUps": [
+      "Memory transparency UI?",
+      "Cross-app memory sharing?",
+      "Forgetting policies?"
+    ],
+    "upgradeNotes": []
   },
   {
     "id": "workflow-automation",
     "title": "Design an AI Document-Processing & Reporting Automation Platform",
     "difficulty": "Medium",
-    "tracks": ["agent-platform", "solutions-architect", "ml-engineer"],
+    "tracks": [
+      "agent-platform",
+      "solutions-architect",
+      "ml-engineer"
+    ],
     "prompt": "Design a platform that ingests thousands of semi-structured documents daily, extracts structured data with LLMs, validates it, and generates scheduled reports for business users.",
     "clarifying": [
       "Document formats, volume per day, accuracy requirement per field?",
@@ -271,13 +1220,42 @@
     ],
     "mermaid": "flowchart LR\n  D[Documents] --> S[(Object store)]\n  S --> OCR[Parse / OCR]\n  OCR --> CL[Classify]\n  CL --> EX[LLM extraction]\n  EX --> VA[Validation + confidence]\n  VA -- low conf --> HR[Human review]\n  VA --> WH[(Warehouse)]\n  HR --> WH\n  WH --> RP[Scheduled reports]",
     "deepDives": [
-      { "q": "How do you make extraction trustworthy?", "a": "Constrain output with schemas, validate with deterministic rules (totals, formats, cross-field checks), calibrate confidence (self-consistency or logprobs where available), route low-confidence items to humans, and track field-level accuracy against a golden set." },
-      { "q": "How do you cut cost 10×?", "a": "Template/layout detection to skip LLM for known forms, smaller models for easy doc types, batch/async APIs, caching, and only invoking a stronger model on validation failure (cascade)." }
+      {
+        "q": "How do you make extraction trustworthy?",
+        "a": "Constrain output with schemas, validate with deterministic rules (totals, formats, cross-field checks), calibrate confidence (self-consistency or logprobs where available), route low-confidence items to humans, and track field-level accuracy against a golden set."
+      },
+      {
+        "q": "How do you cut cost 10×?",
+        "a": "Template/layout detection to skip LLM for known forms, smaller models for easy doc types, batch/async APIs, caching, and only invoking a stronger model on validation failure (cascade)."
+      }
     ],
-    "tradeoffs": ["OCR + LLM vs native multimodal", "Batch vs real-time", "Human review capacity vs accuracy target"],
-    "failureModes": ["Layout drift", "Hallucinated fields", "Duplicate ingestion", "Report built on stale data"],
+    "tradeoffs": [
+      "OCR + LLM vs native multimodal",
+      "Batch vs real-time",
+      "Human review capacity vs accuracy target"
+    ],
+    "failureModes": [
+      "Layout drift",
+      "Hallucinated fields",
+      "Duplicate ingestion",
+      "Report built on stale data"
+    ],
     "resumeTie": "Network18 reporting automation (3,500+ man-hours saved) and BigQuery/PySpark pipelines.",
-    "relatedSessions": ["session-13", "session-16", "session-17", "session-02"],
-    "followUps": ["Add natural-language querying over the warehouse?", "Multi-tenant isolation?", "SOC 2 audit trail?"]
+    "relatedSessions": [
+      "session-13",
+      "session-16",
+      "session-17",
+      "session-02"
+    ],
+    "followUps": [
+      "Add natural-language querying over the warehouse?",
+      "Multi-tenant isolation?",
+      "SOC 2 audit trail?"
+    ],
+    "tier": "secondary",
+    "week": 9,
+    "mustDo": false,
+    "status": "written",
+    "upgradeNotes": []
   }
 ]

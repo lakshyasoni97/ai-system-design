@@ -113,7 +113,7 @@ export default function CurriculumPage() {
             </span>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            20 sessions across 5 core modules with interactive graph and structured study list.
+            31 sessions across 5 modules, sequenced into a 10-week, 5-phase plan. See the Study Plan page for the week-by-week view.
           </p>
         </div>
 

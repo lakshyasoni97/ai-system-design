@@ -19,7 +19,8 @@
       "ChromaDB",
       "Hugging Face Transformers",
       "Docker"
-    ]
+    ],
+    "targetProfile": "AI-native startups and product-based companies (Senior AI Engineer / Applied AI / Agent Platform), 10-week plan"
   },
   "quickRevisionMetrics": [
     {
@@ -63,20 +64,141 @@
       "title": "The RAG Triad & Judge Calibration",
       "formula": "Context Relevance × Groundedness (Faithfulness) × Answer Relevance",
       "detail": "Mitigate LLM-as-a-Judge position & verbosity bias via swapped-pair consensus, rubric anchored 1–5 integer scales, and Cohen's Kappa > 0.82 human alignment."
+    },
+    {
+      "id": "qr-7",
+      "category": "Capacity Planning",
+      "title": "Users to GPUs to Dollars (the chain)",
+      "formula": "GPUs ~ (peak QPS x avg output tokens) / (tokens/sec per GPU at target batch) x 1.3 headroom",
+      "detail": "Always size on decode throughput at your SLO batch size, not peak single-stream speed. Break-even of self-host vs API is dominated by utilisation."
+    },
+    {
+      "id": "qr-8",
+      "category": "LLM Serving",
+      "title": "Prefill vs Decode",
+      "formula": "Prefill = compute-bound (all prompt tokens in parallel) | Decode = memory-bandwidth-bound (1 token per step)",
+      "detail": "Prefill drives TTFT, decode drives TPOT. This asymmetry motivates continuous batching, chunked prefill, prefix caching and disaggregated prefill/decode pools."
+    },
+    {
+      "id": "qr-9",
+      "category": "RAG Retrieval",
+      "title": "Two-Stage Retrieval Shape",
+      "formula": "Hybrid recall top-100..1000 -> cross-encoder rerank -> top 5..20 into the LLM",
+      "detail": "Stage 1 optimises recall, stage 2 precision. Budget rerank latency explicitly (batch the cross-encoder; distil if needed)."
+    },
+    {
+      "id": "qr-10",
+      "category": "Agent Security",
+      "title": "The Lethal Trifecta",
+      "formula": "Private data + untrusted content + external communication = exfiltration risk",
+      "detail": "Break at least one leg architecturally (scoped tools, no egress, quarantine untrusted content). Prompts are not a security boundary."
     }
   ],
   "modules": [
     {
       "id": "mod-1",
-      "title": "Module 1: Classical Backend & GCP Scaling",
-      "focus": "Defending FastAPI, GKE, Cloud Run, and Pub/Sub choices under heavy LLM traffic.",
+      "title": "Module 1: Backend, Caching & Capacity Planning",
+      "focus": "Classical backend, caching tiers and GPU/cost capacity planning, with GCP as the worked example and vendor-neutral vocabulary.",
       "sessions": [
+        {
+          "id": "session-29",
+          "number": 29,
+          "title": "Throughput, Capacity Planning & Self-Host vs API Economics",
+          "projectTieIn": "Cross-platform AI architecture ($1.3M+ savings story)",
+          "estimatedReadTime": "14 min",
+          "phase": 2,
+          "week": 5,
+          "priority": "core",
+          "status": "skeleton",
+          "isNew": true,
+          "topics": [
+            "Users -> QPS -> concurrent streams -> tokens/sec -> GPUs -> $ (the chain)",
+            "API vs self-host break-even (utilisation is the whole game)",
+            "Provisioned throughput, reserved capacity, spot GPUs, and warm pools",
+            "Batch / offline APIs and async tiers for non-interactive work (50% discounts)",
+            "Multi-region and multi-provider capacity; failover under 429s",
+            "Cost per resolved task / per active user as the unit metric",
+            "Cost anomaly detection and budgets per tenant/feature"
+          ],
+          "canonicalProblems": [
+            "chat-assistant",
+            "llm-gateway",
+            "inference-serving"
+          ],
+          "deliverable": "Capacity + cost model spreadsheet for 10M WAU chat product, API vs self-host.",
+          "studyPrompt": "Teach me LLM capacity planning: converting users to QPS to tokens/sec to GPUs to dollars, API vs self-host break-even, provisioned throughput, batch APIs for offline work, multi-region capacity. Then give me a 10M-user scenario to size."
+        },
+        {
+          "id": "session-03",
+          "number": 3,
+          "title": "API Gateways, Rate Limiting & Quota Management (TPM-aware)",
+          "projectTieIn": "Deloitte Multi-Agent Orchestrator",
+          "estimatedReadTime": "13 min",
+          "phase": 2,
+          "week": 6,
+          "priority": "solid",
+          "status": "skeleton",
+          "isNew": false,
+          "topics": [
+            "Token bucket vs leaky bucket vs sliding window",
+            "Token-based (TPM) limits vs request-based limits; estimating tokens before the call",
+            "Fairness across tenants: weighted fair queuing, priority lanes",
+            "Backoff with jitter and 429 handling",
+            "Circuit breakers and load shedding under overload"
+          ],
+          "canonicalProblems": [
+            "llm-gateway",
+            "chat-assistant"
+          ],
+          "deliverable": "Rate-limit design for 10 teams sharing one TPM quota.",
+          "studyPrompt": "Explain Token Bucket vs. Leaky Bucket rate limiting, circuit breakers, and exponential backoff with jitter. Show me how to design an API Gateway in front of Gemini API that manages token-per-minute (TPM) quotas across 10 internal teams."
+        },
+        {
+          "id": "session-04",
+          "number": 4,
+          "title": "Caching Tiers: Exact, Provider Prompt Caching & Semantic Caching",
+          "projectTieIn": "Deloitte Customer Support & Sales RAG",
+          "estimatedReadTime": "15 min",
+          "phase": 2,
+          "week": 6,
+          "priority": "core",
+          "status": "skeleton",
+          "isNew": false,
+          "topics": [
+            "Exact-match response caching and key design (model, prompt, params, tenant)",
+            "Provider prompt caching: layout rules (stable prefix first), discounts, TTL",
+            "Semantic cache: similarity threshold, false-hit risk, verification, per-tenant isolation",
+            "Retrieval / embedding / tool-result caches and invalidation",
+            "Hit-rate x savings math and when caching is NOT worth it",
+            "Cache stampede, TTL and freshness for time-sensitive answers"
+          ],
+          "canonicalProblems": [
+            "chat-assistant",
+            "llm-gateway",
+            "support-agent"
+          ],
+          "deliverable": "Cache hierarchy diagram with expected hit rates and $ saved.",
+          "studyPrompt": "Teach me every caching layer for LLM apps: exact-match, provider prompt caching, KV prefix caching, semantic caching (and its false-hit risk), retrieval and embedding caches. Give me hit-rate x cost math and ask me how to make a semantic cache safe for multi-tenant data."
+        },
         {
           "id": "session-01",
           "number": 1,
           "title": "GKE vs. Cloud Run: Concurrency, Cold Starts & Autoscaling",
           "projectTieIn": "Deloitte Multi-Agent (GKE) vs. Network18 Video/RAG (Cloud Run)",
           "estimatedReadTime": "14 min",
+          "phase": 4,
+          "week": 9,
+          "priority": "solid",
+          "status": "written",
+          "isNew": false,
+          "topics": [
+            "Resume defense: why GKE for Deloitte, Cloud Run for Network18",
+            "Concurrency, cold starts, autoscaling; vendor-neutral mapping (EKS / ECS / Lambda / Fly)"
+          ],
+          "canonicalProblems": [
+            "support-agent"
+          ],
+          "deliverable": "3-minute spoken defense of the hosting choices, with numbers.",
           "studyPrompt": "Explain GKE vs. Cloud Run concurrency, cold starts, and autoscaling in simple terms. Then, grill me on why I used GKE for my Deloitte FastAPI multi-agent orchestrator, but Cloud Run for my Network18 Video Repurposing and Sales RAG apps."
         },
         {
@@ -85,54 +207,165 @@
           "title": "Async Queues & Pub/Sub Internals",
           "projectTieIn": "Network18 AI Video Repurposing Engine",
           "estimatedReadTime": "12 min",
+          "phase": 4,
+          "week": 9,
+          "priority": "solid",
+          "status": "skeleton",
+          "isNew": false,
+          "topics": [
+            "Resume defense: Network18 video engine behind Pub/Sub",
+            "At-least-once vs exactly-once, DLQ, idempotency, backpressure",
+            "Generic mapping: Pub/Sub -> Kafka / SQS / Redis streams",
+            "Redesign for 5,000 concurrent 1-hour uploads (claim-check pattern)"
+          ],
+          "canonicalProblems": [
+            "multimodal-pipeline"
+          ],
+          "deliverable": "Redesign of the video pipeline at 100x with queue + GPU workers.",
           "studyPrompt": "Teach me Pub/Sub internals: at-least-once vs. exactly-once delivery, Dead Letter Queues (DLQs), idempotency, and backpressure. Then ask me to redesign my Network18 AI Video Repurposing Engine (FastAPI + moviepy + Gemini) so it can handle 5,000 editors uploading 1-hour videos simultaneously without timing out."
-        },
-        {
-          "id": "session-03",
-          "number": 3,
-          "title": "API Gateways, Rate Limiting & Quota Management",
-          "projectTieIn": "Deloitte Multi-Agent Orchestrator",
-          "estimatedReadTime": "13 min",
-          "studyPrompt": "Explain Token Bucket vs. Leaky Bucket rate limiting, circuit breakers, and exponential backoff with jitter. Show me how to design an API Gateway in front of Gemini API that manages token-per-minute (TPM) quotas across 10 internal teams."
-        },
-        {
-          "id": "session-04",
-          "number": 4,
-          "title": "Multi-Tier Caching: Redis, Prompt & Semantic Caching",
-          "projectTieIn": "Deloitte Customer Support & Sales RAG",
-          "estimatedReadTime": "15 min",
-          "studyPrompt": "Compare Redis in-memory caching, Prompt Caching, and Semantic Caching (vector-based caching). Walk me through the math of when Semantic Caching actually saves money vs. when the embedding lookup adds too much latency."
         }
       ]
     },
     {
       "id": "mod-2",
-      "title": "Module 2: Enterprise RAG & Multimodal Search",
-      "focus": "Scaling from single-node ChromaDB to 100M+ vectors with hybrid search and RBAC.",
+      "title": "Module 2: RAG, Search & Multimodal",
+      "focus": "Ingestion, chunking, embeddings, hybrid retrieval, reranking, advanced RAG, context engineering and multimodal foundations.",
       "sessions": [
+        {
+          "id": "session-22",
+          "number": 22,
+          "title": "Document Parsing & Ingestion Pipelines at Scale",
+          "projectTieIn": "Deloitte Slide-to-Image RAG + Network18 Sales RAG (PDF ingestion)",
+          "estimatedReadTime": "14 min",
+          "phase": 1,
+          "week": 2,
+          "priority": "core",
+          "status": "skeleton",
+          "isNew": true,
+          "topics": [
+            "Parsing strategies: text-layer extraction vs OCR vs layout models vs VLM-based parsing",
+            "Tables, charts, images and slides: what to extract and how to represent them",
+            "Near-duplicate detection (MinHash/SimHash) and versioned documents",
+            "PII / secret scrubbing and ACL capture at ingest time",
+            "Incremental indexing: change detection, tombstones/deletes, backfills, re-index cost",
+            "Pipeline architecture: queue-driven workers, idempotency, poison documents, DLQ",
+            "Ingestion quality metrics and sampling-based QA"
+          ],
+          "canonicalProblems": [
+            "enterprise-rag",
+            "answer-engine",
+            "multimodal-pipeline"
+          ],
+          "deliverable": "Ingestion pipeline diagram for 100M docs with throughput + cost estimate.",
+          "studyPrompt": "Walk me through designing an ingestion pipeline for 100M mixed documents (PDF, slides, HTML, scans): parsing, OCR vs VLM parsing, dedup, PII scrubbing, incremental updates and deletes. Then grill me on failure modes."
+        },
+        {
+          "id": "session-23",
+          "number": 23,
+          "title": "Chunking Strategies: Fixed, Recursive, Semantic & Structure-Aware",
+          "projectTieIn": "Deloitte Asset Discovery chatbot (per-slide descriptions) + Network18 PDF chat",
+          "estimatedReadTime": "14 min",
+          "phase": 1,
+          "week": 2,
+          "priority": "core",
+          "status": "skeleton",
+          "isNew": true,
+          "topics": [
+            "Fixed-size, recursive, sentence/semantic, and document-structure-aware chunking",
+            "Parent-child / small-to-big retrieval and sentence-window retrieval",
+            "Contextual chunk headers / contextual retrieval and late chunking",
+            "Chunk size vs recall vs precision vs context cost: how to run the experiment",
+            "Chunking special content: tables, code, transcripts, slides, chat logs",
+            "Metadata attached to chunks (source, section path, ACL, timestamp)",
+            "Re-chunking migrations without downtime"
+          ],
+          "canonicalProblems": [
+            "enterprise-rag",
+            "answer-engine",
+            "code-assistant"
+          ],
+          "deliverable": "Chunking decision table by content type + an evaluation plan (recall@k vs chunk size).",
+          "studyPrompt": "Explain every major chunking strategy with its failure mode, then give me a decision framework for choosing chunk size/overlap for (a) legal contracts, (b) code, (c) slide decks, (d) support tickets. Grill me on how I would prove my choice with an experiment."
+        },
+        {
+          "id": "session-24",
+          "number": 24,
+          "title": "Embeddings: Model Selection, Matryoshka, Fine-Tuning & Re-Embedding Migrations",
+          "projectTieIn": "ChromaDB indexing across Deloitte and Network18 RAG apps",
+          "estimatedReadTime": "13 min",
+          "phase": 1,
+          "week": 2,
+          "priority": "solid",
+          "status": "skeleton",
+          "isNew": true,
+          "topics": [
+            "Choosing a model: domain eval beats leaderboard (MTEB) rank; multilingual and long-context needs",
+            "Dimension, quantization and Matryoshka truncation: recall vs RAM vs latency",
+            "Bi-encoder vs cross-encoder vs late-interaction (ColBERT) vs sparse (SPLADE)",
+            "Fine-tuning embeddings: synthetic queries, hard negatives, contrastive loss basics",
+            "Query vs document embeddings (asymmetric models, instruction prefixes)",
+            "Re-embedding migrations: dual-write, shadow index, cutover, rollback",
+            "Embedding drift and versioning"
+          ],
+          "canonicalProblems": [
+            "enterprise-rag",
+            "llm-search-recsys"
+          ],
+          "deliverable": "Runbook: migrate 100M vectors to a new embedding model with zero downtime.",
+          "studyPrompt": "Teach me how to choose and operate an embedding model in production: dimension vs cost, Matryoshka truncation, domain fine-tuning with hard negatives, multilingual, and how to migrate 100M vectors to a new model with zero downtime."
+        },
         {
           "id": "session-05",
           "number": 5,
-          "title": "Vector DB Internals: HNSW, IVF & Quantization Math",
+          "title": "Vector Index Internals: HNSW, IVF-PQ, Quantization & Filtered Search",
           "projectTieIn": "Deloitte Asset Discovery Chatbot (ChromaDB)",
           "estimatedReadTime": "16 min",
+          "phase": 1,
+          "week": 3,
+          "priority": "core",
+          "status": "skeleton",
+          "isNew": false,
+          "topics": [
+            "HNSW (M, efConstruction, efSearch) memory + recall math",
+            "IVF / IVF-PQ and when to prefer disk-based indexes",
+            "Scalar / product / binary quantization and recall impact",
+            "Filtered (metadata) search: pre- vs post-filter and its recall traps",
+            "Sharding and replication of 100M+ vectors; hot/cold tiers",
+            "Vendor-neutral map: pgvector, Qdrant, Milvus, Pinecone, Vespa, Elasticsearch, Vertex Vector Search"
+          ],
+          "canonicalProblems": [
+            "enterprise-rag",
+            "llm-search-recsys"
+          ],
+          "deliverable": "Sizing sheet: RAM/disk/cost for 100M x 1536-d with and without quantization.",
           "studyPrompt": "Explain HNSW vs. IVF indexing and Product Quantization (PQ) in simple terms. Help me calculate the RAM required to store 50 million embeddings (1536 dimensions) and explain when I must migrate away from single-node ChromaDB to Vertex AI Vector Search or Qdrant."
         },
         {
           "id": "session-06",
           "number": 6,
-          "title": "Hybrid Search (BM25 + Dense), RRF & Cross-Encoder Reranking",
+          "title": "Hybrid Retrieval & Two-Stage Reranking: BM25 + Dense, RRF, Cross-Encoders",
           "projectTieIn": "Network18 Sales Intelligence RAG & Financial News",
           "estimatedReadTime": "14 min",
-          "studyPrompt": "Explain Dense Vector Search + BM25 Sparse Search, Reciprocal Rank Fusion (RRF), and Cross-Encoder Reranking. Then test me on how I would add hybrid search to my Financial News or Sales Intelligence RAG pipeline so exact company tickers and jargon aren't missed."
-        },
-        {
-          "id": "session-07",
-          "number": 7,
-          "title": "Multimodal Ingestion & Incremental Indexing at Scale",
-          "projectTieIn": "Deloitte Slide-to-Image RAG Pipeline",
-          "estimatedReadTime": "15 min",
-          "studyPrompt": "Let's scale my Deloitte Internal Asset Discovery Chatbot (converting PowerPoint slides to images -> LLM description -> ChromaDB). Act as an interviewer and ask me how to handle 10 million slides, incremental updates when a slide is edited, and deduplication of near-identical slides."
+          "phase": 1,
+          "week": 3,
+          "priority": "core",
+          "status": "skeleton",
+          "isNew": false,
+          "topics": [
+            "Sparse (BM25/SPLADE) vs dense vs hybrid and Reciprocal Rank Fusion",
+            "Stage 1 recall (top 100-1000) vs Stage 2 precision (top 5-20)",
+            "Cross-encoder and LLM rerankers: latency/cost math, batching, distillation",
+            "Retrieval metrics: recall@k, MRR, nDCG and how to build a labelled set",
+            "Latency budget allocation across retrieve -> rerank -> generate",
+            "Caching and early-exit strategies in the rerank stage"
+          ],
+          "canonicalProblems": [
+            "enterprise-rag",
+            "answer-engine",
+            "llm-search-recsys"
+          ],
+          "deliverable": "Two-stage pipeline diagram with a per-stage latency/cost budget.",
+          "studyPrompt": "Teach me two-stage retrieval: hybrid BM25 + dense recall (RRF), then cross-encoder / LLM reranking. Show the latency and cost math for reranking top-100 and ask me to design the pipeline for a 100M-document corpus under a 1.5s budget."
         },
         {
           "id": "session-08",
@@ -140,37 +373,199 @@
           "title": "Enterprise RBAC & Multi-Tenant Vector Search",
           "projectTieIn": "Deloitte Internal Asset Discovery Chatbot",
           "estimatedReadTime": "13 min",
+          "phase": 1,
+          "week": 3,
+          "priority": "solid",
+          "status": "skeleton",
+          "isNew": false,
+          "topics": [
+            "Document-level ACLs: capture at ingest, enforce at query time",
+            "Index-per-tenant vs shared index with filters: cost vs isolation",
+            "Permission sync lag and revocation guarantees",
+            "Row/column-level security for text-to-SQL and tool access",
+            "Audit trails and data residency",
+            "Noisy-neighbour and per-tenant quotas in retrieval"
+          ],
+          "canonicalProblems": [
+            "enterprise-rag",
+            "text-to-sql"
+          ],
+          "deliverable": "Tenancy decision table (shared vs per-tenant vs per-ACL-group index).",
           "studyPrompt": "Explain how to implement Role-Based Access Control (RBAC) and document-level security in a RAG pipeline (Pre-filtering vs. Post-filtering metadata in Vector DBs). Grill me on how to ensure a junior analyst can't retrieve confidential partner slides in my Deloitte chatbot."
+        },
+        {
+          "id": "session-25",
+          "number": 25,
+          "title": "Advanced Retrieval: Query Rewriting, HyDE, Multi-Hop, Agentic RAG & GraphRAG",
+          "projectTieIn": "Network18 Sales Intelligence RAG (multi-source questions)",
+          "estimatedReadTime": "15 min",
+          "phase": 1,
+          "week": 3,
+          "priority": "core",
+          "status": "skeleton",
+          "isNew": true,
+          "topics": [
+            "Query understanding: rewrite, expand, decompose, route to the right index",
+            "HyDE and multi-query retrieval; fusion of multiple retrievals",
+            "Multi-hop and iterative / agentic RAG (retrieve -> reason -> retrieve) and its latency/cost",
+            "GraphRAG and knowledge graphs: when relationships matter more than similarity",
+            "Long-context stuffing vs RAG: cost, quality (lost in the middle), freshness",
+            "Self-RAG / corrective RAG: retrieval grading and fallbacks",
+            "Diagnosing bad RAG: retrieval failure vs generation failure decision tree"
+          ],
+          "canonicalProblems": [
+            "answer-engine",
+            "deep-research",
+            "text-to-sql",
+            "enterprise-rag"
+          ],
+          "deliverable": "RAG failure-diagnosis flowchart + latency budget for a 3-hop agentic RAG.",
+          "studyPrompt": "Teach me advanced RAG patterns: query rewriting, HyDE, decomposition, multi-hop and agentic retrieval, GraphRAG, and long-context vs RAG. For each, tell me when it helps, when it hurts, and its latency cost. Then give me a failing RAG scenario to diagnose."
+        },
+        {
+          "id": "session-26",
+          "number": 26,
+          "title": "Context Engineering: Token Budgets, Ordering, Compression, Citations & Structured Outputs",
+          "projectTieIn": "Deloitte response-synthesis agent (grounded answers)",
+          "estimatedReadTime": "14 min",
+          "phase": 1,
+          "week": 3,
+          "priority": "core",
+          "status": "skeleton",
+          "isNew": true,
+          "topics": [
+            "Context window as a budget: system prompt, history, retrieved chunks, tool results, output reserve",
+            "Ordering and 'lost in the middle'; deduplication and reranking before stuffing",
+            "Compression: extractive, summarization, conversation rolling summaries",
+            "Citation and grounding patterns; refusing when evidence is missing",
+            "Structured outputs: JSON schema, constrained decoding, retries/repair",
+            "Function calling reliability: tool descriptions, schema design, parallel calls, error feedback",
+            "Prompt/version management and prompt caching-friendly layout (stable prefix first)"
+          ],
+          "canonicalProblems": [
+            "chat-assistant",
+            "answer-engine",
+            "text-to-sql",
+            "support-agent"
+          ],
+          "deliverable": "Context-builder spec: budget table + ordering rules + overflow policy.",
+          "studyPrompt": "Teach me context engineering: building the prompt under a token budget, ordering and compression, citation grounding, structured outputs / constrained decoding, and function-calling reliability. Then ask me to design the context builder for a ChatGPT-style assistant."
+        },
+        {
+          "id": "session-07",
+          "number": 7,
+          "title": "Multimodal Foundations: VLMs, Image/Video Embeddings, ASR/TTS & Streaming Media",
+          "projectTieIn": "Deloitte Slide-to-Image RAG Pipeline",
+          "estimatedReadTime": "15 min",
+          "phase": 1,
+          "week": 4,
+          "priority": "core",
+          "status": "skeleton",
+          "isNew": false,
+          "topics": [
+            "Vision-language models: cost per image/frame, resolution and token count",
+            "Image / video / audio embeddings and cross-modal retrieval (CLIP-style)",
+            "Video understanding pipeline: shot detection, frame sampling, transcript + visual fusion",
+            "ASR and TTS: streaming vs batch, latency, word timestamps, diarization",
+            "Cascaded (ASR->LLM->TTS) vs native speech-to-speech models",
+            "Streaming transport: WebSocket vs WebRTC, jitter buffers, turn-taking/barge-in basics",
+            "Incremental multimodal indexing at scale (carry-over from slide-to-image RAG)"
+          ],
+          "canonicalProblems": [
+            "voice-agent",
+            "multimodal-pipeline"
+          ],
+          "deliverable": "Cascaded vs speech-to-speech comparison table with latency budget.",
+          "studyPrompt": "Teach me the multimodal building blocks: vision-language models, image and video embeddings, ASR/TTS and speech-to-speech models, and streaming transport (WebSocket/WebRTC). Then ask me to design the ingestion for a 1-hour video and a real-time voice turn."
         }
       ]
     },
     {
       "id": "mod-3",
-      "title": "Module 3: Multi-Agent Orchestration & State",
-      "focus": "Deep-diving into Google ADK, LangGraph, distributed state, and sub-2s latency.",
+      "title": "Module 3: Agents, Memory & Latency",
+      "focus": "Agent architectures, memory and durable state, latency engineering and failure handling.",
       "sessions": [
         {
           "id": "session-09",
           "number": 9,
-          "title": "Agentic Topologies, Google ADK, MCP & A2A Protocols",
+          "title": "Agent Architectures: Planning Patterns, Tool Use, MCP & A2A",
           "projectTieIn": "Deloitte Multi-Agent Customer Support",
           "estimatedReadTime": "15 min",
-          "studyPrompt": "Compare Supervisor/Orchestrator, Hierarchical, and Swarm agent patterns in LangGraph and Google ADK. Also explain MCP (Model Context Protocol) and A2A (Agent-to-Agent) in crisp terms, and how they standardize tool calling."
+          "phase": 1,
+          "week": 4,
+          "priority": "core",
+          "status": "skeleton",
+          "isNew": false,
+          "topics": [
+            "Workflow vs agent: when a deterministic graph beats an autonomous loop",
+            "ReAct, plan-and-execute, reflection / critic loops, self-consistency",
+            "Topologies: supervisor, hierarchical, swarm/handoff, parallel fan-out",
+            "Tool design: granularity, schemas, idempotency, error messages the model can act on",
+            "MCP (tools/resources) and A2A (agent-to-agent): what each standardises and their security surface",
+            "Human-in-the-loop checkpoints and approval UX",
+            "Cost/latency of agent loops: step budgets and early termination"
+          ],
+          "canonicalProblems": [
+            "support-agent",
+            "coding-agent",
+            "deep-research"
+          ],
+          "deliverable": "Agent pattern chooser: task type -> pattern -> failure mode -> guardrail.",
+          "studyPrompt": "Teach me agent architectures: ReAct, plan-and-execute, reflection, supervisor vs swarm, tool design, and the MCP and A2A protocols. Then grill me on when NOT to use an agent, and on why my Deloitte system used a deterministic supervisor DAG."
         },
         {
           "id": "session-10",
           "number": 10,
-          "title": "Distributed State Checkpointing & Memory Architecture",
+          "title": "Agent State, Memory Tiers & Durable Execution",
           "projectTieIn": "Deloitte FastAPI Orchestrator on GKE",
           "estimatedReadTime": "14 min",
-          "studyPrompt": "My FastAPI orchestrator runs on multiple stateless GKE pods. Explain how agent state checkpointing works under the hood (using Redis/Postgres), and how to architect short-term session memory vs. long-term customer memory."
+          "phase": 1,
+          "week": 4,
+          "priority": "core",
+          "status": "skeleton",
+          "isNew": false,
+          "topics": [
+            "Working / episodic / semantic / procedural memory and where each lives",
+            "Checkpointing and resume semantics (LangGraph checkpointers, Redis/Postgres)",
+            "Durable execution engines (Temporal-style) vs queue + state machine",
+            "Memory write policy: what to store, summarise, expire, and verify",
+            "Retrieval over memory: recency/importance/relevance scoring",
+            "Multi-session identity, per-user isolation, and privacy/deletion (GDPR)",
+            "Long-running agent jobs: timeouts, heartbeats, cost caps"
+          ],
+          "canonicalProblems": [
+            "ai-memory",
+            "deep-research",
+            "support-agent"
+          ],
+          "deliverable": "Memory architecture diagram with write/read/expire policies.",
+          "studyPrompt": "Teach me agent memory and state: working vs episodic vs semantic memory, checkpointing, durable execution (resume after crash), and long-running jobs. Then ask me to design memory for a personal assistant, including how to prevent memory poisoning."
         },
         {
           "id": "session-11",
           "number": 11,
-          "title": "Low-Latency Agents: Speculative Execution & Streaming",
+          "title": "Latency Engineering: TTFT/TPOT Budgets, Streaming & Speculative Tool Calls",
           "projectTieIn": "Deloitte Support (24-48h to Near-Instantaneous)",
           "estimatedReadTime": "14 min",
+          "phase": 2,
+          "week": 6,
+          "priority": "core",
+          "status": "skeleton",
+          "isNew": false,
+          "topics": [
+            "Latency budget decomposition for agents (guardrail + router + tools + first token)",
+            "Streaming UX: SSE vs WebSocket, partial results, intermediate thoughts",
+            "Parallel tool calls and speculative execution",
+            "Prefetching and precomputation; warm connections",
+            "Tail latency: hedging, timeouts, and P99 vs P50",
+            "Voice-grade latency (<800 ms) as the stress test"
+          ],
+          "canonicalProblems": [
+            "voice-agent",
+            "support-agent",
+            "chat-assistant"
+          ],
+          "deliverable": "End-to-end latency waterfall for a 3-tool agent turn with a 2s TTFT target.",
           "studyPrompt": "In my resume, I cut customer support response time from 24–48 hours to near-instantaneous. Teach me techniques to keep multi-agent Time-To-First-Token (TTFT) under 2 seconds—including parallel tool execution, speculative execution, and streaming intermediate thoughts."
         },
         {
@@ -179,38 +574,191 @@
           "title": "Agent Failure Modes, Saga Fallbacks & Loop Prevention",
           "projectTieIn": "Deloitte Multi-Agent Customer Support",
           "estimatedReadTime": "15 min",
+          "phase": 2,
+          "week": 6,
+          "priority": "solid",
+          "status": "skeleton",
+          "isNew": false,
+          "topics": [
+            "Failure taxonomy: bad plan, bad tool call, tool outage, hallucinated args, loops",
+            "Step/token/time budgets and loop detection",
+            "Saga / compensation for side-effecting tool calls; idempotency keys",
+            "Graceful degradation ladder and human handoff",
+            "Trajectory logging for debugging and evals"
+          ],
+          "canonicalProblems": [
+            "support-agent",
+            "coding-agent",
+            "deep-research"
+          ],
+          "deliverable": "Failure-mode table for a refund-issuing agent: detection, mitigation, compensation.",
           "studyPrompt": "What happens when a sub-agent's tool API fails halfway through a 4-step workflow, or two agents get stuck in an infinite loop? Teach me deterministic fallbacks, saga patterns/compensating transactions for agents, and token budget circuit breakers."
         }
       ]
     },
     {
       "id": "mod-4",
-      "title": "Module 4: High-Throughput Data & LLM Serving",
-      "focus": "Scaling NLP pipelines, custom Transformer inference, and BigQuery/PySpark internals.",
+      "title": "Module 4: Models & Serving",
+      "focus": "LLM inference internals, serving optimisation, model adaptation (fine-tuning/distillation) and classic model serving.",
       "sessions": [
+        {
+          "id": "session-21",
+          "number": 21,
+          "title": "LLM Inference Fundamentals: Tokens, Prefill vs Decode & Memory-Bound Math",
+          "projectTieIn": "Gemini API usage across every project (cost + latency reasoning)",
+          "estimatedReadTime": "15 min",
+          "phase": 1,
+          "week": 2,
+          "priority": "core",
+          "status": "skeleton",
+          "isNew": true,
+          "topics": [
+            "Tokenization & token economics (why 1 word != 1 token, multilingual penalty)",
+            "Prefill (compute-bound) vs decode (memory-bound) and what that implies for batching",
+            "Latency vocabulary: TTFT, TPOT/ITL, E2E latency, throughput, goodput under SLO",
+            "GPU memory budget: weights + KV cache + activations; model size to GPU count table",
+            "Sampling parameters (temperature, top-p/top-k) and why outputs are not fully deterministic",
+            "Dense vs MoE models: params vs active params and the serving consequences"
+          ],
+          "canonicalProblems": [
+            "chat-assistant",
+            "inference-serving"
+          ],
+          "deliverable": "One-page cheat sheet: tokens -> GPUs -> dollars for a 7B, 70B and MoE model.",
+          "studyPrompt": "Teach me LLM inference from first principles: tokenization, prefill vs decode, why decode is memory-bandwidth bound, TTFT/TPOT/goodput, and how to estimate GPUs and cost from tokens/sec. Then quiz me with 5 back-of-envelope questions."
+        },
+        {
+          "id": "session-27",
+          "number": 27,
+          "title": "Model Adaptation: Prompt vs RAG vs LoRA/QLoRA vs DPO vs Distillation",
+          "projectTieIn": "Network18 multilingual Transformer NER (fine-tuning) -> LLM fine-tuning generalisation",
+          "estimatedReadTime": "16 min",
+          "phase": 1,
+          "week": 4,
+          "priority": "core",
+          "status": "skeleton",
+          "isNew": true,
+          "topics": [
+            "Decision ladder: prompt -> few-shot -> RAG -> SFT (LoRA/QLoRA) -> preference tuning (DPO) -> distillation",
+            "LoRA/QLoRA mechanics: rank, adapters, memory savings, multi-adapter serving",
+            "SFT vs preference optimisation (RLHF/DPO) vs RL on verifiable rewards: what each fixes",
+            "Data: how much, quality > quantity, synthetic data pipelines, contamination",
+            "Distilling a big model into a small one for cost/latency (classification, routing, extraction)",
+            "Eval gates, regression tests and rollback for fine-tuned models",
+            "Catastrophic forgetting, over-fitting, and knowledge vs behaviour (what fine-tuning can't add)"
+          ],
+          "canonicalProblems": [
+            "finetune-platform",
+            "content-moderation",
+            "inference-serving"
+          ],
+          "deliverable": "Decision matrix: prompt/RAG/fine-tune/distill by task type, data size and cost.",
+          "studyPrompt": "Give me a decision framework for prompt engineering vs RAG vs fine-tuning vs distillation. Teach LoRA/QLoRA, SFT vs DPO, data requirements, and eval gates. Then ask me: 'When would you fine-tune instead of using RAG?' and grill my answer."
+        },
+        {
+          "id": "session-14",
+          "number": 14,
+          "title": "Classic Model Serving: Dynamic Batching, Quantization & Distillation (Encoders / NER)",
+          "projectTieIn": "Network18 Multilingual Transformer NER",
+          "estimatedReadTime": "16 min",
+          "phase": 2,
+          "week": 5,
+          "priority": "solid",
+          "status": "skeleton",
+          "isNew": false,
+          "topics": [
+            "Dynamic batching and max-wait tuning",
+            "ONNX / TensorRT / torch.compile for encoder models",
+            "Distilling encoders (DistilBERT-style) and INT8 quantization",
+            "CPU vs GPU serving economics for small models",
+            "Model cascades: cheap classifier first, LLM only when uncertain",
+            "Shadow deploys, canaries and score-distribution monitoring"
+          ],
+          "canonicalProblems": [
+            "content-moderation",
+            "llm-search-recsys"
+          ],
+          "deliverable": "Cascade design for 20k QPS moderation with cost per tier.",
+          "studyPrompt": "I used a Hugging Face Multilingual Transformer NER model (80–90% F1). Explain dynamic batching, ONNX/TensorRT optimization, and FP16/INT8 quantization so I can explain how to serve this NER model at 5,000 QPS on GPUs cheaply."
+        },
+        {
+          "id": "session-15",
+          "number": 15,
+          "title": "LLM Serving Internals: KV Cache, PagedAttention, Continuous Batching & Prefix Caching",
+          "projectTieIn": "Self-Hosted GKE Models vs. Vertex Gemini API",
+          "estimatedReadTime": "17 min",
+          "phase": 2,
+          "week": 5,
+          "priority": "core",
+          "status": "skeleton",
+          "isNew": false,
+          "topics": [
+            "KV cache memory formula and what limits concurrency",
+            "PagedAttention and fragmentation; block tables",
+            "Continuous (in-flight) batching vs static batching",
+            "Prefix caching / RadixAttention and prompt layout implications",
+            "GQA/MQA and KV-cache-friendly architectures; KV quantization and offload",
+            "Engines compared: vLLM, SGLang, TensorRT-LLM, TGI",
+            "Throughput vs latency curve and choosing the operating point"
+          ],
+          "canonicalProblems": [
+            "inference-serving",
+            "chat-assistant",
+            "code-assistant"
+          ],
+          "deliverable": "Worked example: concurrent users per H100 for a 70B model at 8k context.",
+          "studyPrompt": "Explain how LLM serving works under the hood in simple terms: KV Cache, PagedAttention (vLLM), Continuous Batching, and Time-To-First-Token (TTFT) vs. Inter-Token Latency (ITL). Why does this matter when choosing between self-hosting open-weights models on GKE vs. using Vertex Gemini API?"
+        },
+        {
+          "id": "session-28",
+          "number": 28,
+          "title": "Serving Optimization Toolbox: Speculative Decoding, Quantization, Parallelism & Disaggregation",
+          "projectTieIn": "Self-hosted GKE models vs Vertex Gemini API decision",
+          "estimatedReadTime": "16 min",
+          "phase": 2,
+          "week": 5,
+          "priority": "core",
+          "status": "skeleton",
+          "isNew": true,
+          "topics": [
+            "Speculative decoding (draft model, Medusa, EAGLE): wins at low batch, hurts at high batch",
+            "Quantization: FP8 / INT8 / INT4 (AWQ, GPTQ): quality vs memory vs throughput",
+            "Parallelism: tensor vs pipeline vs expert vs data; interconnect (NVLink) constraints",
+            "Chunked prefill and disaggregated prefill/decode pools",
+            "Multi-LoRA serving: one base model, many adapters",
+            "Autoscaling signals for GPUs: queue depth and KV utilisation, not CPU",
+            "Benchmarking correctly: realistic traffic mix, P99, goodput"
+          ],
+          "canonicalProblems": [
+            "inference-serving",
+            "finetune-platform",
+            "code-assistant",
+            "voice-agent"
+          ],
+          "deliverable": "Optimization decision tree: symptom (TTFT high / TPOT high / OOM / cost) -> technique.",
+          "studyPrompt": "Teach me the LLM serving optimisation toolbox: speculative decoding, FP8/AWQ/GPTQ quantization, tensor/pipeline/expert parallelism, chunked prefill, disaggregated prefill/decode, and multi-LoRA serving. For each give me when it helps, when it hurts, and the numbers."
+        },
         {
           "id": "session-13",
           "number": 13,
           "title": "Real-Time Streaming Ingestion vs. Batch Pipelines",
           "projectTieIn": "Network18 Financial News Pipeline",
           "estimatedReadTime": "14 min",
+          "phase": 4,
+          "week": 9,
+          "priority": "skim",
+          "status": "skeleton",
+          "isNew": false,
+          "topics": [
+            "Streaming vs batch ingestion trade-offs (Kappa vs Lambda)",
+            "Exactly-once pipelines and late data",
+            "Financial news pipeline at 100x; Kafka/Flink mapping"
+          ],
+          "canonicalProblems": [
+            "workflow-automation"
+          ],
+          "deliverable": "One-page defense of the Network18 news pipeline.",
           "studyPrompt": "My Network18 pipeline ingested 600+ articles/day from 12+ sources hourly using Vertex AI Scheduler and BeautifulSoup. Grill me on how to re-architect this to ingest 100,000 articles per minute in real-time using distributed crawlers, Pub/Sub, and Dataflow/PySpark Streaming."
-        },
-        {
-          "id": "session-14",
-          "number": 14,
-          "title": "High-QPS Custom Model Serving: Dynamic Batching & Quantization",
-          "projectTieIn": "Network18 Multilingual Transformer NER",
-          "estimatedReadTime": "16 min",
-          "studyPrompt": "I used a Hugging Face Multilingual Transformer NER model (80–90% F1). Explain dynamic batching, ONNX/TensorRT optimization, and FP16/INT8 quantization so I can explain how to serve this NER model at 5,000 QPS on GPUs cheaply."
-        },
-        {
-          "id": "session-15",
-          "number": 15,
-          "title": "LLM Inference Internals: KV Cache, PagedAttention & vLLM",
-          "projectTieIn": "Self-Hosted GKE Models vs. Vertex Gemini API",
-          "estimatedReadTime": "17 min",
-          "studyPrompt": "Explain how LLM serving works under the hood in simple terms: KV Cache, PagedAttention (vLLM), Continuous Batching, and Time-To-First-Token (TTFT) vs. Inter-Token Latency (ITL). Why does this matter when choosing between self-hosting open-weights models on GKE vs. using Vertex Gemini API?"
         },
         {
           "id": "session-16",
@@ -218,48 +766,405 @@
           "title": "BigQuery Internals & PySpark Shuffle Optimization",
           "projectTieIn": "Network18 Enterprise Reporting Automation",
           "estimatedReadTime": "13 min",
+          "phase": 4,
+          "week": 9,
+          "priority": "skim",
+          "status": "skeleton",
+          "isNew": false,
+          "topics": [
+            "BigQuery architecture (Dremel, slots, partitioning, clustering)",
+            "PySpark shuffle, skew, and join strategies",
+            "Cost control for warehouse queries",
+            "Snowflake/Redshift/Spark mapping"
+          ],
+          "canonicalProblems": [
+            "workflow-automation",
+            "text-to-sql"
+          ],
+          "deliverable": "Optimization checklist for a slow PySpark/BigQuery job.",
           "studyPrompt": "Explain BigQuery columnar storage, partitioning vs. clustering, and PySpark shuffle optimization in simple terms. Connect this to how I automated enterprise reporting saving 3,500+ man-hours at Network18."
         }
       ]
     },
     {
       "id": "mod-5",
-      "title": "Module 5: LLMOps, Evals, Security & Full Mocks",
-      "focus": "Proving enterprise reliability, automated evaluation, security guardrails, and cost optimization.",
+      "title": "Module 5: LLMOps, Evals, Security & Mocks",
+      "focus": "Offline and online evals, guardrails, agent security, LLM gateway/routing and full mock interviews.",
       "sessions": [
+        {
+          "id": "session-19",
+          "number": 19,
+          "title": "LLM Gateway, Model Routing & Cascades: Fallbacks, Quotas & Cost per Task",
+          "projectTieIn": "Cross-Platform AI Architecture ($1.3M+ Savings)",
+          "estimatedReadTime": "15 min",
+          "phase": 2,
+          "week": 6,
+          "priority": "core",
+          "status": "skeleton",
+          "isNew": false,
+          "topics": [
+            "Router designs: rules, classifier, LLM-as-router, learned routers (and their eval)",
+            "Cascades: cheap model first, escalate on low confidence / failed validation",
+            "Multi-provider fallback, retries with jitter, hedged requests, circuit breakers",
+            "Per-tenant/team quotas (TPM/RPM), budgets and chargeback",
+            "Gateway features: auth, PII filters, caching, logging, prompt versioning",
+            "Measuring routing quality: cost per resolved task vs quality delta"
+          ],
+          "canonicalProblems": [
+            "llm-gateway",
+            "chat-assistant",
+            "inference-serving"
+          ],
+          "deliverable": "Routing policy doc: tiers, escalation triggers, fallback order, expected savings.",
+          "studyPrompt": "Teach me LLM gateway design: routing by task and complexity, cascades with confidence-based escalation, multi-provider fallback, per-tenant quotas, caching, observability. Then ask me to defend the routing policy that produced my cost savings."
+        },
         {
           "id": "session-17",
           "number": 17,
-          "title": "Automated Evals, Golden Datasets & LLM-as-a-Judge",
+          "title": "Offline Evaluation: Golden Sets, Synthetic Data, Retrieval Metrics, RAG Triad & Judge Calibration",
           "projectTieIn": "Deloitte Multi-Agent Evals & LLMOps",
           "estimatedReadTime": "15 min",
+          "phase": 2,
+          "week": 7,
+          "priority": "core",
+          "status": "skeleton",
+          "isNew": false,
+          "topics": [
+            "Building golden datasets and synthetic test generation",
+            "Retrieval metrics (recall@k, MRR, nDCG) vs generation metrics",
+            "RAG triad: context relevance, groundedness, answer relevance",
+            "LLM-as-judge: rubric design, position/verbosity bias, calibration (Cohen's kappa)",
+            "Agent evals: trajectory, tool-call accuracy, task success, cost",
+            "Regression gates in CI and eval-driven development"
+          ],
+          "canonicalProblems": [
+            "eval-platform",
+            "enterprise-rag",
+            "support-agent"
+          ],
+          "deliverable": "Eval plan for an enterprise RAG: datasets, metrics, thresholds, CI gate.",
           "studyPrompt": "I have Evals and LLMOps on my resume. Teach me how to design an automated offline + online Evaluation Pipeline: building a Golden Dataset, RAG triad metrics (Context Relevance, Groundedness, Answer Relevance), and fixing LLM-as-a-Judge biases (position bias, verbosity bias)."
         },
         {
           "id": "session-18",
           "number": 18,
-          "title": "AI Security: Low-Latency Guardrails, PII & Scoped Tool IAM",
+          "title": "Guardrails: Layered Classifiers, PII, Schema Validation & Latency-Aware Placement",
           "projectTieIn": "Deloitte Customer Support System",
           "estimatedReadTime": "14 min",
+          "phase": 2,
+          "week": 7,
+          "priority": "core",
+          "status": "skeleton",
+          "isNew": false,
+          "topics": [
+            "Input/output guardrail layers and where each runs (sync vs async)",
+            "PII detection/redaction and data-leak prevention",
+            "Topical / policy rails and jailbreak classifiers",
+            "Schema and business-rule validation of model outputs",
+            "Latency budget: fast classifier first, LLM judge only when uncertain",
+            "Measuring guardrail precision/recall and false-refusal rate"
+          ],
+          "canonicalProblems": [
+            "content-moderation",
+            "support-agent",
+            "chat-assistant"
+          ],
+          "deliverable": "Guardrail pipeline with latency budget and precision/recall targets.",
           "studyPrompt": "How do I prevent prompt injection, PII leakage, and unauthorized tool execution in my customer support multi-agent system without adding 2 seconds of latency? Explain lightweight guardrail models, PII token vaulting, and scoped IAM permissions for agents."
         },
         {
-          "id": "session-19",
-          "number": 19,
-          "title": "Enterprise LLM Gateway & Dynamic Model Routing",
-          "projectTieIn": "Cross-Platform AI Architecture ($1.3M+ Savings)",
-          "estimatedReadTime": "15 min",
-          "studyPrompt": "Design an Enterprise LLM Gateway that routes simple queries to Gemini Flash and complex queries to Gemini Pro, tracks token spend per department, and falls back gracefully during a region outage. Then quiz me on the trade-offs."
+          "id": "session-30",
+          "number": 30,
+          "title": "Online Evaluation & the Data Flywheel: A/B Tests, Implicit Feedback & Production Monitoring",
+          "projectTieIn": "Deloitte multi-agent evals & LLMOps (extend offline story to online)",
+          "estimatedReadTime": "14 min",
+          "phase": 2,
+          "week": 7,
+          "priority": "core",
+          "status": "skeleton",
+          "isNew": true,
+          "topics": [
+            "Implicit signals: copy, regenerate, edits, abandonment, escalation, thumbs",
+            "A/B tests for LLM features: metric choice, variance, novelty, guardrail metrics",
+            "Interleaving and shadow evaluation for retrieval / ranking",
+            "Sampled production judging and human review queues",
+            "Drift detection: input, retrieval, output and judge-score drift",
+            "Canary / shadow / progressive rollout of prompts and models",
+            "Turning production failures into regression tests (the flywheel)"
+          ],
+          "canonicalProblems": [
+            "eval-platform",
+            "llm-search-recsys",
+            "chat-assistant"
+          ],
+          "deliverable": "Experiment design doc: A/B test of a new prompt with metrics, sample size, rollback.",
+          "studyPrompt": "Teach me online evaluation for LLM products: implicit feedback signals, A/B and interleaving tests, sampled production judging, drift detection, canary and shadow rollout, and the data flywheel. Then ask me how I would A/B test a new prompt for 1M users/day."
+        },
+        {
+          "id": "session-31",
+          "number": 31,
+          "title": "Agent Security: Prompt Injection, Lethal Trifecta, Tool/MCP/Memory Poisoning & Sandboxing",
+          "projectTieIn": "Deloitte customer-support agent with CRM/ERP tool access (scoped IAM)",
+          "estimatedReadTime": "16 min",
+          "phase": 2,
+          "week": 7,
+          "priority": "core",
+          "status": "skeleton",
+          "isNew": true,
+          "topics": [
+            "OWASP Top 10 for LLM applications as the checklist",
+            "Direct vs indirect prompt injection (emails, web pages, RAG documents, tool outputs)",
+            "The lethal trifecta: private data + untrusted content + external communication",
+            "Excessive agency: least privilege, per-call authorisation, human approval for irreversible actions",
+            "MCP / tool poisoning and rug-pulls; supply-chain trust of tools",
+            "Memory poisoning: write validation, provenance, TTL, per-user isolation",
+            "Sandboxing code execution; network egress control",
+            "Exfiltration channels (markdown images, links) and output filtering",
+            "Architectural patterns: dual-LLM / quarantine, capability-based tool gateways"
+          ],
+          "canonicalProblems": [
+            "support-agent",
+            "coding-agent",
+            "ai-memory",
+            "deep-research"
+          ],
+          "deliverable": "Threat model (STRIDE-style table) for a tool-using agent with mitigations.",
+          "studyPrompt": "Teach me agent security: OWASP Top 10 for LLM apps, direct vs indirect prompt injection, the lethal trifecta, excessive agency, MCP tool poisoning, memory poisoning, sandboxed execution, and exfiltration channels. Then threat-model my Deloitte support agent and grill me on mitigations."
         },
         {
           "id": "session-20",
           "number": 20,
-          "title": "Capstone: 45-Minute End-to-End Mock Interview",
+          "title": "Capstone: Six Timed 45-Minute Mock Interviews",
           "projectTieIn": "All 4 Core Resume Projects",
           "estimatedReadTime": "45 min",
+          "phase": 4,
+          "week": 10,
+          "priority": "core",
+          "status": "skeleton",
+          "isNew": false,
+          "topics": [
+            "Mock 1-2: must-know problems (cold prompts)",
+            "Mock 3-4: high-frequency problems",
+            "Mock 5: differentiator problem",
+            "Mock 6: resume deep-dive at 100x scale",
+            "Post-mock review with the interview rubric",
+            "Bridge drills: 3-minute 'closest project and what breaks at 100x' per problem"
+          ],
+          "canonicalProblems": [
+            "chat-assistant",
+            "enterprise-rag",
+            "support-agent",
+            "answer-engine",
+            "voice-agent",
+            "inference-serving"
+          ],
+          "deliverable": "Six scored mocks and a list of the 5 weakest areas for a final revision pass.",
           "studyPrompt": "Act as a Hiring Manager for a Senior AI Engineer role. Pick one of my resume projects or a scaled-up version of it, and run a realistic system design interview. Ask me to gather requirements, estimate capacity, define the API/data model, draw the high-level architecture, and then drill me on bottlenecks."
         }
       ]
     }
-  ]
+  ],
+  "phases": [
+    {
+      "id": "phase-0",
+      "number": 0,
+      "title": "Phase 0: Distributed Systems Refresh",
+      "weeks": "Week 1",
+      "goal": "Be fluent in the classic building blocks interviewers probe underneath every AI question.",
+      "exitCriteria": [
+        "Explain replication, sharding, delivery semantics and backpressure without notes",
+        "Do an LLM back-of-envelope estimate (tokens -> GPUs -> $) in under 5 minutes"
+      ]
+    },
+    {
+      "id": "phase-1",
+      "number": 1,
+      "title": "Phase 1: GenAI Foundational Building Blocks",
+      "weeks": "Weeks 2-4",
+      "goal": "Master retrieval, context, agents, multimodal and model-adaptation mechanics.",
+      "exitCriteria": [
+        "Design a 100M-document RAG pipeline end to end (parse -> chunk -> embed -> index -> retrieve -> rerank)",
+        "Justify prompt vs RAG vs fine-tune for any scenario",
+        "Whiteboard an agent topology with a memory design and its failure modes"
+      ]
+    },
+    {
+      "id": "phase-2",
+      "number": 2,
+      "title": "Phase 2: Production Optimization (The Tricks)",
+      "weeks": "Weeks 5-7",
+      "goal": "Own latency, cost, throughput, quality and safety trade-offs with numbers.",
+      "exitCriteria": [
+        "Size a GPU fleet and compare self-host vs API cost",
+        "Design caching + routing + fallback for a gateway",
+        "Present an offline + online eval plan and an agent threat model"
+      ]
+    },
+    {
+      "id": "phase-3",
+      "number": 3,
+      "title": "Phase 3: Canonical Case Studies",
+      "weeks": "Weeks 3-9 (interleaved)",
+      "goal": "Practise 17 canonical GenAI system design problems, tiered by interview frequency.",
+      "exitCriteria": [
+        "All 'must-know' problems solved cold in 45 minutes",
+        "8 must-do problems done twice (second pass timed)"
+      ]
+    },
+    {
+      "id": "phase-4",
+      "number": 4,
+      "title": "Phase 4: Resume Defense & Full Mocks",
+      "weeks": "Weeks 9-10",
+      "goal": "Convert your real projects into confident 100x-scale answers and rehearse under pressure.",
+      "exitCriteria": [
+        "Six scored 45-minute mocks completed",
+        "Each resume project has a 3-minute bridge answer for >=3 canonical problems"
+      ]
+    }
+  ],
+  "weeks": [
+    {
+      "week": 1,
+      "phase": 0,
+      "focus": "Distributed systems refresh: replication, sharding, storage, queues, reliability, caching, estimation, observability",
+      "items": [
+        "fund-01",
+        "fund-02",
+        "fund-03",
+        "fund-04",
+        "fund-05",
+        "fund-06",
+        "fund-07",
+        "fund-08"
+      ],
+      "milestone": "Complete Module 0 and the LLM back-of-envelope sheet."
+    },
+    {
+      "week": 2,
+      "phase": 1,
+      "focus": "RAG foundations: inference basics, parsing, chunking, embeddings",
+      "items": [
+        "session-21",
+        "session-22",
+        "session-23",
+        "session-24"
+      ],
+      "milestone": "Draw the 100M-doc ingestion pipeline from memory."
+    },
+    {
+      "week": 3,
+      "phase": 1,
+      "focus": "Retrieval depth: vector indexes, hybrid + rerank, advanced retrieval, context engineering, RBAC; first case study",
+      "items": [
+        "session-05",
+        "session-06",
+        "session-25",
+        "session-26",
+        "session-08",
+        "problem:enterprise-rag"
+      ],
+      "milestone": "Case study #1 (Enterprise RAG 100M) solved cold, 45 min."
+    },
+    {
+      "week": 4,
+      "phase": 1,
+      "focus": "Agents, memory, multimodal, model adaptation; agent + web-RAG case studies",
+      "items": [
+        "session-09",
+        "session-10",
+        "session-07",
+        "session-27",
+        "problem:support-agent",
+        "problem:answer-engine"
+      ],
+      "milestone": "Case studies #2-3 done. Can answer 'when would you fine-tune?'"
+    },
+    {
+      "week": 5,
+      "phase": 2,
+      "focus": "Serving & capacity: KV cache, serving toolbox, classic serving, cost economics",
+      "items": [
+        "session-15",
+        "session-28",
+        "session-14",
+        "session-29",
+        "problem:inference-serving"
+      ],
+      "milestone": "Size a GPU fleet for 10M WAU and show API vs self-host break-even."
+    },
+    {
+      "week": 6,
+      "phase": 2,
+      "focus": "Caching, gateway & routing, latency, agent resilience; chat + gateway case studies",
+      "items": [
+        "session-04",
+        "session-19",
+        "session-03",
+        "session-11",
+        "session-12",
+        "problem:chat-assistant",
+        "problem:llm-gateway"
+      ],
+      "milestone": "Case studies #5-6 done with explicit latency + cost budgets."
+    },
+    {
+      "week": 7,
+      "phase": 2,
+      "focus": "Quality & safety: offline evals, online evals, guardrails, agent security; eval + SQL case studies",
+      "items": [
+        "session-17",
+        "session-30",
+        "session-18",
+        "session-31",
+        "problem:eval-platform",
+        "problem:text-to-sql"
+      ],
+      "milestone": "Produce an eval plan + threat model for one system."
+    },
+    {
+      "week": 8,
+      "phase": 3,
+      "focus": "Case-study sprint A: real-time, code and long-running agents",
+      "items": [
+        "problem:voice-agent",
+        "problem:code-assistant",
+        "problem:coding-agent",
+        "problem:deep-research"
+      ],
+      "milestone": "4 high-frequency / differentiator problems done, timed."
+    },
+    {
+      "week": 9,
+      "phase": 3,
+      "focus": "Case-study sprint B + resume defense: search/recsys, fine-tuning, multimodal, moderation, memory; resume deep-dives",
+      "items": [
+        "problem:llm-search-recsys",
+        "problem:finetune-platform",
+        "problem:multimodal-pipeline",
+        "problem:content-moderation",
+        "problem:ai-memory",
+        "session-01",
+        "session-02",
+        "session-13",
+        "session-16"
+      ],
+      "milestone": "All 17 case studies attempted; resume projects have bridge answers."
+    },
+    {
+      "week": 10,
+      "phase": 4,
+      "focus": "Six timed mocks, bridge drills, weak-spot revision, vendor-neutral glossary",
+      "items": [
+        "session-20"
+      ],
+      "milestone": "Six scored mocks; final revision list of weakest 5 topics."
+    }
+  ],
+  "tiers": {
+    "must-know": "Asked in most loops. Solve cold in 45 minutes.",
+    "high-freq": "Very common at AI-native startups and product companies.",
+    "differentiator": "Signals depth beyond the average candidate.",
+    "secondary": "Lower priority for the target companies."
+  }
 }

@@ -10,10 +10,10 @@ import fundamentals from "@/data/fundamentals.json";
 
 const moduleLabels: Record<string, string> = {
   fund: "M0 · Fundamentals",
-  "mod-1": "M1 · Backend & GCP",
-  "mod-2": "M2 · RAG & Search",
-  "mod-3": "M3 · Agents & State",
-  "mod-4": "M4 · Throughput & Serving",
+  "mod-1": "M1 · Backend, Cache & Capacity",
+  "mod-2": "M2 · RAG, Search & Multimodal",
+  "mod-3": "M3 · Agents, Memory & Latency",
+  "mod-4": "M4 · Models & Serving",
   "mod-5": "M5 · LLMOps, Evals, Security",
 };
 
