@@ -22,6 +22,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useProgress } from "./ProgressProvider";
+import CodeBlock from "./CodeBlock";
 
 interface StudyScratchpadProps {
   sourceId: string;
@@ -472,11 +473,19 @@ export default function StudyScratchpad({
                           {children}
                         </blockquote>
                       ),
-                      code: ({ children }) => (
-                        <code className="rounded-md border border-border bg-card px-1.5 py-0.5 font-mono text-xs text-primary font-semibold">
-                          {children}
-                        </code>
-                      ),
+                      code: ({ className, children }) => {
+                        const match = /language-(\w+)/.exec(className || "");
+                        const lang = match?.[1] || "";
+                        const rawCode = String(children).replace(/\n$/, "");
+                        if (rawCode.includes("\n") || Boolean(lang)) {
+                          return <CodeBlock language={lang} rawCode={rawCode} />;
+                        }
+                        return (
+                          <code className="rounded-md border border-border bg-card px-1.5 py-0.5 font-mono text-xs text-primary font-semibold">
+                            {children}
+                          </code>
+                        );
+                      },
                     }}
                   >
                     {note}

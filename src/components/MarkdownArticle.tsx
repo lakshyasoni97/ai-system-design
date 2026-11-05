@@ -6,6 +6,7 @@ import remarkGfm from "remark-gfm";
 import MermaidDiagram from "./MermaidDiagram";
 import TradeoffTable from "./TradeoffTable";
 import HighlightableArticle from "./HighlightableArticle";
+import CodeBlock from "./CodeBlock";
 import {
   ActiveRecallProvider,
   ActiveRecallToolbar,
@@ -116,12 +117,9 @@ export default function MarkdownArticle({
                   if (lang === "mermaid") {
                     return <MermaidDiagram chart={rawCode} title={diagramTitle} />;
                   }
-                  if (rawCode.includes("\n") || lang) {
-                    return (
-                      <pre className="my-4 sm:my-5 overflow-x-auto rounded-xl sm:rounded-2xl border border-border bg-muted/20 p-3.5 sm:p-4 font-mono text-xs sm:text-sm leading-relaxed text-foreground">
-                        <code>{rawCode}</code>
-                      </pre>
-                    );
+                  const isBlock = rawCode.includes("\n") || Boolean(lang);
+                  if (isBlock) {
+                    return <CodeBlock language={lang} rawCode={rawCode} />;
                   }
                   return (
                     <ClozeCodePill rawText={rawCode} {...props}>

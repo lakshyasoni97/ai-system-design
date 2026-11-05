@@ -26,6 +26,7 @@ import FlashcardPlayer, { FlashcardItem } from "./FlashcardPlayer";
 import ReadingList from "./ReadingList";
 import HighlightableArticle from "./HighlightableArticle";
 import StudyScratchpad from "./StudyScratchpad";
+import CodeBlock from "./CodeBlock";
 import resourcesData from "@/data/resources.json";
 import { useProgress } from "./ProgressProvider";
 import {
@@ -58,57 +59,6 @@ interface TocItem {
   id: string;
   title: string;
   level: number;
-}
-
-function CodeBlockWithCopy({
-  language,
-  rawCode,
-}: {
-  language: string;
-  rawCode: string;
-}) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(rawCode);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch {
-      // ignore
-    }
-  };
-
-  return (
-    <div className="my-5 overflow-hidden rounded-2xl border border-border bg-card shadow-xs">
-      <div className="flex items-center justify-between border-b border-border bg-muted/60 px-4 py-2 font-mono text-xs text-muted-foreground">
-        <span className="flex items-center gap-1.5 font-semibold">
-          <Terminal className="h-3.5 w-3.5 text-primary" />
-          {language || "code"}
-        </span>
-        <button
-          type="button"
-          onClick={handleCopy}
-          className="flex items-center gap-1 rounded-md border border-border bg-card px-2 py-0.5 font-mono text-[11px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-        >
-          {copied ? (
-            <>
-              <Check className="h-3 w-3 text-primary" />
-              <span className="text-primary font-semibold">Copied</span>
-            </>
-          ) : (
-            <>
-              <Copy className="h-3 w-3" />
-              <span>Copy</span>
-            </>
-          )}
-        </button>
-      </div>
-      <pre className="overflow-x-auto p-3.5 sm:p-4 font-mono text-xs sm:text-sm leading-relaxed text-foreground bg-muted/20">
-        <code>{rawCode}</code>
-      </pre>
-    </div>
-  );
 }
 
 export default function SessionStudyClient({
@@ -423,7 +373,7 @@ export default function SessionStudyClient({
                       const isBlock = rawCode.includes("\n") || Boolean(lang);
                       if (isBlock) {
                         return (
-                          <CodeBlockWithCopy language={lang} rawCode={rawCode} />
+                          <CodeBlock language={lang} rawCode={rawCode} />
                         );
                       }
 

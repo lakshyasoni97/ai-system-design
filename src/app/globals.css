@@ -368,3 +368,107 @@ mark.text-highlight-rose {
   outline: 2px dashed #10b981;
   outline-offset: 4px;
 }
+
+/* ==========================================================================
+   Code Editor Syntax Highlighting (VS Code / One Dark Pro palette)
+   ========================================================================== */
+
+.code-editor pre code.hljs {
+  display: block;
+  padding: 0;
+  background: transparent;
+  color: #e6edf3;
+}
+
+/* Keywords: def, class, return, import, async, from, SELECT, WHERE, JOIN */
+.code-editor .hljs-keyword,
+.code-editor .hljs-selector-tag {
+  color: #c678dd;
+  font-weight: 600;
+}
+
+/* Functions & Methods: save_agent_checkpoint, execute, connect */
+.code-editor .hljs-title.function_,
+.code-editor .hljs-title.function,
+.code-editor .hljs-title {
+  color: #61afef;
+  font-weight: 600;
+}
+
+/* Classes & Built-in types: Redis, str, int, bool, JSONB */
+.code-editor .hljs-title.class_,
+.code-editor .hljs-built_in,
+.code-editor .hljs-type {
+  color: #e5c07b;
+}
+
+/* Strings: "checkpoint:", f"...", 'postgres://' */
+.code-editor .hljs-string,
+.code-editor .hljs-regexp,
+.code-editor .hljs-addition {
+  color: #98c379;
+}
+
+/* String interpolation / expressions inside f-strings */
+.code-editor .hljs-subst {
+  color: #abb2bf;
+}
+
+/* Numbers: 64, 100, 3.14 */
+.code-editor .hljs-number {
+  color: #d19a66;
+}
+
+/* Booleans & Literals: True, False, None, NULL */
+.code-editor .hljs-literal {
+  color: #56b6c2;
+  font-weight: 600;
+}
+
+/* Comments: # Redis Sentinel, -- Composite index */
+.code-editor .hljs-comment,
+.code-editor .hljs-quote {
+  color: #768390;
+  font-style: italic;
+}
+
+/* Parameters & Variables */
+.code-editor .hljs-params,
+.code-editor .hljs-variable,
+.code-editor .hljs-template-variable {
+  color: #abb2bf;
+}
+
+/* Attributes, Properties & JSON keys */
+.code-editor .hljs-attr,
+.code-editor .hljs-attribute,
+.code-editor .hljs-property {
+  color: #e06c75;
+}
+
+/* Operators & Punctuation: =, +, -, *, :, , */
+.code-editor .hljs-operator {
+  color: #56b6c2;
+}
+
+.code-editor .hljs-punctuation {
+  color: #abb2bf;
+}
+
+/* Decorators & Meta: @app.post, @dataclass */
+.code-editor .hljs-meta {
+  color: #61afef;
+  font-style: italic;
+}
+
+/* Symbol & Bullet */
+.code-editor .hljs-symbol,
+.code-editor .hljs-bullet {
+  color: #61afef;
+}
+
+/* Deletion / Diffs */
+.code-editor .hljs-deletion {
+  color: #e06c75;
+}
+
