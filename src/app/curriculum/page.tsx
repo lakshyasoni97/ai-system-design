@@ -161,7 +161,7 @@ export default function CurriculumPage() {
                 : "text-muted-foreground hover:text-foreground hover:bg-muted"
             }`}
           >
-            All Modules (20)
+            All Modules ({curriculumData.modules.length})
           </button>
           {curriculumData.modules.map((mod, idx) => {
             const isSelected = activeModuleTab === mod.id;

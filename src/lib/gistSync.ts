@@ -10,6 +10,7 @@ import { FlashcardRating, TextHighlight } from "@/components/ProgressProvider";
 export interface SyncedStudyState {
   version: number;
   completedSessions: string[];
+  completedItems?: string[];
   flashcardRatings: Record<string, FlashcardRating>;
   scratchpadNotes: Record<string, string>;
   highlights: TextHighlight[];
@@ -316,9 +317,15 @@ export function mergeStudyStates(
   local: SyncedStudyState,
   remote: SyncedStudyState
 ): SyncedStudyState {
-  // 1. Merge completed sessions (set union)
+  // 1. Merge completed sessions & items (set union)
   const completedSessions = Array.from(
     new Set([...(local.completedSessions || []), ...(remote.completedSessions || [])])
+  );
+  const completedItems = Array.from(
+    new Set([
+      ...(local.completedItems || local.completedSessions || []),
+      ...(remote.completedItems || remote.completedSessions || []),
+    ])
   );
 
   // 2. Merge flashcard ratings (union, prefer higher or latest)
@@ -393,6 +400,7 @@ export function mergeStudyStates(
   return {
     version: 2,
     completedSessions,
+    completedItems,
     flashcardRatings,
     scratchpadNotes,
     highlights: Array.from(highlightMap.values()),

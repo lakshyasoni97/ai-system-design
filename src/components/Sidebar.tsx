@@ -46,7 +46,9 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
   const { theme, resolvedTheme, setTheme } = useTheme();
   const {
     completedSessions,
+    completedItems,
     isSessionCompleted,
+    isItemCompleted,
     isSyncConfigured,
     isSyncing,
     githubUser,
@@ -124,8 +126,22 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
     return curriculumData.modules.find((m) => m.id === activeSession.moduleId) || null;
   }, [activeSession]);
 
+  const totalRoadmapItemsCount = useMemo(() => {
+    return curriculumData.weeks.reduce((acc, w) => acc + w.items.length, 0);
+  }, []);
+
+  const completedRoadmapItemsCount = useMemo(() => {
+    let count = 0;
+    curriculumData.weeks.forEach((w) => {
+      w.items.forEach((itemId) => {
+        if (isItemCompleted(itemId)) count++;
+      });
+    });
+    return count;
+  }, [isItemCompleted]);
+
   const completionPct = Math.round(
-    (completedSessions.length / allSessions.length) * 100
+    (completedRoadmapItemsCount / (totalRoadmapItemsCount || 1)) * 100
   );
 
   // Keyboard shortcut listener for Cmd+K and Cmd+B
@@ -561,9 +577,9 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
       {/* Global Overall Readiness Meter (Single Source of Truth) */}
       <div className="px-4 py-3 border-b border-border bg-muted/20">
         <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
-          <span className="font-medium text-foreground">Readiness</span>
+          <span className="font-medium text-foreground">Roadmap Readiness</span>
           <span className="font-mono text-[11px] font-semibold text-primary">
-            {completedSessions.length} / {allSessions.length} ({completionPct}%)
+            {completedRoadmapItemsCount} / {totalRoadmapItemsCount} ({completionPct}%)
           </span>
         </div>
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">

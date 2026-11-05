@@ -32,24 +32,10 @@ import { useProgress } from "@/components/ProgressProvider";
 import JourneyMap from "@/components/JourneyMap";
 
 export default function DashboardPage() {
-  const { completedSessions, isSessionCompleted, getFlashcardRating } =
+  const { isItemCompleted, toggleItemCompleted, getFlashcardRating } =
     useProgress();
   const [copiedPrompt, setCopiedPrompt] = useState(false);
   const [recommendationMode, setRecommendationMode] = useState<"ROADMAP" | "READY">("ROADMAP");
-  const [fundamentalsDone, setFundamentalsDone] = useState<string[]>([]);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("fundamentals-done");
-      if (raw) setFundamentalsDone(JSON.parse(raw));
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  const isItemDone = useMemo(() => {
-    return (id: string) => isSessionCompleted(id) || fundamentalsDone.includes(id);
-  }, [isSessionCompleted, fundamentalsDone]);
 
   // Flatten all sessions across modules
   const allSessions = useMemo(
@@ -120,7 +106,7 @@ export default function DashboardPage() {
               readTime: t.readTime,
               status: t.status as "written" | "skeleton",
               studyPrompt: `Explain ${t.title} from first principles with everyday analogies, edge cases, failure scenarios, and AI system tie-ins (Vector DB replicas, agent state, rate limits).`,
-              isCompleted: isItemDone(itemId),
+              isCompleted: isItemCompleted(itemId),
             });
           }
         } else if (itemId.startsWith("problem:")) {
@@ -143,7 +129,7 @@ export default function DashboardPage() {
               readTime: "45 min mock",
               status: p.status as "written" | "skeleton",
               studyPrompt: `You are a Principal AI Architect interviewing me for a Senior AI Engineer position. Prompt: "${p.prompt}". Wait for my clarifying questions and back-of-the-envelope estimation before moving to architecture.`,
-              isCompleted: isItemDone(itemId) || isItemDone(pId),
+              isCompleted: isItemCompleted(itemId) || isItemCompleted(pId),
               tier: p.tier,
             });
           }
@@ -166,7 +152,7 @@ export default function DashboardPage() {
               readTime: s.estimatedReadTime || "15 min",
               status: s.status as "written" | "skeleton",
               studyPrompt: s.studyPrompt,
-              isCompleted: isItemDone(itemId),
+              isCompleted: isItemCompleted(itemId),
             });
           }
         }
@@ -174,7 +160,7 @@ export default function DashboardPage() {
     });
 
     return list;
-  }, [allSessions, isItemDone]);
+  }, [allSessions, isItemCompleted]);
 
   // Primary recommendation: first uncompleted item in 10-week sequence
   const roadmapNextItem = useMemo(() => {
@@ -208,9 +194,9 @@ export default function DashboardPage() {
     (totalCompletedRoadmapItems / (totalRoadmapItems || 1)) * 100
   );
 
-  const completedSessionsCount = allSessions.filter((s) => isItemDone(s.id)).length;
-  const completedFundamentalsCount = fundamentalsData.topics.filter((t) => isItemDone(t.id)).length;
-  const completedProblemsCount = problemsData.filter((p) => isItemDone(p.id) || isItemDone(`problem:${p.id}`)).length;
+  const completedSessionsCount = allSessions.filter((s) => isItemCompleted(s.id)).length;
+  const completedFundamentalsCount = fundamentalsData.topics.filter((t) => isItemCompleted(t.id)).length;
+  const completedProblemsCount = problemsData.filter((p) => isItemCompleted(p.id) || isItemCompleted(`problem:${p.id}`)).length;
 
   // Flashcard statistics
   const flashcardStats = useMemo(() => {

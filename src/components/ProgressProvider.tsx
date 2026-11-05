@@ -45,6 +45,7 @@ export interface TextHighlight {
 
 interface ProgressState {
   completedSessions: string[];
+  completedItems: string[];
   flashcardRatings: Record<string, FlashcardRating>;
   scratchpadNotes: Record<string, string>;
   highlights: TextHighlight[];
@@ -66,6 +67,8 @@ interface ProgressContextType extends ProgressState {
   // Existing study actions
   toggleSessionCompleted: (sessionId: string) => void;
   isSessionCompleted: (sessionId: string) => boolean;
+  toggleItemCompleted: (itemId: string) => void;
+  isItemCompleted: (itemId: string) => boolean;
   rateFlashcard: (cardId: string, rating: FlashcardRating) => void;
   getFlashcardRating: (cardId: string) => FlashcardRating;
   updateScratchpad: (key: string, note: string) => void;
@@ -82,6 +85,7 @@ const STORAGE_KEY = "antigravity_ai_study_portal_v1";
 
 const DEFAULT_STATE: ProgressState = {
   completedSessions: ["session-01"],
+  completedItems: ["session-01", "fund-01"],
   flashcardRatings: {
     "fc-001": "easy",
     "fc-002": "medium",
@@ -148,12 +152,24 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
+      let legacyFundamentals: string[] = [];
+      try {
+        const rawFund = localStorage.getItem("fundamentals-done");
+        if (rawFund) legacyFundamentals = JSON.parse(rawFund);
+      } catch {}
+
       if (saved) {
         const parsed = JSON.parse(saved);
+        const compSessions = Array.isArray(parsed.completedSessions)
+          ? parsed.completedSessions
+          : DEFAULT_STATE.completedSessions;
+        const compItems = Array.isArray(parsed.completedItems)
+          ? parsed.completedItems
+          : Array.from(new Set([...compSessions, ...legacyFundamentals]));
+
         setState({
-          completedSessions: Array.isArray(parsed.completedSessions)
-            ? parsed.completedSessions
-            : DEFAULT_STATE.completedSessions,
+          completedSessions: compSessions,
+          completedItems: compItems,
           flashcardRatings:
             parsed.flashcardRatings && typeof parsed.flashcardRatings === "object"
               ? parsed.flashcardRatings
@@ -167,6 +183,11 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
             : DEFAULT_STATE.highlights,
           lastModifiedAt: parsed.lastModifiedAt || new Date().toISOString(),
         });
+      } else if (legacyFundamentals.length > 0) {
+        setState((prev) => ({
+          ...prev,
+          completedItems: Array.from(new Set([...prev.completedItems, ...legacyFundamentals])),
+        }));
       }
 
       // Read sync credentials
@@ -200,6 +221,7 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
     (s: ProgressState): SyncedStudyState => ({
       version: 2,
       completedSessions: s.completedSessions,
+      completedItems: s.completedItems,
       flashcardRatings: s.flashcardRatings,
       scratchpadNotes: s.scratchpadNotes,
       highlights: s.highlights,
@@ -230,6 +252,7 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
 
           return {
             completedSessions: merged.completedSessions,
+            completedItems: merged.completedItems || merged.completedSessions,
             flashcardRatings: merged.flashcardRatings,
             scratchpadNotes: merged.scratchpadNotes,
             highlights: merged.highlights,
@@ -312,6 +335,7 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
         await pushToGist(token, gistId, merged);
         setState({
           completedSessions: merged.completedSessions,
+          completedItems: merged.completedItems || merged.completedSessions,
           flashcardRatings: merged.flashcardRatings,
           scratchpadNotes: merged.scratchpadNotes,
           highlights: merged.highlights,
@@ -351,21 +375,52 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
 
   // State mutations with automatic timestamp tracking
   const toggleSessionCompleted = (sessionId: string) => {
+    toggleItemCompleted(sessionId);
+  };
+
+  const isSessionCompleted = (sessionId: string) => {
+    return isItemCompleted(sessionId);
+  };
+
+  const toggleItemCompleted = (itemId: string) => {
     setState((prev) => {
-      const exists = prev.completedSessions.includes(sessionId);
-      const next = exists
-        ? prev.completedSessions.filter((id) => id !== sessionId)
-        : [...prev.completedSessions, sessionId];
+      const isCompleted = prev.completedItems.includes(itemId) || prev.completedSessions.includes(itemId);
+      const nextItems = isCompleted
+        ? prev.completedItems.filter((id) => id !== itemId)
+        : [...prev.completedItems, itemId];
+
+      // Keep completedSessions backwards-compatible
+      const nextSessions = itemId.startsWith("session-")
+        ? isCompleted
+          ? prev.completedSessions.filter((id) => id !== itemId)
+          : [...prev.completedSessions, itemId]
+        : prev.completedSessions;
+
+      // Sync fundamentals-done legacy key if applicable
+      if (itemId.startsWith("fund-")) {
+        try {
+          const fundList = nextItems.filter((id) => id.startsWith("fund-"));
+          localStorage.setItem("fundamentals-done", JSON.stringify(fundList));
+        } catch {}
+      }
+
       return {
         ...prev,
-        completedSessions: next,
+        completedSessions: nextSessions,
+        completedItems: nextItems,
         lastModifiedAt: new Date().toISOString(),
       };
     });
   };
 
-  const isSessionCompleted = (sessionId: string) => {
-    return state.completedSessions.includes(sessionId);
+  const isItemCompleted = (itemId: string) => {
+    const rawId = itemId.replace("problem:", "");
+    return (
+      state.completedItems.includes(itemId) ||
+      state.completedItems.includes(rawId) ||
+      state.completedSessions.includes(itemId) ||
+      state.completedSessions.includes(rawId)
+    );
   };
 
   const rateFlashcard = (cardId: string, rating: FlashcardRating) => {
@@ -457,6 +512,11 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
         completedSessions: Array.isArray(parsed.completedSessions)
           ? parsed.completedSessions
           : [],
+        completedItems: Array.isArray(parsed.completedItems)
+          ? parsed.completedItems
+          : Array.isArray(parsed.completedSessions)
+          ? parsed.completedSessions
+          : [],
         flashcardRatings:
           parsed.flashcardRatings && typeof parsed.flashcardRatings === "object"
             ? parsed.flashcardRatings
@@ -477,6 +537,7 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
   const resetProgress = () => {
     setState({
       completedSessions: [],
+      completedItems: [],
       flashcardRatings: {},
       scratchpadNotes: {},
       highlights: [],
@@ -500,6 +561,8 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
         triggerSyncNow,
         toggleSessionCompleted,
         isSessionCompleted,
+        toggleItemCompleted,
+        isItemCompleted,
         rateFlashcard,
         getFlashcardRating,
         updateScratchpad,

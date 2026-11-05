@@ -620,7 +620,7 @@ export default function RoadmapMindMap({
                     </span>
                   </div>
                   <span className="rounded-md bg-secondary px-2 py-0.5 font-mono text-[10px] font-semibold text-muted-foreground">
-                    {completedCount}/4 Done
+                    {completedCount}/{mod.sessions.length} Done
                   </span>
                 </div>
 

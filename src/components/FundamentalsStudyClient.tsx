@@ -8,30 +8,13 @@ import ReadingList, { ReadingItem } from "./ReadingList";
 import StudyScratchpad from "./StudyScratchpad";
 import { useProgress } from "./ProgressProvider";
 
-const STORAGE_KEY = "fundamentals-done";
-
 export function useFundamentalsDone() {
-  const [done, setDone] = useState<string[]>([]);
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setDone(JSON.parse(raw));
-    } catch {
-      // ignore
-    }
-  }, []);
-  const toggle = (id: string) => {
-    setDone((prev) => {
-      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        // ignore
-      }
-      return next;
-    });
+  const { completedItems, toggleItemCompleted, isItemCompleted } = useProgress();
+  return {
+    done: completedItems.filter((id) => id.startsWith("fund-")),
+    toggle: toggleItemCompleted,
+    isDone: isItemCompleted,
   };
-  return { done, toggle };
 }
 
 interface Topic {

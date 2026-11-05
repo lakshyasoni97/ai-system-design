@@ -3,10 +3,11 @@
 import React, { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Eye, EyeOff, HelpCircle, ListChecks, Timer } from "lucide-react";
+import { Eye, EyeOff, HelpCircle, ListChecks, Timer, CheckCircle2, Circle } from "lucide-react";
 import problems from "@/data/problems.json";
 import rolesData from "@/data/roles.json";
 import MermaidDiagram from "@/components/MermaidDiagram";
+import { useProgress } from "@/components/ProgressProvider";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -30,6 +31,7 @@ function List({ items }: { items: string[] }) {
 function ProblemsContent() {
   const router = useRouter();
   const params = useSearchParams();
+  const { isItemCompleted, toggleItemCompleted } = useProgress();
   const initial = problems.find((p) => p.id === params.get("id")) || problems[0];
   const [activeId, setActiveId] = useState(initial.id);
   const [trackFilter, setTrackFilter] = useState("all");
@@ -46,6 +48,7 @@ function ProblemsContent() {
   };
 
   const showSolution = !practiceMode || revealed["solution"];
+  const isDone = isItemCompleted(p.id) || isItemCompleted(`problem:${p.id}`);
 
   return (
     <div className="space-y-6">
@@ -86,25 +89,31 @@ function ProblemsContent() {
 
       <div className="grid gap-6 lg:grid-cols-12">
         <div className="space-y-2 lg:col-span-4">
-          {visible.map((x) => (
-            <button
-              key={x.id}
-              type="button"
-              onClick={() => select(x.id)}
-              className={`w-full cursor-pointer rounded-xl border p-3 text-left transition-colors ${
-                x.id === p.id ? "border-primary/60 bg-primary/10" : "border-border bg-card hover:border-primary/30"
-              }`}
-            >
-              <div className="text-sm font-semibold text-foreground">{x.title.replace(/^Design an? /, "")}</div>
-              <div className="mt-1 flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                <span>{x.difficulty}</span>
-                <span className="text-primary">{x.tier}</span>
-                <span>W{x.week}</span>
-                {x.mustDo && <span className="text-accent">must-do</span>}
-                {x.status === "skeleton" && <span className="rounded bg-muted px-1">skeleton</span>}
-              </div>
-            </button>
-          ))}
+          {visible.map((x) => {
+            const itemDone = isItemCompleted(x.id) || isItemCompleted(`problem:${x.id}`);
+            return (
+              <button
+                key={x.id}
+                type="button"
+                onClick={() => select(x.id)}
+                className={`w-full cursor-pointer rounded-xl border p-3 text-left transition-colors ${
+                  x.id === p.id ? "border-primary/60 bg-primary/10" : "border-border bg-card hover:border-primary/30"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-1.5">
+                  <div className="text-sm font-semibold text-foreground">{x.title.replace(/^Design an? /, "")}</div>
+                  {itemDone && <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />}
+                </div>
+                <div className="mt-1 flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <span>{x.difficulty}</span>
+                  <span className="text-primary">{x.tier}</span>
+                  <span>W{x.week}</span>
+                  {x.mustDo && <span className="text-accent">must-do</span>}
+                  {x.status === "skeleton" && <span className="rounded bg-muted px-1">skeleton</span>}
+                </div>
+              </button>
+            );
+          })}
           {visible.length === 0 && <p className="text-sm text-muted-foreground">No problems for this track.</p>}
         </div>
 
@@ -112,9 +121,30 @@ function ProblemsContent() {
           <div className="rounded-2xl border border-primary/40 bg-card p-6 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="rounded bg-primary/20 px-2 py-0.5 font-mono text-xs font-semibold text-primary">{p.difficulty}</span>
-              <span className="inline-flex items-center gap-1 font-mono text-xs text-muted-foreground">
-                <Timer className="h-3.5 w-3.5" /> 45 min
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => toggleItemCompleted(`problem:${p.id}`)}
+                  className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold cursor-pointer transition-colors ${
+                    isDone
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary/40"
+                  }`}
+                >
+                  {isDone ? (
+                    <>
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Case Solved
+                    </>
+                  ) : (
+                    <>
+                      <Circle className="h-3.5 w-3.5" /> Mark Solved
+                    </>
+                  )}
+                </button>
+                <span className="inline-flex items-center gap-1 font-mono text-xs text-muted-foreground">
+                  <Timer className="h-3.5 w-3.5" /> 45 min
+                </span>
+              </div>
             </div>
             <h2 className="mt-2 text-xl font-bold text-foreground">{p.title}</h2>
             <p className="mt-2 text-sm leading-relaxed text-foreground/90">{p.prompt}</p>
