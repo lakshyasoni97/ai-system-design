@@ -237,11 +237,6 @@ export default function HighlightableArticle({
         return;
       }
 
-      const text = selection.toString().trim();
-      if (text.length < 3) {
-        return;
-      }
-
       const range = selection.getRangeAt(0);
       if (!containerRef.current.contains(range.commonAncestorContainer)) {
         return;
@@ -253,6 +248,21 @@ export default function HighlightableArticle({
           ? (range.startContainer as HTMLElement)
           : range.startContainer.parentElement;
       if (startEl?.closest("[data-no-highlight]")) {
+        return;
+      }
+
+      const frag = range.cloneContents();
+      const ignoredInSelection = frag.querySelectorAll(
+        "[data-no-highlight], .mermaid-diagram-wrap, button"
+      );
+      let text = selection.toString().trim();
+      if (ignoredInSelection.length > 0) {
+        ignoredInSelection.forEach((el) => el.remove());
+        const tempDiv = document.createElement("div");
+        tempDiv.appendChild(frag);
+        text = (tempDiv.innerText || tempDiv.textContent || "").trim();
+      }
+      if (text.length < 3) {
         return;
       }
 
@@ -281,21 +291,22 @@ export default function HighlightableArticle({
 
         let accumulated = "";
         let selStart = -1;
+        let selEnd = -1;
         let curr = walker.nextNode() as Text | null;
         while (curr) {
           if (curr === range.startContainer) {
             selStart = accumulated.length + range.startOffset;
+          }
+          if (curr === range.endContainer) {
+            selEnd = accumulated.length + range.endOffset;
           }
           accumulated += curr.nodeValue || "";
           curr = walker.nextNode() as Text | null;
         }
 
         if (selStart !== -1) {
-          const rawText = selection.toString();
-          const lead = rawText.indexOf(text);
-          const start = selStart + (lead > 0 ? lead : 0);
-          const end = start + text.length;
-          prefix = accumulated.slice(Math.max(0, start - 40), start);
+          const end = selEnd !== -1 ? selEnd : selStart + text.length;
+          prefix = accumulated.slice(Math.max(0, selStart - 40), selStart);
           suffix = accumulated.slice(end, Math.min(accumulated.length, end + 40));
         } else {
           const pre = range.cloneRange();
@@ -432,10 +443,27 @@ export default function HighlightableArticle({
 
       let fullArticleText = "";
       const nodeOffsets: { node: Text; start: number; end: number }[] = [];
+      let prevBlock: Element | null = null;
 
       let currentNode = walker.nextNode() as Text | null;
       while (currentNode) {
         const val = currentNode.nodeValue || "";
+        const currBlock =
+          currentNode.parentElement?.closest(
+            "p, li, h1, h2, h3, h4, h5, h6, blockquote, td, th, pre, div"
+          ) || null;
+        if (
+          prevBlock &&
+          currBlock !== prevBlock &&
+          fullArticleText.length > 0 &&
+          !/\s$/.test(fullArticleText) &&
+          !/^\s/.test(val)
+        ) {
+          fullArticleText += "\n";
+        }
+        if (val.trim()) {
+          prevBlock = currBlock;
+        }
         const start = fullArticleText.length;
         fullArticleText += val;
         nodeOffsets.push({
@@ -446,25 +474,51 @@ export default function HighlightableArticle({
         currentNode = walker.nextNode() as Text | null;
       }
 
-      let matchIdx = -1;
-      if (hl.prefix && fullArticleText.includes(hl.prefix + targetText)) {
-        matchIdx = fullArticleText.indexOf(hl.prefix + targetText) + hl.prefix.length;
-      } else if (hl.suffix && fullArticleText.includes(targetText + hl.suffix)) {
-        matchIdx = fullArticleText.indexOf(targetText + hl.suffix);
-      } else if (hl.prefix && fullArticleText.includes(hl.prefix)) {
-        const prefixIdx = fullArticleText.indexOf(hl.prefix);
-        const candidateIdx = fullArticleText.indexOf(targetText, prefixIdx);
-        if (candidateIdx !== -1) {
-          matchIdx = candidateIdx;
+      const tokens = targetText
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+      if (tokens.length === 0) return;
+
+      const regex = new RegExp(tokens.join("\\s+"), "g");
+      const matches = Array.from(fullArticleText.matchAll(regex));
+      if (matches.length === 0) return;
+
+      let chosen = matches[0];
+      if (matches.length > 1 && (hl.prefix || hl.suffix)) {
+        const normPrefix = (hl.prefix || "").replace(/\s+/g, " ").trim();
+        const normSuffix = (hl.suffix || "").replace(/\s+/g, " ").trim();
+        let bestScore = -1;
+        for (const m of matches) {
+          const mStart = m.index ?? 0;
+          const mEnd = mStart + m[0].length;
+          const before = fullArticleText
+            .slice(Math.max(0, mStart - 80), mStart)
+            .replace(/\s+/g, " ")
+            .trimEnd();
+          const after = fullArticleText
+            .slice(mEnd, mEnd + 80)
+            .replace(/\s+/g, " ")
+            .trimStart();
+          let score = 0;
+          if (normPrefix) {
+            if (before.endsWith(normPrefix)) score += 2;
+            else if (before.includes(normPrefix)) score += 1;
+          }
+          if (normSuffix) {
+            if (after.startsWith(normSuffix)) score += 2;
+            else if (after.includes(normSuffix)) score += 1;
+          }
+          if (score > bestScore) {
+            bestScore = score;
+            chosen = m;
+          }
         }
-      } else {
-        matchIdx = fullArticleText.indexOf(targetText);
       }
 
-      if (matchIdx === -1) return;
-
-      const matchStart = matchIdx;
-      const matchEnd = matchIdx + targetText.length;
+      const matchStart = chosen.index ?? -1;
+      if (matchStart === -1) return;
+      const matchEnd = matchStart + chosen[0].length;
 
       const affected = nodeOffsets.filter(
         (entry) => entry.end > matchStart && entry.start < matchEnd
@@ -479,6 +533,9 @@ export default function HighlightableArticle({
         const sliceEnd = Math.min(node.length, matchEnd - entry.start);
 
         if (sliceEnd <= sliceStart) return;
+
+        const sliceText = (node.nodeValue || "").slice(sliceStart, sliceEnd);
+        if (!sliceText.trim() && sliceText.includes("\n")) return;
 
         try {
           const range = document.createRange();
