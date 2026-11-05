@@ -72,7 +72,7 @@
       "title": "Reliability Patterns: Timeouts, Retries, Circuit Breakers, Backpressure",
       "readTime": "15 min",
       "aiTieIn": "Gemini 429s/timeouts, tool failures inside agent loops, graceful degradation",
-      "status": "skeleton",
+      "status": "written",
       "topics": [
         "Timeouts, retries, exponential backoff with jitter",
         "Circuit breakers, bulkheads, load shedding",
@@ -90,7 +90,7 @@
       "title": "Caching & Rate Limiting Fundamentals",
       "readTime": "13 min",
       "aiTieIn": "Prompt/semantic caches, TPM quotas, per-tenant fairness",
-      "status": "skeleton",
+      "status": "written",
       "topics": [
         "Cache-aside, write-through, write-back",
         "Invalidation, TTL, stampede protection",
