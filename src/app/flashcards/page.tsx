@@ -43,8 +43,8 @@ export default function FlashcardsPage() {
             </p>
           </div>
 
-          {/* Keyboard-First UX Legend */}
-          <div className="rounded-xl border border-border bg-muted/30 p-3.5 font-mono text-xs">
+          {/* Keyboard-First UX Legend (Hidden on touch mobile) */}
+          <div className="hidden md:block rounded-xl border border-border bg-muted/30 p-3.5 font-mono text-xs">
             <div className="mb-2 flex items-center gap-1.5 text-foreground font-semibold">
               <Keyboard className="h-4 w-4 text-primary" />
               <span>Keyboard-First Controls</span>

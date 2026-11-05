@@ -395,17 +395,17 @@ export default function FlashcardPlayer({
           </div>
 
           {/* Controls & Rating Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-3.5 shadow-sm">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-border bg-card p-3.5 shadow-sm">
+            <div className="grid grid-cols-3 sm:flex items-center gap-2 w-full sm:w-auto">
               <button
                 type="button"
                 onClick={handlePrev}
-                className="flex items-center gap-1 rounded-xl border border-border bg-secondary px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors cursor-pointer"
+                className="flex items-center justify-center gap-1 rounded-xl border border-border bg-secondary px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors cursor-pointer"
               >
                 <ChevronLeft className="h-4 w-4" />
                 <span>Prev</span>
                 {!compact && (
-                  <kbd className="ml-1 rounded bg-card px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground border border-border">
+                  <kbd className="hidden sm:inline ml-1 rounded bg-card px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground border border-border">
                     ←
                   </kbd>
                 )}
@@ -414,16 +414,16 @@ export default function FlashcardPlayer({
               <button
                 type="button"
                 onClick={() => setIsFlipped((f) => !f)}
-                className={`flex items-center gap-1.5 rounded-xl border px-4 py-2 text-xs font-semibold transition-all cursor-pointer shadow-xs ${
+                className={`flex items-center justify-center gap-1.5 rounded-xl border px-4 py-2 text-xs font-semibold transition-all cursor-pointer shadow-xs ${
                   !isFlipped
                     ? "border-primary bg-primary text-primary-foreground hover:opacity-90"
                     : "border-border bg-card text-foreground hover:bg-muted"
                 }`}
               >
                 <RotateCw className="h-3.5 w-3.5" />
-                <span>Flip Card</span>
+                <span>Flip</span>
                 {!compact && (
-                  <kbd className="ml-1 rounded bg-black/20 dark:bg-white/20 px-1.5 py-0.5 font-mono text-[10px]">
+                  <kbd className="hidden sm:inline ml-1 rounded bg-black/20 dark:bg-white/20 px-1.5 py-0.5 font-mono text-[10px]">
                     Space
                   </kbd>
                 )}
@@ -432,11 +432,11 @@ export default function FlashcardPlayer({
               <button
                 type="button"
                 onClick={handleNext}
-                className="flex items-center gap-1 rounded-xl border border-border bg-secondary px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors cursor-pointer"
+                className="flex items-center justify-center gap-1 rounded-xl border border-border bg-secondary px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors cursor-pointer"
               >
                 <span>Next</span>
                 {!compact && (
-                  <kbd className="mr-1 rounded bg-card px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground border border-border">
+                  <kbd className="hidden sm:inline mr-1 rounded bg-card px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground border border-border">
                     →
                   </kbd>
                 )}
@@ -445,19 +445,19 @@ export default function FlashcardPlayer({
             </div>
 
             {/* Spaced Repetition Rating Buttons */}
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="grid grid-cols-3 sm:flex items-center gap-2 w-full sm:w-auto">
               <button
                 type="button"
                 onClick={() => handleRate("hard")}
-                className={`flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer ${
+                className={`flex items-center justify-center gap-1 rounded-xl border px-3 py-2 text-xs font-semibold transition-all cursor-pointer ${
                   isFlipped
                     ? "border-destructive/60 bg-destructive/15 text-destructive hover:bg-destructive/25 ring-1 ring-destructive/20"
                     : "border-border bg-secondary text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <span>Hard / Again</span>
+                <span>Hard</span>
                 {!compact && (
-                  <kbd className="rounded bg-destructive/20 px-1.5 py-0.5 font-mono text-[10px] text-destructive">
+                  <kbd className="hidden sm:inline rounded bg-destructive/20 px-1.5 py-0.5 font-mono text-[10px] text-destructive">
                     1
                   </kbd>
                 )}
@@ -466,15 +466,15 @@ export default function FlashcardPlayer({
               <button
                 type="button"
                 onClick={() => handleRate("medium")}
-                className={`flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer ${
+                className={`flex items-center justify-center gap-1 rounded-xl border px-3 py-2 text-xs font-semibold transition-all cursor-pointer ${
                   isFlipped
                     ? "border-amber-500/60 bg-amber-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500/25 ring-1 ring-amber-500/20"
                     : "border-border bg-secondary text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <span>Medium / Good</span>
+                <span>Good</span>
                 {!compact && (
-                  <kbd className="rounded bg-amber-500/20 px-1.5 py-0.5 font-mono text-[10px] text-amber-600 dark:text-amber-400">
+                  <kbd className="hidden sm:inline rounded bg-amber-500/20 px-1.5 py-0.5 font-mono text-[10px] text-amber-600 dark:text-amber-400">
                     2
                   </kbd>
                 )}
@@ -483,15 +483,15 @@ export default function FlashcardPlayer({
               <button
                 type="button"
                 onClick={() => handleRate("easy")}
-                className={`flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer ${
+                className={`flex items-center justify-center gap-1 rounded-xl border px-3 py-2 text-xs font-semibold transition-all cursor-pointer ${
                   isFlipped
                     ? "border-primary/60 bg-primary/15 text-primary hover:bg-primary/25 ring-1 ring-primary/20"
                     : "border-border bg-secondary text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <span>Easy / Mastered</span>
+                <span>Easy</span>
                 {!compact && (
-                  <kbd className="rounded bg-primary/20 px-1.5 py-0.5 font-mono text-[10px] text-primary">
+                  <kbd className="hidden sm:inline rounded bg-primary/20 px-1.5 py-0.5 font-mono text-[10px] text-primary">
                     3
                   </kbd>
                 )}

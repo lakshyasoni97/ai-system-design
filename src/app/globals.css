@@ -83,22 +83,22 @@ html {
 }
 
 html[data-font-scale="md"] {
-  font-size: 17.25px;
+  font-size: 17.5px;
 }
 
 html[data-font-scale="lg"] {
-  font-size: 18.75px;
+  font-size: 19px;
 }
 
 @media (max-width: 640px) {
   html {
-    font-size: 16px;
+    font-size: 16.5px;
   }
   html[data-font-scale="md"] {
-    font-size: 17.5px;
+    font-size: 18px;
   }
   html[data-font-scale="lg"] {
-    font-size: 19px;
+    font-size: 19.5px;
   }
 }
 

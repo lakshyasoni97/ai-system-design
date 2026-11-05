@@ -19,6 +19,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import curriculumData from "@/data/curriculum.json";
+import fundamentalsData from "@/data/fundamentals.json";
 import flashcardsData from "@/data/flashcards.json";
 import projectsData from "@/data/projects.json";
 import { useProgress } from "@/components/ProgressProvider";
@@ -29,6 +30,8 @@ export default function CurriculumPage() {
     completedSessions,
     isSessionCompleted,
     toggleSessionCompleted,
+    isItemCompleted,
+    toggleItemCompleted,
     getFlashcardRating,
   } = useProgress();
 
@@ -52,6 +55,10 @@ export default function CurriculumPage() {
       ),
     []
   );
+
+  const completedFundTopicsCount = useMemo(() => {
+    return fundamentalsData.topics.filter((t) => isItemCompleted(t.id) || isSessionCompleted(t.id)).length;
+  }, [isItemCompleted, isSessionCompleted]);
 
   // The single recommended next action
   const nextUpSession = useMemo(() => {
@@ -151,17 +158,38 @@ export default function CurriculumPage() {
       {/* 2. Filters Bar */}
       <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-3 shadow-2xs">
         {/* Module Filter Tabs */}
-        <div className="flex flex-wrap items-center gap-1.5 border-b border-border/70 pb-2.5">
+        <div className="flex items-center gap-1.5 border-b border-border/70 pb-2.5 overflow-x-auto no-scrollbar py-0.5">
           <button
             type="button"
             onClick={() => setActiveModuleTab("ALL")}
-            className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer ${
+            className={`rounded-lg px-2.5 py-1 text-xs sm:text-sm font-medium transition-colors cursor-pointer shrink-0 ${
               activeModuleTab === "ALL"
                 ? "bg-primary text-primary-foreground font-semibold"
                 : "text-muted-foreground hover:text-foreground hover:bg-muted"
             }`}
           >
-            All Modules ({curriculumData.modules.length})
+            All Modules (6)
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveModuleTab("mod-0")}
+            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs sm:text-sm font-medium transition-colors cursor-pointer shrink-0 ${
+              activeModuleTab === "mod-0"
+                ? "bg-primary text-primary-foreground font-semibold"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+            }`}
+          >
+            <span>M0</span>
+            <span className="hidden md:inline">Fundamentals</span>
+            <span
+              className={`rounded px-1.5 py-0.2 font-mono text-[10px] ${
+                activeModuleTab === "mod-0"
+                  ? "bg-white/20 text-white"
+                  : "bg-secondary text-muted-foreground"
+              }`}
+            >
+              {completedFundTopicsCount}/{fundamentalsData.topics.length}
+            </span>
           </button>
           {curriculumData.modules.map((mod, idx) => {
             const isSelected = activeModuleTab === mod.id;
@@ -174,7 +202,7 @@ export default function CurriculumPage() {
                 key={mod.id}
                 type="button"
                 onClick={() => setActiveModuleTab(mod.id)}
-                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer ${
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs sm:text-sm font-medium transition-colors cursor-pointer shrink-0 ${
                   isSelected
                     ? "bg-primary text-primary-foreground font-semibold"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -266,6 +294,119 @@ export default function CurriculumPage() {
         />
       ) : (
         <div className="space-y-4">
+          {/* Module 0: Fundamentals (when ALL or mod-0 is selected) */}
+          {(activeModuleTab === "ALL" || activeModuleTab === "mod-0") && (
+            <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-xs">
+              <button
+                type="button"
+                onClick={() => toggleModuleCollapse("mod-0")}
+                className="flex w-full items-center justify-between border-b border-border bg-muted/30 px-4 py-3 text-left transition-colors hover:bg-muted/50 cursor-pointer"
+              >
+                <div className="flex items-center gap-2.5 min-w-0 pr-3">
+                  {collapsedModules["mod-0"] ? (
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                  )}
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs font-bold text-accent">
+                        Module 0
+                      </span>
+                      <span className="text-sm font-semibold text-foreground truncate">
+                        Distributed Systems Fundamentals
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                      {fundamentalsData.focus}
+                    </p>
+                  </div>
+                </div>
+
+                <span className="shrink-0 rounded-lg bg-secondary px-2 py-0.5 font-mono text-xs font-semibold text-muted-foreground">
+                  {completedFundTopicsCount}/{fundamentalsData.topics.length} Completed
+                </span>
+              </button>
+
+              {!collapsedModules["mod-0"] && (
+                <div className="divide-y divide-border/60">
+                  {fundamentalsData.topics
+                    .filter((t) => {
+                      const done = isItemCompleted(t.id) || isSessionCompleted(t.id);
+                      if (statusFilter === "DONE" && !done) return false;
+                      if (statusFilter === "TODO" && done) return false;
+                      if (searchQuery.trim()) {
+                        const q = searchQuery.toLowerCase();
+                        if (
+                          !t.title.toLowerCase().includes(q) &&
+                          !t.aiTieIn.toLowerCase().includes(q) &&
+                          !t.id.toLowerCase().includes(q)
+                        )
+                          return false;
+                      }
+                      return true;
+                    })
+                    .map((t) => {
+                      const isCompleted = isItemCompleted(t.id) || isSessionCompleted(t.id);
+                      return (
+                        <div
+                          key={t.id}
+                          className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between transition-colors hover:bg-muted/40"
+                        >
+                          <div className="flex items-start gap-3 min-w-0">
+                            <div className="pt-0.5">
+                              {isCompleted ? (
+                                <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
+                              ) : (
+                                <Circle className="h-5 w-5 text-muted-foreground/40 shrink-0" />
+                              )}
+                            </div>
+
+                            <div className="space-y-1 min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-mono text-xs font-semibold text-accent">
+                                  Topic {String(t.number).padStart(2, "0")}
+                                </span>
+                                <span className="text-xs text-muted-foreground truncate">
+                                  • Module 0
+                                </span>
+                              </div>
+
+                              <Link
+                                href={`/fundamentals/${t.id}`}
+                                className="block text-sm sm:text-base font-semibold text-foreground hover:text-primary transition-colors"
+                              >
+                                {t.title}
+                              </Link>
+
+                              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground font-mono">
+                                <span>AI tie-in: {t.aiTieIn}</span>
+                                <span>•</span>
+                                <span className="inline-flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  {t.readTime}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                            <Link
+                              href={`/fundamentals/${t.id}`}
+                              className="inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-colors border border-border bg-card text-foreground hover:bg-muted"
+                            >
+                              <span>{isCompleted ? "Review" : "Study"}</span>
+                              <ArrowRight className="h-3.5 w-3.5" />
+                            </Link>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+          )}
+
           {curriculumData.modules
             .filter(
               (mod) =>
@@ -363,7 +504,7 @@ export default function CurriculumPage() {
 
                                 <Link
                                   href={`/roadmap/${session.id}`}
-                                  className="block text-sm font-semibold text-foreground hover:text-primary transition-colors"
+                                  className="block text-sm sm:text-base font-semibold text-foreground hover:text-primary transition-colors"
                                 >
                                   {session.title}
                                 </Link>
@@ -397,7 +538,7 @@ export default function CurriculumPage() {
 
                               <Link
                                 href={`/roadmap/${session.id}`}
-                                className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-medium transition-colors ${
+                                className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-colors ${
                                   isNext
                                     ? "bg-primary text-primary-foreground font-semibold"
                                     : "border border-border bg-card text-foreground hover:bg-muted"

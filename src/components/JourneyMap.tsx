@@ -217,26 +217,26 @@ export default function JourneyMap() {
             <button
               type="button"
               onClick={() => setViewMode("TIMELINE")}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                 viewMode === "TIMELINE"
                   ? "bg-primary text-primary-foreground shadow-2xs"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <CalendarDays className="h-3.5 w-3.5" />
+              <CalendarDays className="h-4 w-4" />
               <span>10-Week Timeline</span>
             </button>
             <button
               type="button"
               onClick={() => setViewMode("MODULES")}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                 viewMode === "MODULES"
                   ? "bg-primary text-primary-foreground shadow-2xs"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <Layers className="h-3.5 w-3.5" />
-              <span>5 Architecture Modules</span>
+              <Layers className="h-4 w-4" />
+              <span>Architecture Modules</span>
             </button>
           </div>
         </div>
@@ -393,7 +393,7 @@ export default function JourneyMap() {
                         return (
                           <div
                             key={item.id}
-                            className={`group flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 rounded-xl border p-2.5 sm:px-3 sm:py-2 transition-all ${
+                            className={`group flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border p-3 sm:px-3.5 sm:py-2.5 transition-all ${
                               item.isDone
                                 ? "border-border/50 bg-secondary/30 text-muted-foreground hover:bg-secondary/50"
                                 : "border-border bg-card text-foreground hover:border-primary/50 hover:shadow-2xs"
@@ -408,14 +408,14 @@ export default function JourneyMap() {
                                 title={item.isDone ? "Mark incomplete" : "Mark completed"}
                               >
                                 {item.isDone ? (
-                                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                                  <CheckCircle2 className="h-5 w-5 text-primary" />
                                 ) : (
-                                  <Circle className="h-4 w-4 opacity-40 hover:opacity-100" />
+                                  <Circle className="h-5 w-5 opacity-40 hover:opacity-100" />
                                 )}
                               </button>
 
                               <span
-                                className={`rounded px-1.5 py-0.5 font-mono text-[10px] font-bold shrink-0 ${
+                                className={`rounded px-1.5 py-0.5 font-mono text-[11px] font-bold shrink-0 ${
                                   item.type === "fundamental"
                                     ? "bg-accent/15 text-accent border border-accent/30"
                                     : item.type === "problem"
@@ -429,56 +429,56 @@ export default function JourneyMap() {
                               <div className="min-w-0">
                                 <Link
                                   href={item.href}
-                                  className="text-xs sm:text-sm font-semibold hover:text-primary transition-colors truncate block"
+                                  className="text-sm sm:text-base font-semibold hover:text-primary transition-colors line-clamp-2 block leading-snug"
                                 >
                                   {item.title}
                                 </Link>
-                                <span className="text-[11px] text-muted-foreground line-clamp-1">
+                                <span className="text-xs sm:text-[13px] text-muted-foreground line-clamp-2 mt-0.5">
                                   {item.subtitle}
                                 </span>
                               </div>
                             </div>
 
                             {/* Right: Meta Pills & Actions */}
-                            <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                            <div className="flex items-center gap-2.5 self-end sm:self-center shrink-0 pt-1 sm:pt-0 border-t sm:border-t-0 border-border/50 w-full sm:w-auto justify-end">
                               {item.status === "written" ? (
-                                <span className="rounded bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.2 font-mono text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                <span className="rounded bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 font-mono text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
                                   Ready
                                 </span>
                               ) : (
-                                <span className="rounded bg-muted px-1.5 py-0.2 font-mono text-[9px] text-muted-foreground">
+                                <span className="rounded bg-muted px-2 py-0.5 font-mono text-[10px] text-muted-foreground">
                                   Skeleton
                                 </span>
                               )}
 
-                              <span className="font-mono text-[10px] text-muted-foreground flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
+                              <span className="font-mono text-xs text-muted-foreground flex items-center gap-1">
+                                <Clock className="h-3.5 w-3.5" />
                                 {item.time}
                               </span>
 
                               <button
                                 type="button"
                                 onClick={() => handleCopyPrompt(item.id, item.studyPrompt)}
-                                className="rounded-lg border border-border bg-card p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                                className="rounded-lg border border-border bg-card p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
                                 title="Copy Socratic AI Study Prompt"
                               >
                                 {copiedId === item.id ? (
-                                  <Check className="h-3 w-3 text-primary" />
+                                  <Check className="h-3.5 w-3.5 text-primary" />
                                 ) : (
-                                  <Copy className="h-3 w-3" />
+                                  <Copy className="h-3.5 w-3.5" />
                                 )}
                               </button>
 
                               <Link
                                 href={item.href}
-                                className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ${
+                                className={`inline-flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs sm:text-sm font-semibold transition-colors ${
                                   item.isDone
                                     ? "border border-border bg-card text-muted-foreground hover:text-foreground"
                                     : "bg-primary text-primary-foreground hover:opacity-90"
                                 }`}
                               >
                                 <span>{item.isDone ? "Review" : "Study"}</span>
-                                <ArrowRight className="h-3 w-3" />
+                                <ArrowRight className="h-3.5 w-3.5" />
                               </Link>
                             </div>
                           </div>

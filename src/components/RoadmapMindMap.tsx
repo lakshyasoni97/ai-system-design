@@ -168,13 +168,19 @@ export default function RoadmapMindMap({
 }: RoadmapMindMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Selected Node for the Inspector Drawer (default to nextUpSession)
+  // Selected Node for the Inspector Drawer (default to closed on mobile, open on desktop)
   const [selectedSessionId, setSelectedSessionId] = useState<string>(
     nextUpSession?.id || "session-01"
   );
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-  const [isInspectorOpen, setIsInspectorOpen] = useState<boolean>(true);
+  const [isInspectorOpen, setIsInspectorOpen] = useState<boolean>(false);
   const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth >= 1024) {
+      setIsInspectorOpen(true);
+    }
+  }, []);
 
   // Pan and Zoom Canvas State
   const [zoom, setZoom] = useState<number>(0.72);
@@ -302,6 +308,27 @@ export default function RoadmapMindMap({
     setIsDragging(false);
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if ((e.target as HTMLElement).closest(".prevent-canvas-pan")) return;
+    if (e.touches.length === 0) return;
+    const t = e.touches[0];
+    setIsDragging(true);
+    setDragStart({ x: t.clientX - pan.x, y: t.clientY - pan.y });
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || e.touches.length === 0) return;
+    const t = e.touches[0];
+    setPan({
+      x: t.clientX - dragStart.x,
+      y: t.clientY - dragStart.y,
+    });
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+  };
+
   // Wheel zoom handler
   const handleWheel = (e: React.WheelEvent) => {
     if ((e.target as HTMLElement).closest(".prevent-canvas-pan")) return;
@@ -419,7 +446,10 @@ export default function RoadmapMindMap({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onWheel={handleWheel}
-        className={`relative w-full h-full overflow-hidden ${
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className={`relative w-full h-full overflow-hidden touch-none ${
           isDragging ? "cursor-grabbing" : "cursor-grab"
         }`}
         style={{
@@ -722,9 +752,9 @@ export default function RoadmapMindMap({
         </div>
       </div>
 
-      {/* 3. DOCKED RICH NODE INSPECTOR (Side Sheet Desktop / Bottom Mobile) */}
+      {/* 3. DOCKED RICH NODE INSPECTOR (Side Sheet Desktop / Bottom Sheet Mobile) */}
       {isInspectorOpen && selectedSession && (
-        <aside className="absolute right-0 top-0 bottom-0 z-30 w-full max-w-sm sm:max-w-md border-l border-border bg-card/95 p-5 backdrop-blur-xl shadow-2xl overflow-y-auto flex flex-col justify-between animate-in slide-in-from-right duration-200">
+        <aside className="absolute right-0 bottom-0 top-auto lg:top-0 z-30 w-full max-w-none lg:max-w-md max-h-[70vh] lg:max-h-none border-t lg:border-t-0 lg:border-l border-border bg-card/95 p-5 backdrop-blur-xl shadow-2xl overflow-y-auto flex flex-col justify-between rounded-t-3xl lg:rounded-none animate-in slide-in-from-bottom lg:slide-in-from-right duration-200 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
           <div className="space-y-4">
             {/* Inspector Header */}
             <div className="flex items-start justify-between border-b border-border pb-3">

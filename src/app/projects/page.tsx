@@ -424,7 +424,7 @@ function ProjectsDefenseContent() {
                 </div>
 
                 {isVisible && (
-                  <div className="mt-3.5 border-t border-border pt-3.5 pl-9 text-sm leading-relaxed text-foreground/90">
+                  <div className="mt-3.5 border-t border-border pt-3.5 sm:pl-9 text-sm sm:text-base leading-relaxed text-foreground/90">
                     {hq.answer}
                   </div>
                 )}

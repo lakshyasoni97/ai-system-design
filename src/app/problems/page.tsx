@@ -20,7 +20,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function List({ items }: { items: string[] }) {
   return (
-    <ul className="list-disc space-y-1.5 pl-5 text-sm text-foreground/90">
+    <ul className="list-disc space-y-2 pl-5 text-sm sm:text-base text-foreground/90 leading-relaxed">
       {items.map((i) => (
         <li key={i}>{i}</li>
       ))}
@@ -88,7 +88,27 @@ function ProblemsContent() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-12">
-        <div className="space-y-2 lg:col-span-4">
+        {/* Mobile Dropdown Selector (< lg) */}
+        <div className="lg:hidden rounded-2xl border border-border bg-card p-4 space-y-2">
+          <label htmlFor="mobile-problem-select" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+            Select Case Study ({visible.length} available)
+          </label>
+          <select
+            id="mobile-problem-select"
+            value={p.id}
+            onChange={(e) => select(e.target.value)}
+            className="w-full rounded-xl border border-border bg-secondary px-3.5 py-2.5 text-sm font-semibold text-foreground focus:border-primary focus:outline-none"
+          >
+            {visible.map((x) => (
+              <option key={x.id} value={x.id}>
+                {x.title.replace(/^Design an? /, "")} ({x.difficulty} • {x.tier})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Desktop Sidebar List (lg:col-span-4) */}
+        <div className="hidden lg:block space-y-2 lg:col-span-4">
           {visible.map((x) => {
             const itemDone = isItemCompleted(x.id) || isItemCompleted(`problem:${x.id}`);
             return (

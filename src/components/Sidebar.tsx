@@ -172,44 +172,30 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
         {
           id: "nav-plan",
           category: "Navigation",
-          title: "Go to 10-Week Plan",
+          title: "Go to 10-Week Plan (Home)",
           subtitle: "Phases, weekly schedule, sessions & case studies",
-          onSelect: () => router.push("/plan"),
+          onSelect: () => router.push("/"),
         },
         {
-          id: "nav-roles",
+          id: "nav-curriculum",
           category: "Navigation",
-          title: "Go to Target Roles",
-          subtitle: "Role tracks, study weights & role must-dos",
-          onSelect: () => router.push("/roles"),
-        },
-        {
-          id: "nav-fundamentals",
-          category: "Navigation",
-          title: "Go to Fundamentals (Module 0)",
-          subtitle: "Distributed systems building blocks",
-          onSelect: () => router.push("/fundamentals"),
+          title: "Go to Curriculum (Modules 0–5)",
+          subtitle: "Distributed fundamentals, 31 sessions & mind map",
+          onSelect: () => router.push("/curriculum"),
         },
         {
           id: "nav-problems",
           category: "Navigation",
           title: "Go to Problem Bank",
-          subtitle: "Standard AI system design problems",
+          subtitle: "18 canonical AI system design problems",
           onSelect: () => router.push("/problems"),
         },
         {
           id: "nav-highlights",
           category: "Navigation",
-          title: "Go to Context Highlights",
+          title: "Go to Notes & Highlights",
           subtitle: `${highlights.length} saved knowledge anchors & interview defenses`,
           onSelect: () => router.push("/highlights"),
-        },
-        {
-          id: "nav-curriculum",
-          category: "Navigation",
-          title: "Go to Curriculum Roadmap",
-          subtitle: "Explore all 31 sessions & interactive graph",
-          onSelect: () => router.push("/curriculum"),
         },
         {
           id: "nav-flashcards",
@@ -442,28 +428,13 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
   const navItems = [
     {
       href: "/",
-      label: "Home",
-      icon: LayoutDashboard,
+      label: "10-Week Plan",
+      icon: CalendarDays,
       exact: true,
     },
     {
-      href: "/plan",
-      label: "10-Week Plan",
-      icon: CalendarDays,
-    },
-    {
-      href: "/roles",
-      label: "Target Roles",
-      icon: Target,
-    },
-    {
-      href: "/fundamentals",
-      label: "Fundamentals",
-      icon: Library,
-    },
-    {
       href: "/curriculum",
-      label: "Curriculum",
+      label: "Curriculum (M0–M5)",
       icon: GitFork,
     },
     {
@@ -472,26 +443,26 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
       icon: ListChecks,
     },
     {
-      href: "/highlights",
-      label: "Notes & Highlights",
-      icon: Highlighter,
-      badge:
-        totalAnnotationsCount > 0 ? String(totalAnnotationsCount) : undefined,
-    },
-    {
       href: "/flashcards",
       label: "Flashcards",
       icon: Layers,
     },
     {
       href: "/projects",
-      label: "Projects",
+      label: "Projects (100x Defense)",
       icon: ShieldCheck,
     },
     {
       href: "/simulator",
       label: "Mock Interview",
       icon: Calculator,
+    },
+    {
+      href: "/highlights",
+      label: "Notes & Highlights",
+      icon: Highlighter,
+      badge:
+        totalAnnotationsCount > 0 ? String(totalAnnotationsCount) : undefined,
     },
   ];
 
@@ -543,23 +514,23 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-medium transition-all ${
+                className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                   isActive
                     ? "bg-primary/15 text-primary border border-primary/30 font-semibold shadow-2xs"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent"
                 }`}
               >
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-3">
                   <Icon
-                    className={`h-4 w-4 ${
+                    className={`h-4.5 w-4.5 shrink-0 ${
                       isActive ? "text-primary" : "text-muted-foreground"
                     }`}
                   />
-                  <span>{item.label}</span>
+                  <span className="truncate">{item.label}</span>
                 </div>
                 {item.badge && (
                   <span
-                    className={`rounded-full px-2 py-0.5 font-mono text-[10px] font-semibold ${
+                    className={`rounded-full px-2 py-0.5 font-mono text-[11px] font-semibold ${
                       isActive
                         ? "bg-primary text-primary-foreground"
                         : "bg-secondary text-muted-foreground"
@@ -764,26 +735,26 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
               )}
             </button>
 
-            {/* Breadcrumb Navigation Trail */}
+            {/* Breadcrumb Navigation Trail / Mobile Active Label */}
             <nav
               aria-label="Breadcrumbs"
-              className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground truncate"
+              className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground truncate"
             >
               {breadcrumbs.map((bc, idx) => {
                 const isLast = idx === breadcrumbs.length - 1;
                 return (
                   <React.Fragment key={bc.href + idx}>
                     {idx > 0 && (
-                      <BreadcrumbSeparator className="h-3 w-3 shrink-0 text-muted-foreground/50" />
+                      <BreadcrumbSeparator className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" />
                     )}
                     {isLast ? (
-                      <span className="font-semibold text-foreground truncate">
+                      <span className="font-semibold text-foreground truncate max-w-[170px] sm:max-w-none">
                         {bc.label}
                       </span>
                     ) : (
                       <Link
                         href={bc.href}
-                        className="hover:text-foreground transition-colors truncate"
+                        className="hover:text-foreground transition-colors truncate hidden sm:inline"
                       >
                         {bc.label}
                       </Link>
@@ -813,11 +784,11 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
               </kbd>
             </button>
 
-            {/* Cloud Sync Header Quick Status Button */}
+            {/* Cloud Sync Header Quick Status Button (Desktop only, drawer has it on mobile) */}
             <button
               type="button"
               onClick={() => setShowSyncModal(true)}
-              className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-mono transition-all cursor-pointer ${
+              className={`hidden md:flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-mono transition-all cursor-pointer ${
                 isSyncConfigured
                   ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20"
                   : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
@@ -830,7 +801,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
               aria-label="Cloud sync settings"
             >
               <Cloud className={`h-3.5 w-3.5 ${isSyncing ? "animate-pulse text-amber-500" : ""}`} />
-              <span className="hidden sm:inline">
+              <span>
                 {isSyncConfigured
                   ? isSyncing
                     ? "Syncing"
@@ -873,10 +844,53 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="flex-1 px-3 py-4 sm:px-6 sm:py-6 lg:px-8 max-w-7xl w-full mx-auto min-w-0">
+        <main className="flex-1 px-3 py-4 sm:px-6 sm:py-6 lg:px-8 max-w-7xl w-full mx-auto min-w-0 pb-20 lg:pb-8">
           {children}
         </main>
       </div>
+
+      {/* Sticky Mobile Bottom Navigation Bar (< lg) */}
+      <nav
+        aria-label="Mobile Navigation"
+        className="fixed bottom-0 inset-x-0 z-40 border-t border-border bg-card/95 backdrop-blur-md lg:hidden px-2 py-1.5 shadow-lg flex items-center justify-around pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+      >
+        {[
+          { href: "/", label: "Plan", icon: CalendarDays, exact: true },
+          { href: "/curriculum", label: "Curriculum", icon: GitFork },
+          { href: "/problems", label: "Problems", icon: ListChecks },
+          { href: "/flashcards", label: "Cards", icon: Layers },
+          { href: "/simulator", label: "Mock", icon: Calculator },
+        ].map((item) => {
+          const Icon = item.icon;
+          const isActive = item.exact
+            ? pathname === item.href
+            : pathname.startsWith(item.href);
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl text-center transition-all ${
+                isActive
+                  ? "text-primary font-bold"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Icon className={`h-4.5 w-4.5 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
+              <span className="text-[11px] mt-0.5 leading-none">{item.label}</span>
+            </Link>
+          );
+        })}
+        <button
+          type="button"
+          onClick={() => setMobileOpen(true)}
+          className="flex flex-col items-center justify-center py-1 px-2 rounded-xl text-center text-muted-foreground hover:text-foreground"
+          aria-label="Open full menu"
+        >
+          <Menu className="h-4.5 w-4.5" />
+          <span className="text-[11px] mt-0.5 leading-none">More</span>
+        </button>
+      </nav>
 
       {/* Global Command Palette Modal */}
       {commandPaletteOpen && (

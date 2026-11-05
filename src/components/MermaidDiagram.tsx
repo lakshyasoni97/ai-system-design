@@ -194,6 +194,26 @@ export default function MermaidDiagram({ chart, title }: MermaidDiagramProps) {
     setIsDragging(false);
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (showRaw || e.touches.length === 0) return;
+    const touch = e.touches[0];
+    setIsDragging(true);
+    setDragStart({ x: touch.clientX - pan.x, y: touch.clientY - pan.y });
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || e.touches.length === 0) return;
+    const touch = e.touches[0];
+    setPan({
+      x: touch.clientX - dragStart.x,
+      y: touch.clientY - dragStart.y,
+    });
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+  };
+
   const resetView = () => {
     setZoom(1);
     setPan({ x: 0, y: 0 });
@@ -330,7 +350,10 @@ export default function MermaidDiagram({ chart, title }: MermaidDiagramProps) {
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
-          className={`relative overflow-hidden p-6 select-none ${
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          className={`relative overflow-hidden p-6 select-none touch-none ${
             isExpanded ? "flex-1 flex items-center justify-center" : "min-h-[260px]"
           } ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
           style={{

@@ -127,71 +127,71 @@ export default function PlanPage() {
       return (
         <div
           key={itemId}
-          className={`flex items-center justify-between gap-3 rounded-xl border p-2.5 sm:px-3 sm:py-2 transition-all ${
+          className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border p-3 sm:px-3.5 sm:py-2.5 transition-all ${
             isDone
               ? "border-border/50 bg-secondary/30 text-muted-foreground"
               : "border-border bg-card text-foreground hover:border-primary/50"
           }`}
         >
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-start sm:items-center gap-2.5 min-w-0">
             <button
               type="button"
               onClick={() => toggleItemCompleted(itemId)}
-              className="text-muted-foreground hover:text-primary transition-colors cursor-pointer shrink-0"
+              className="mt-0.5 sm:mt-0 text-muted-foreground hover:text-primary transition-colors cursor-pointer shrink-0"
               title={isDone ? "Mark incomplete" : "Mark completed"}
             >
               {isDone ? (
-                <CheckCircle2 className="h-4 w-4 text-primary" />
+                <CheckCircle2 className="h-5 w-5 text-primary" />
               ) : (
-                <Circle className="h-4 w-4 opacity-40 hover:opacity-100" />
+                <Circle className="h-5 w-5 opacity-40 hover:opacity-100" />
               )}
             </button>
-            <span className="rounded bg-accent/15 border border-accent/30 px-1.5 py-0.5 font-mono text-[10px] font-bold text-accent shrink-0">
+            <span className="rounded bg-accent/15 border border-accent/30 px-1.5 py-0.5 font-mono text-[11px] font-bold text-accent shrink-0">
               F{String(t?.number || 0).padStart(2, "0")}
             </span>
             <div className="min-w-0">
               <Link
                 href={`/fundamentals/${itemId}`}
-                className="text-xs sm:text-sm font-semibold hover:text-primary transition-colors truncate block"
+                className="text-sm sm:text-base font-semibold hover:text-primary transition-colors line-clamp-2 block leading-snug"
               >
                 {t?.title}
               </Link>
-              <span className="text-[11px] text-muted-foreground line-clamp-1">
+              <span className="text-xs sm:text-[13px] text-muted-foreground line-clamp-2 mt-0.5">
                 {t?.aiTieIn}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="rounded bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.2 font-mono text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">
+          <div className="flex items-center gap-2.5 self-end sm:self-center shrink-0 pt-1 sm:pt-0 border-t sm:border-t-0 border-border/50 w-full sm:w-auto justify-end">
+            <span className="rounded bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 font-mono text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
               Ready
             </span>
-            <span className="font-mono text-[10px] text-muted-foreground flex items-center gap-1">
-              <Clock className="h-3 w-3" />
+            <span className="font-mono text-xs text-muted-foreground flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5" />
               {t?.readTime || "14m"}
             </span>
             <button
               type="button"
               onClick={() => handleCopyPrompt(itemId, studyPrompt)}
-              className="rounded-lg border border-border bg-card p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+              className="rounded-lg border border-border bg-card p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
               title="Copy Socratic AI Study Prompt"
             >
               {copiedId === itemId ? (
-                <Check className="h-3 w-3 text-primary" />
+                <Check className="h-3.5 w-3.5 text-primary" />
               ) : (
-                <Copy className="h-3 w-3" />
+                <Copy className="h-3.5 w-3.5" />
               )}
             </button>
             <Link
               href={`/fundamentals/${itemId}`}
-              className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ${
+              className={`inline-flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs sm:text-sm font-semibold transition-colors ${
                 isDone
                   ? "border border-border bg-card text-muted-foreground hover:text-foreground"
                   : "bg-primary text-primary-foreground hover:opacity-90"
               }`}
             >
               <span>{isDone ? "Review" : "Study"}</span>
-              <ArrowRight className="h-3 w-3" />
+              <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
         </div>
@@ -206,74 +206,74 @@ export default function PlanPage() {
       return (
         <div
           key={itemId}
-          className={`flex items-center justify-between gap-3 rounded-xl border p-2.5 sm:px-3 sm:py-2 transition-all ${
+          className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border p-3 sm:px-3.5 sm:py-2.5 transition-all ${
             isDone
               ? "border-border/50 bg-secondary/30 text-muted-foreground"
               : "border-border bg-card text-foreground hover:border-primary/50"
           }`}
         >
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-start sm:items-center gap-2.5 min-w-0">
             <button
               type="button"
               onClick={() => toggleItemCompleted(itemId)}
-              className="text-muted-foreground hover:text-primary transition-colors cursor-pointer shrink-0"
+              className="mt-0.5 sm:mt-0 text-muted-foreground hover:text-primary transition-colors cursor-pointer shrink-0"
               title={isDone ? "Mark incomplete" : "Mark completed"}
             >
               {isDone ? (
-                <CheckCircle2 className="h-4 w-4 text-primary" />
+                <CheckCircle2 className="h-5 w-5 text-primary" />
               ) : (
-                <Circle className="h-4 w-4 opacity-40 hover:opacity-100" />
+                <Circle className="h-5 w-5 opacity-40 hover:opacity-100" />
               )}
             </button>
-            <span className="rounded bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 font-mono text-[10px] font-bold text-amber-500 shrink-0">
+            <span className="rounded bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 font-mono text-[11px] font-bold text-amber-500 shrink-0">
               CASE
             </span>
             <div className="min-w-0">
               <Link
                 href={`/problems?id=${pId}`}
-                className="text-xs sm:text-sm font-semibold hover:text-primary transition-colors truncate block"
+                className="text-sm sm:text-base font-semibold hover:text-primary transition-colors line-clamp-2 block leading-snug"
               >
                 {p?.title.replace(/^Design an? /, "")}
               </Link>
-              <span className="text-[11px] text-muted-foreground line-clamp-1">
+              <span className="text-xs sm:text-[13px] text-muted-foreground line-clamp-2 mt-0.5">
                 {p?.resumeTie}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2.5 self-end sm:self-center shrink-0 pt-1 sm:pt-0 border-t sm:border-t-0 border-border/50 w-full sm:w-auto justify-end">
             <span
-              className={`rounded px-1.5 py-0.2 font-mono text-[9px] font-bold uppercase border ${
+              className={`rounded px-2 py-0.5 font-mono text-[10px] font-bold uppercase border ${
                 tierStyle[p?.tier || "secondary"]
               }`}
             >
               {p?.tier}
             </span>
-            <span className="font-mono text-[10px] text-muted-foreground flex items-center gap-1">
-              <Clock className="h-3 w-3" /> 45m
+            <span className="font-mono text-xs text-muted-foreground flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5" /> 45m
             </span>
             <button
               type="button"
               onClick={() => handleCopyPrompt(itemId, studyPrompt)}
-              className="rounded-lg border border-border bg-card p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+              className="rounded-lg border border-border bg-card p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
               title="Copy Socratic AI Study Prompt"
             >
               {copiedId === itemId ? (
-                <Check className="h-3 w-3 text-primary" />
+                <Check className="h-3.5 w-3.5 text-primary" />
               ) : (
-                <Copy className="h-3 w-3" />
+                <Copy className="h-3.5 w-3.5" />
               )}
             </button>
             <Link
               href={`/problems?id=${pId}`}
-              className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ${
+              className={`inline-flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs sm:text-sm font-semibold transition-colors ${
                 isDone
                   ? "border border-border bg-card text-muted-foreground hover:text-foreground"
                   : "bg-primary text-primary-foreground hover:opacity-90"
               }`}
             >
               <span>{isDone ? "Review" : "Solve"}</span>
-              <ArrowRight className="h-3 w-3" />
+              <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
         </div>
@@ -286,77 +286,77 @@ export default function PlanPage() {
     return (
       <div
         key={itemId}
-        className={`flex items-center justify-between gap-3 rounded-xl border p-2.5 sm:px-3 sm:py-2 transition-all ${
+        className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border p-3 sm:px-3.5 sm:py-2.5 transition-all ${
           isDone
             ? "border-border/50 bg-secondary/30 text-muted-foreground"
             : "border-border bg-card text-foreground hover:border-primary/50"
         }`}
       >
-        <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex items-start sm:items-center gap-2.5 min-w-0">
           <button
             type="button"
             onClick={() => toggleItemCompleted(itemId)}
-            className="text-muted-foreground hover:text-primary transition-colors cursor-pointer shrink-0"
+            className="mt-0.5 sm:mt-0 text-muted-foreground hover:text-primary transition-colors cursor-pointer shrink-0"
             title={isDone ? "Mark incomplete" : "Mark completed"}
           >
             {isDone ? (
-              <CheckCircle2 className="h-4 w-4 text-primary" />
+              <CheckCircle2 className="h-5 w-5 text-primary" />
             ) : (
-              <Circle className="h-4 w-4 opacity-40 hover:opacity-100" />
+              <Circle className="h-5 w-5 opacity-40 hover:opacity-100" />
             )}
           </button>
-          <span className="rounded bg-primary/15 border border-primary/30 px-1.5 py-0.5 font-mono text-[10px] font-bold text-primary shrink-0">
+          <span className="rounded bg-primary/15 border border-primary/30 px-1.5 py-0.5 font-mono text-[11px] font-bold text-primary shrink-0">
             S{String(s?.number || 0).padStart(2, "0")}
           </span>
           <div className="min-w-0">
             <Link
               href={`/roadmap/${itemId}`}
-              className="text-xs sm:text-sm font-semibold hover:text-primary transition-colors truncate block"
+              className="text-sm sm:text-base font-semibold hover:text-primary transition-colors line-clamp-2 block leading-snug"
             >
               {s?.title}
             </Link>
-            <span className="text-[11px] text-muted-foreground line-clamp-1">
+            <span className="text-xs sm:text-[13px] text-muted-foreground line-clamp-2 mt-0.5">
               {s?.projectTieIn}
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2.5 self-end sm:self-center shrink-0 pt-1 sm:pt-0 border-t sm:border-t-0 border-border/50 w-full sm:w-auto justify-end">
           {s?.status === "written" ? (
-            <span className="rounded bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.2 font-mono text-[9px] font-semibold text-emerald-600 dark:text-emerald-400">
+            <span className="rounded bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 font-mono text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
               Ready
             </span>
           ) : (
-            <span className="rounded bg-muted px-1.5 py-0.2 font-mono text-[9px] text-muted-foreground">
+            <span className="rounded bg-muted px-2 py-0.5 font-mono text-[10px] text-muted-foreground">
               Skeleton
             </span>
           )}
-          <span className="font-mono text-[10px] text-muted-foreground flex items-center gap-1">
-            <Clock className="h-3 w-3" />
+          <span className="font-mono text-xs text-muted-foreground flex items-center gap-1">
+            <Clock className="h-3.5 w-3.5" />
             {s?.estimatedReadTime || "15m"}
           </span>
           <button
             type="button"
             onClick={() => handleCopyPrompt(itemId, studyPrompt)}
-            className="rounded-lg border border-border bg-card p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+            className="rounded-lg border border-border bg-card p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
             title="Copy Socratic AI Study Prompt"
           >
             {copiedId === itemId ? (
-              <Check className="h-3 w-3 text-primary" />
+              <Check className="h-3.5 w-3.5 text-primary" />
             ) : (
-              <Copy className="h-3 w-3" />
+              <Copy className="h-3.5 w-3.5" />
             )}
           </button>
           <Link
             href={`/roadmap/${itemId}`}
-            className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ${
+            className={`inline-flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs sm:text-sm font-semibold transition-colors ${
               isDone
                 ? "border border-border bg-card text-muted-foreground hover:text-foreground"
                 : "bg-primary text-primary-foreground hover:opacity-90"
             }`}
           >
             <span>{isDone ? "Review" : "Study"}</span>
-            <ArrowRight className="h-3 w-3" />
+            <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
       </div>

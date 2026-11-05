@@ -57,24 +57,24 @@ export default function MarkdownArticle({
               </h3>
             ),
             p: ({ children }) => (
-              <p className="my-3.5 max-w-[75ch] text-[15.5px] sm:text-base leading-7 sm:leading-relaxed text-foreground/95">
+              <p className="my-3.5 max-w-[75ch] text-base leading-7 sm:leading-relaxed text-foreground/95">
                 {children}
               </p>
             ),
             ul: ({ children }) => (
-              <ul className="my-3.5 max-w-[75ch] list-disc space-y-2 pl-5 sm:pl-6 text-[15.5px] sm:text-base leading-7 sm:leading-relaxed text-foreground/95">
+              <ul className="my-3.5 max-w-[75ch] list-disc space-y-2 pl-5 sm:pl-6 text-base leading-7 sm:leading-relaxed text-foreground/95">
                 {children}
               </ul>
             ),
             ol: ({ children }) => (
-              <ol className="my-3.5 max-w-[75ch] list-decimal space-y-2 pl-5 sm:pl-6 text-[15.5px] sm:text-base leading-7 sm:leading-relaxed text-foreground/95">
+              <ol className="my-3.5 max-w-[75ch] list-decimal space-y-2 pl-5 sm:pl-6 text-base leading-7 sm:leading-relaxed text-foreground/95">
                 {children}
               </ol>
             ),
             li: ({ children }) => <li className="leading-relaxed">{children}</li>,
             strong: ({ children }) => <strong className="font-semibold text-foreground">{children}</strong>,
             blockquote: ({ children }) => (
-              <blockquote className="my-5 sm:my-6 rounded-2xl border-l-4 border-primary bg-primary/5 p-4 sm:p-5 text-[15px] sm:text-base leading-relaxed text-foreground [&_strong]:text-primary [&_strong]:font-bold">
+              <blockquote className="my-5 sm:my-6 rounded-2xl border-l-4 border-primary bg-primary/5 p-4 sm:p-5 text-base leading-relaxed text-foreground [&_strong]:text-primary [&_strong]:font-bold">
                 {children}
               </blockquote>
             ),
@@ -114,7 +114,7 @@ export default function MarkdownArticle({
               }
               return (
                 <code
-                  className="rounded-md border border-border bg-secondary px-1.5 py-0.5 font-mono text-xs sm:text-[13px] text-primary font-medium"
+                  className="rounded-md border border-border bg-secondary px-1.5 py-0.5 font-mono text-[0.875rem] text-primary font-medium"
                   {...props}
                 >
                   {children}

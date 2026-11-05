@@ -834,8 +834,11 @@ export default function HighlightableArticle({
       {selectionBox && (
         <div
           data-highlight-toolbar
-          style={{ top: `${selectionBox.top}px`, left: `${selectionBox.left}px` }}
-          className="absolute z-40 w-[336px] sm:w-[360px] flex flex-col rounded-2xl border border-border bg-card/95 backdrop-blur-md p-2.5 shadow-2xl animate-in fade-in zoom-in-95 duration-100"
+          style={{
+            top: typeof window !== "undefined" && window.innerWidth < 640 ? "auto" : `${selectionBox.top}px`,
+            left: typeof window !== "undefined" && window.innerWidth < 640 ? "0px" : `${selectionBox.left}px`,
+          }}
+          className="fixed sm:absolute bottom-0 sm:bottom-auto inset-x-0 sm:inset-x-auto z-50 w-full sm:w-[360px] flex flex-col rounded-t-3xl sm:rounded-2xl border border-border bg-card/95 backdrop-blur-md p-4 sm:p-2.5 shadow-2xl animate-in slide-in-from-bottom sm:zoom-in-95 duration-150 pb-[max(1rem,env(safe-area-inset-bottom))]"
         >
           <div className="flex items-center justify-between gap-1">
             {/* 4 Semantic Color Choices with labels */}
@@ -980,8 +983,11 @@ export default function HighlightableArticle({
       {activeHighlight && activePopoverPos && (
         <div
           data-highlight-popover
-          style={{ top: `${activePopoverPos.top}px`, left: `${activePopoverPos.left}px` }}
-          className="absolute z-40 w-[336px] sm:w-[360px] rounded-2xl border border-border bg-card/95 backdrop-blur-md p-4 shadow-2xl animate-in fade-in zoom-in-95 duration-100 space-y-3"
+          style={{
+            top: typeof window !== "undefined" && window.innerWidth < 640 ? "auto" : `${activePopoverPos.top}px`,
+            left: typeof window !== "undefined" && window.innerWidth < 640 ? "0px" : `${activePopoverPos.left}px`,
+          }}
+          className="fixed sm:absolute bottom-0 sm:bottom-auto inset-x-0 sm:inset-x-auto z-50 w-full sm:w-[360px] rounded-t-3xl sm:rounded-2xl border border-border bg-card/95 backdrop-blur-md p-5 sm:p-4 shadow-2xl animate-in slide-in-from-bottom sm:zoom-in-95 duration-150 space-y-3 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
         >
           {/* Header: Semantic Badge + Section + Close */}
           <div className="flex items-center justify-between border-b border-border pb-2.5">
@@ -1403,15 +1409,16 @@ export default function HighlightableArticle({
       )}
 
       {/* 4. Floating Quick-Access Button (Bottom-Right) for Side-by-Side Notes & Comments */}
-      <div className="fixed bottom-5 right-5 z-30">
+      <div className="fixed bottom-20 lg:bottom-5 right-4 sm:right-5 z-30">
         <button
           type="button"
           onClick={() => setSideDrawerOpen(true)}
-          className="flex items-center gap-2 rounded-2xl border border-primary/40 bg-card/95 backdrop-blur-md px-4 py-2.5 font-mono text-xs font-semibold text-foreground shadow-xl hover:border-primary hover:scale-[1.02] transition-all cursor-pointer"
+          className="flex items-center gap-2 rounded-2xl border border-primary/40 bg-card/95 backdrop-blur-md px-3.5 py-2 sm:px-4 sm:py-2.5 font-mono text-xs font-semibold text-foreground shadow-xl hover:border-primary hover:scale-[1.02] transition-all cursor-pointer"
           title="Open Page Comments & Personal Notebook Drawer"
         >
           <StickyNote className="h-4 w-4 text-amber-500" />
-          <span>Notes & Comments</span>
+          <span className="hidden sm:inline">Notes & Comments</span>
+          <span className="sm:hidden">Notes</span>
           <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-bold text-primary">
             {pageHighlights.length + (hasScratchpad ? 1 : 0)}
           </span>
