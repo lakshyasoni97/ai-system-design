@@ -38,13 +38,11 @@ export default function FundamentalsStudyClient({
   prev: Topic | null;
   next: Topic | null;
 }) {
-  const { done, toggle } = useFundamentalsDone();
-  const { isSessionCompleted, toggleSessionCompleted } = useProgress();
-  const isDone = isSessionCompleted(topic.id) || done.includes(topic.id);
+  const { isDone: checkDone, toggle } = useFundamentalsDone();
+  const isDone = checkDone(topic.id);
 
   const handleToggle = () => {
     toggle(topic.id);
-    toggleSessionCompleted(topic.id);
   };
 
   return (
