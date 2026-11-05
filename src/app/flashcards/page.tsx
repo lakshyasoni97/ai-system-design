@@ -1,28 +1,33 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { Layers, Keyboard, CheckCircle2, Clock, Flame, HelpCircle } from "lucide-react";
+import { Layers, Keyboard, CheckCircle2, Clock, Flame, HelpCircle, AlertCircle } from "lucide-react";
 import flashcardsData from "@/data/flashcards.json";
 import FlashcardPlayer from "@/components/FlashcardPlayer";
 import { useProgress } from "@/components/ProgressProvider";
 
 export default function FlashcardsPage() {
-  const { getFlashcardRating } = useProgress();
+  const { getFlashcardRating, isCardDue } = useProgress();
 
   const stats = useMemo(() => {
     let easy = 0;
     let medium = 0;
     let hard = 0;
     let unseen = 0;
+    let due = 0;
     for (const c of flashcardsData) {
       const r = getFlashcardRating(c.id);
       if (r === "easy") easy++;
       else if (r === "medium") medium++;
       else if (r === "hard") hard++;
       else unseen++;
+
+      if (isCardDue(c.id)) {
+        due++;
+      }
     }
-    return { easy, medium, hard, unseen, total: flashcardsData.length };
-  }, [getFlashcardRating]);
+    return { easy, medium, hard, unseen, due, total: flashcardsData.length };
+  }, [getFlashcardRating, isCardDue]);
 
   return (
     <div className="space-y-8">
@@ -85,7 +90,17 @@ export default function FlashcardsPage() {
         </div>
 
         {/* Mastery Summary Strip */}
-        <div className="mt-5 grid grid-cols-2 gap-3 border-t border-border pt-4 sm:grid-cols-4">
+        <div className="mt-5 grid grid-cols-2 gap-3 border-t border-border pt-4 sm:grid-cols-5">
+          <div className="flex items-center justify-between rounded-xl border border-amber-500/40 bg-amber-500/15 px-4 py-2.5">
+            <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 font-semibold">
+              <AlertCircle className="h-4 w-4" />
+              <span>Due for Review</span>
+            </div>
+            <span className="font-mono text-lg font-bold text-amber-600 dark:text-amber-400">
+              {stats.due}
+            </span>
+          </div>
+
           <div className="flex items-center justify-between rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5">
             <div className="flex items-center gap-2 text-xs text-destructive font-semibold">
               <Flame className="h-4 w-4" />
@@ -116,7 +131,7 @@ export default function FlashcardsPage() {
             </span>
           </div>
 
-          <div className="flex items-center justify-between rounded-xl border border-border bg-secondary px-4 py-2.5">
+          <div className="flex items-center justify-between rounded-xl border border-border bg-secondary px-4 py-2.5 col-span-2 sm:col-span-1">
             <div className="flex items-center gap-2 text-xs text-muted-foreground font-semibold">
               <HelpCircle className="h-4 w-4" />
               <span>Unseen Cards</span>

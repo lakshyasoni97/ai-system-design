@@ -32,7 +32,7 @@ import { useProgress } from "@/components/ProgressProvider";
 import JourneyMap from "@/components/JourneyMap";
 
 export default function DashboardPage() {
-  const { isItemCompleted, toggleItemCompleted, getFlashcardRating } =
+  const { isItemCompleted, toggleItemCompleted, getFlashcardRating, isCardDue } =
     useProgress();
   const [copiedPrompt, setCopiedPrompt] = useState(false);
   const [recommendationMode, setRecommendationMode] = useState<"ROADMAP" | "READY">("ROADMAP");
@@ -204,15 +204,18 @@ export default function DashboardPage() {
     let medium = 0;
     let hard = 0;
     let unseen = 0;
+    let due = 0;
     for (const card of flashcardsData) {
       const r = getFlashcardRating(card.id);
       if (r === "easy") easy++;
       else if (r === "medium") medium++;
       else if (r === "hard") hard++;
       else unseen++;
+
+      if (isCardDue(card.id)) due++;
     }
-    return { easy, medium, hard, unseen, total: flashcardsData.length };
-  }, [getFlashcardRating]);
+    return { easy, medium, hard, unseen, due, total: flashcardsData.length };
+  }, [getFlashcardRating, isCardDue]);
 
   const handleCopyPrompt = async () => {
     try {
@@ -230,9 +233,20 @@ export default function DashboardPage() {
       <section className="rounded-2xl sm:rounded-3xl border border-border bg-card p-4 sm:p-6 md:p-8 shadow-xs">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-2xl space-y-2">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-              <Compass className="h-3.5 w-3.5" />
-              <span>AI System Design Study Portal · 10-Week Mastery</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                <Compass className="h-3.5 w-3.5" />
+                <span>AI System Design Study Portal · 10-Week Mastery</span>
+              </div>
+              {flashcardStats.due > 0 && (
+                <Link
+                  href="/flashcards"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-colors"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <span>{flashcardStats.due} Cards Due for Review Today</span>
+                </Link>
+              )}
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
               Welcome back, {curriculumData.candidate.name.split(" ")[0]}

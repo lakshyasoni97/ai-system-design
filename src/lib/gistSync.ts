@@ -5,13 +5,14 @@
  * Zero-backend required: all requests run client-side directly against the GitHub REST API.
  */
 
-import { FlashcardRating, TextHighlight } from "@/components/ProgressProvider";
+import { FlashcardRating, FlashcardSRSItem, TextHighlight } from "@/components/ProgressProvider";
 
 export interface SyncedStudyState {
   version: number;
   completedSessions: string[];
   completedItems?: string[];
   flashcardRatings: Record<string, FlashcardRating>;
+  flashcardSRS?: Record<string, FlashcardSRSItem>;
   scratchpadNotes: Record<string, string>;
   highlights: TextHighlight[];
   deletedHighlightIds?: string[];
@@ -334,6 +335,21 @@ export function mergeStudyStates(
     ...(local.flashcardRatings || {}),
   };
 
+  // 2b. Merge flashcard SRS items (compare lastReviewedAt timestamps)
+  const flashcardSRS: Record<string, FlashcardSRSItem> = {
+    ...(remote.flashcardSRS || {}),
+  };
+  for (const [cardId, localSRS] of Object.entries(local.flashcardSRS || {})) {
+    const remoteSRS = flashcardSRS[cardId];
+    if (!remoteSRS) {
+      flashcardSRS[cardId] = localSRS;
+    } else {
+      const localReviewTime = new Date(localSRS.lastReviewedAt || 0).getTime();
+      const remoteReviewTime = new Date(remoteSRS.lastReviewedAt || 0).getTime();
+      flashcardSRS[cardId] = localReviewTime >= remoteReviewTime ? localSRS : remoteSRS;
+    }
+  }
+
   // 3. Merge scratchpad notes
   const scratchpadNotes: Record<string, string> = {
     ...(remote.scratchpadNotes || {}),
@@ -402,6 +418,7 @@ export function mergeStudyStates(
     completedSessions,
     completedItems,
     flashcardRatings,
+    flashcardSRS,
     scratchpadNotes,
     highlights: Array.from(highlightMap.values()),
     deletedHighlightIds: allDeletedIds.slice(0, 300),

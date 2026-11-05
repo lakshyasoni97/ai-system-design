@@ -16,6 +16,11 @@ import {
   HelpCircle,
   Shuffle,
   ExternalLink,
+  CheckSquare,
+  Square,
+  PenLine,
+  Calendar,
+  AlertCircle,
 } from "lucide-react";
 import { FlashcardRating, useProgress } from "./ProgressProvider";
 
@@ -42,12 +47,46 @@ const MODULE_LABELS: Record<string, string> = {
   "Module 5": "Mod 5: LLMOps & Security",
 };
 
+function extractRubricItems(markdown: string): string[] {
+  const items: string[] = [];
+  const boldMatches = markdown.match(/\*\*([^*]+)\*\*/g);
+  if (boldMatches) {
+    boldMatches.forEach((m) => {
+      const clean = m.replace(/\*\*/g, "").trim();
+      if (clean.length > 2 && clean.length < 55 && !items.includes(clean)) {
+        items.push(clean);
+      }
+    });
+  }
+  const codeMatches = markdown.match(/`([^`]+)`/g);
+  if (codeMatches) {
+    codeMatches.forEach((m) => {
+      const clean = m.replace(/`/g, "").trim();
+      if (clean.length > 1 && clean.length < 35 && !items.includes(clean)) {
+        items.push(clean);
+      }
+    });
+  }
+  return items.slice(0, 5);
+}
+
+function formatDueRelative(dueAtIso?: string): string {
+  if (!dueAtIso) return "Unseen";
+  const due = new Date(dueAtIso).getTime();
+  const diffMs = due - Date.now();
+  if (diffMs <= 0) return "Due Now";
+  const diffHours = Math.round(diffMs / (1000 * 60 * 60));
+  if (diffHours < 24) return `Due in ${Math.max(1, diffHours)}h`;
+  const diffDays = Math.round(diffHours / 24);
+  return `Due in ${diffDays}d`;
+}
+
 export default function FlashcardPlayer({
   cards,
   compact = false,
   initialSessionFilter = "ALL",
 }: FlashcardPlayerProps) {
-  const { getFlashcardRating, rateFlashcard } = useProgress();
+  const { getFlashcardRating, rateFlashcard, getFlashcardSRS, isCardDue } = useProgress();
 
   const [moduleFilter, setModuleFilter] = useState<string>("ALL");
   const [projectFilter, setProjectFilter] = useState<string>("ALL");
@@ -56,6 +95,13 @@ export default function FlashcardPlayer({
   const [prioritizeHard, setPrioritizeHard] = useState<boolean>(true);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [isFlipped, setIsFlipped] = useState<boolean>(false);
+
+  // Pre-flip active commitment state
+  const [committedNotes, setCommittedNotes] = useState<Record<string, string>>({});
+  const [activeNoteInput, setActiveNoteInput] = useState<string>("");
+
+  // Self-scoring rubric state
+  const [checkedRubric, setCheckedRubric] = useState<Record<string, boolean>>({});
 
   const uniqueModules = useMemo(
     () => Array.from(new Set(cards.map((c) => c.module))),
@@ -72,7 +118,9 @@ export default function FlashcardPlayer({
       if (sessionFilter !== "ALL" && card.sessionId !== sessionFilter) return false;
       if (moduleFilter !== "ALL" && card.module !== moduleFilter) return false;
       if (projectFilter !== "ALL" && card.projectTag !== projectFilter) return false;
-      if (confidenceFilter !== "ALL") {
+      if (confidenceFilter === "due") {
+        if (!isCardDue(card.id)) return false;
+      } else if (confidenceFilter !== "ALL") {
         const rating = getFlashcardRating(card.id);
         if (rating !== confidenceFilter) return false;
       }
@@ -80,15 +128,29 @@ export default function FlashcardPlayer({
     });
 
     if (prioritizeHard) {
-      const weight: Record<FlashcardRating, number> = {
-        hard: 0,
-        unseen: 1,
-        medium: 2,
-        easy: 3,
-      };
-      return [...list].sort(
-        (a, b) => weight[getFlashcardRating(a.id)] - weight[getFlashcardRating(b.id)]
-      );
+      // Temporal SRS ordering: Overdue / Due Now -> Hard -> Unseen -> Medium -> Easy
+      return [...list].sort((a, b) => {
+        const aDue = isCardDue(a.id);
+        const bDue = isCardDue(b.id);
+        if (aDue && !bDue) return -1;
+        if (!aDue && bDue) return 1;
+
+        const weight: Record<FlashcardRating, number> = {
+          hard: 0,
+          unseen: 1,
+          medium: 2,
+          easy: 3,
+        };
+        const ratingDiff = weight[getFlashcardRating(a.id)] - weight[getFlashcardRating(b.id)];
+        if (ratingDiff !== 0) return ratingDiff;
+
+        // If same rating, sort by due date ascending
+        const aSRS = getFlashcardSRS(a.id);
+        const bSRS = getFlashcardSRS(b.id);
+        const aTime = aSRS ? new Date(aSRS.dueAt).getTime() : 0;
+        const bTime = bSRS ? new Date(bSRS.dueAt).getTime() : 0;
+        return aTime - bTime;
+      });
     }
     return list;
   }, [
@@ -99,6 +161,8 @@ export default function FlashcardPlayer({
     confidenceFilter,
     prioritizeHard,
     getFlashcardRating,
+    getFlashcardSRS,
+    isCardDue,
   ]);
 
   useEffect(() => {
@@ -107,6 +171,14 @@ export default function FlashcardPlayer({
   }, [moduleFilter, projectFilter, confidenceFilter, sessionFilter]);
 
   const activeCard = filteredCards[currentIndex] || null;
+
+  // Sync active commitment note when card changes
+  useEffect(() => {
+    if (activeCard) {
+      setActiveNoteInput(committedNotes[activeCard.id] || "");
+      setCheckedRubric({});
+    }
+  }, [activeCard, committedNotes]);
 
   const handleNext = useCallback(() => {
     if (filteredCards.length === 0) return;
@@ -131,6 +203,40 @@ export default function FlashcardPlayer({
     },
     [activeCard, rateFlashcard, filteredCards.length]
   );
+
+  const handleSaveCommitment = () => {
+    if (!activeCard) return;
+    setCommittedNotes((prev) => ({
+      ...prev,
+      [activeCard.id]: activeNoteInput,
+    }));
+  };
+
+  const rubricItems = useMemo(() => {
+    if (!activeCard) return [];
+    return extractRubricItems(activeCard.answer);
+  }, [activeCard]);
+
+  const activeSRS = activeCard ? getFlashcardSRS(activeCard.id) : null;
+  const isOverdue = activeCard ? isCardDue(activeCard.id) : false;
+
+  // Next intervals for buttons
+  const nextHardLabel = "<10m";
+  let nextMediumLabel = "1d";
+  if (activeSRS) {
+    const reps = activeSRS.repetitions + 1;
+    if (reps === 1) nextMediumLabel = "1d";
+    else if (reps === 2) nextMediumLabel = "3d";
+    else nextMediumLabel = `${Math.max(1, Math.round(activeSRS.intervalDays * activeSRS.easeFactor))}d`;
+  }
+  let nextEasyLabel = "3d";
+  if (activeSRS) {
+    const reps = activeSRS.repetitions + 1;
+    const ef = activeSRS.easeFactor + 0.15;
+    if (reps === 1) nextEasyLabel = "3d";
+    else if (reps === 2) nextEasyLabel = "7d";
+    else nextEasyLabel = `${Math.max(1, Math.round(activeSRS.intervalDays * ef * 1.3))}d`;
+  }
 
   useEffect(() => {
     if (compact) return;
@@ -172,38 +278,39 @@ export default function FlashcardPlayer({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [compact, handleRate, handleNext, handlePrev]);
 
-  const ratingBadge = (rating: FlashcardRating) => {
+  const ratingBadge = (rating: FlashcardRating, dueText?: string) => {
     switch (rating) {
       case "hard":
         return (
           <span className="inline-flex items-center gap-1 rounded-full border border-destructive/40 bg-destructive/15 px-2.5 py-0.5 font-mono text-xs text-destructive font-semibold">
-            <Flame className="h-3 w-3" /> Hard / Review First
+            <Flame className="h-3 w-3" /> Hard · {dueText}
           </span>
         );
       case "medium":
         return (
           <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/15 px-2.5 py-0.5 font-mono text-xs text-amber-600 dark:text-amber-400 font-semibold">
-            <Clock className="h-3 w-3" /> Medium / Good
+            <Clock className="h-3 w-3" /> Good · {dueText}
           </span>
         );
       case "easy":
         return (
           <span className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/15 px-2.5 py-0.5 font-mono text-xs text-primary font-semibold">
-            <CheckCircle2 className="h-3 w-3" /> Easy / Mastered
+            <CheckCircle2 className="h-3 w-3" /> Easy · {dueText}
           </span>
         );
       default:
         return (
           <span className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2.5 py-0.5 font-mono text-xs text-muted-foreground font-medium">
-            <HelpCircle className="h-3 w-3" /> Unseen
+            <HelpCircle className="h-3 w-3" /> Unseen · Due Now
           </span>
         );
     }
   };
 
-  const deckProgressPct = filteredCards.length > 0
-    ? Math.round(((currentIndex + 1) / filteredCards.length) * 100)
-    : 0;
+  const deckProgressPct =
+    filteredCards.length > 0
+      ? Math.round(((currentIndex + 1) / filteredCards.length) * 100)
+      : 0;
 
   return (
     <div className="space-y-5">
@@ -250,7 +357,8 @@ export default function FlashcardPlayer({
               onChange={(e) => setConfidenceFilter(e.target.value)}
               className="rounded-xl border border-border bg-secondary px-3 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none"
             >
-              <option value="ALL">All Confidence Levels</option>
+              <option value="ALL">All Cards</option>
+              <option value="due">Due for Review Now</option>
               <option value="unseen">Unseen</option>
               <option value="hard">Hard / Needs Review</option>
               <option value="medium">Medium / Good</option>
@@ -268,7 +376,7 @@ export default function FlashcardPlayer({
             }`}
           >
             <Shuffle className="h-3.5 w-3.5" />
-            <span>{prioritizeHard ? "SRS Queue: Hard First" : "Order: Sequential"}</span>
+            <span>{prioritizeHard ? "SRS Queue: Due & Hard First" : "Order: Sequential"}</span>
           </button>
         </div>
       )}
@@ -315,7 +423,17 @@ export default function FlashcardPlayer({
                 <ExternalLink className="h-3 w-3" />
               </Link>
             </div>
-            <div>{ratingBadge(getFlashcardRating(activeCard.id))}</div>
+            <div className="flex items-center gap-2">
+              {isOverdue && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 font-mono text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+                  <AlertCircle className="h-3 w-3" /> Due Now
+                </span>
+              )}
+              {ratingBadge(
+                getFlashcardRating(activeCard.id),
+                formatDueRelative(activeSRS?.dueAt)
+              )}
+            </div>
           </div>
 
           {/* Interactive Flip Card */}
@@ -366,7 +484,7 @@ export default function FlashcardPlayer({
               </div>
 
               {!isFlipped ? (
-                <div className="my-6">
+                <div className="my-6 space-y-4">
                   <h3
                     className={`font-semibold leading-relaxed text-foreground ${
                       compact ? "text-lg" : "text-xl md:text-2xl"
@@ -374,12 +492,99 @@ export default function FlashcardPlayer({
                   >
                     {activeCard.question}
                   </h3>
+
+                  {/* Pre-Flip Active Commitment Scratchpad */}
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="rounded-xl border border-border bg-muted/20 p-3 text-left"
+                  >
+                    <div className="mb-1.5 flex items-center justify-between text-[11px] font-mono text-muted-foreground">
+                      <span className="flex items-center gap-1 font-semibold text-foreground">
+                        <PenLine className="h-3 w-3 text-primary" />
+                        <span>Pre-Flip Commitment (Eliminate Hindsight Bias):</span>
+                      </span>
+                      <span>Commit key numbers before flipping</span>
+                    </div>
+                    <input
+                      type="text"
+                      value={activeNoteInput}
+                      onChange={(e) => setActiveNoteInput(e.target.value)}
+                      onBlur={handleSaveCommitment}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          handleSaveCommitment();
+                          setIsFlipped(true);
+                        }
+                      }}
+                      placeholder="Jot key numbers/trade-offs (e.g. <1.8s TTFT, R+W>N, concurrency=1)..."
+                      className="w-full rounded-lg border border-border bg-background px-3 py-1.5 font-mono text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                    />
+                  </div>
                 </div>
               ) : (
-                <div className="prose max-w-none text-sm md:text-base leading-relaxed text-foreground/90 space-y-2 [&_strong]:text-primary [&_code]:rounded-md [&_code]:border [&_code]:border-border [&_code]:bg-secondary [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-xs [&_code]:text-accent [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {activeCard.answer}
-                  </ReactMarkdown>
+                <div className="space-y-4">
+                  {/* Show committed pre-flip note if present */}
+                  {committedNotes[activeCard.id]?.trim() && (
+                    <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-xs font-mono text-foreground">
+                      <div className="text-[10px] uppercase font-semibold text-primary mb-1">
+                        Your Pre-Flip Answer Commitment:
+                      </div>
+                      <p className="text-foreground/90">{committedNotes[activeCard.id]}</p>
+                    </div>
+                  )}
+
+                  <div className="prose max-w-none text-sm md:text-base leading-relaxed text-foreground/90 space-y-2 [&_strong]:text-primary [&_code]:rounded-md [&_code]:border [&_code]:border-border [&_code]:bg-secondary [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-xs [&_code]:text-accent [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {activeCard.answer}
+                    </ReactMarkdown>
+                  </div>
+
+                  {/* Auto-Extracted Key Concept Rubric Checklist */}
+                  {rubricItems.length > 0 && (
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      className="mt-4 rounded-xl border border-border bg-muted/20 p-3"
+                    >
+                      <div className="mb-2 flex items-center justify-between text-[11px] font-mono text-muted-foreground">
+                        <span className="font-semibold text-foreground flex items-center gap-1">
+                          <CheckSquare className="h-3 w-3 text-primary" />
+                          Key Architectural Points (Self-Check Rubric):
+                        </span>
+                        <span>
+                          {Object.values(checkedRubric).filter(Boolean).length} / {rubricItems.length} recalled
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {rubricItems.map((item, idx) => {
+                          const isChecked = Boolean(checkedRubric[item]);
+                          return (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() =>
+                                setCheckedRubric((prev) => ({
+                                  ...prev,
+                                  [item]: !prev[item],
+                                }))
+                              }
+                              className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 font-mono text-[11px] transition-colors cursor-pointer ${
+                                isChecked
+                                  ? "border-primary/50 bg-primary/20 text-primary font-semibold"
+                                  : "border-border bg-background text-muted-foreground hover:text-foreground"
+                              }`}
+                            >
+                              {isChecked ? (
+                                <CheckSquare className="h-3 w-3 text-primary" />
+                              ) : (
+                                <Square className="h-3 w-3 opacity-60" />
+                              )}
+                              <span>{item}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -388,8 +593,8 @@ export default function FlashcardPlayer({
               <span>ID: {activeCard.id}</span>
               <span className="hidden sm:inline">
                 {isFlipped
-                  ? "Rate your recall confidence below (1 = Hard, 2 = Medium, 3 = Easy)"
-                  : "Formulate your architecture defense before flipping"}
+                  ? "Self-score below using the rubric (1 = Hard, 2 = Medium, 3 = Easy)"
+                  : "Commit your key numbers in the box before flipping"}
               </span>
             </div>
           </div>
@@ -444,18 +649,18 @@ export default function FlashcardPlayer({
               </button>
             </div>
 
-            {/* Spaced Repetition Rating Buttons */}
+            {/* Spaced Repetition Rating Buttons with Real SM-2 Intervals */}
             <div className="grid grid-cols-3 sm:flex items-center gap-2 w-full sm:w-auto">
               <button
                 type="button"
                 onClick={() => handleRate("hard")}
-                className={`flex items-center justify-center gap-1 rounded-xl border px-3 py-2 text-xs font-semibold transition-all cursor-pointer ${
+                className={`flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-all cursor-pointer ${
                   isFlipped
                     ? "border-destructive/60 bg-destructive/15 text-destructive hover:bg-destructive/25 ring-1 ring-destructive/20"
                     : "border-border bg-secondary text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <span>Hard</span>
+                <span>Hard ({nextHardLabel})</span>
                 {!compact && (
                   <kbd className="hidden sm:inline rounded bg-destructive/20 px-1.5 py-0.5 font-mono text-[10px] text-destructive">
                     1
@@ -466,13 +671,13 @@ export default function FlashcardPlayer({
               <button
                 type="button"
                 onClick={() => handleRate("medium")}
-                className={`flex items-center justify-center gap-1 rounded-xl border px-3 py-2 text-xs font-semibold transition-all cursor-pointer ${
+                className={`flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-all cursor-pointer ${
                   isFlipped
                     ? "border-amber-500/60 bg-amber-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500/25 ring-1 ring-amber-500/20"
                     : "border-border bg-secondary text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <span>Good</span>
+                <span>Good (+{nextMediumLabel})</span>
                 {!compact && (
                   <kbd className="hidden sm:inline rounded bg-amber-500/20 px-1.5 py-0.5 font-mono text-[10px] text-amber-600 dark:text-amber-400">
                     2
@@ -483,13 +688,13 @@ export default function FlashcardPlayer({
               <button
                 type="button"
                 onClick={() => handleRate("easy")}
-                className={`flex items-center justify-center gap-1 rounded-xl border px-3 py-2 text-xs font-semibold transition-all cursor-pointer ${
+                className={`flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-all cursor-pointer ${
                   isFlipped
                     ? "border-primary/60 bg-primary/15 text-primary hover:bg-primary/25 ring-1 ring-primary/20"
                     : "border-border bg-secondary text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <span>Easy</span>
+                <span>Easy (+{nextEasyLabel})</span>
                 {!compact && (
                   <kbd className="hidden sm:inline rounded bg-primary/20 px-1.5 py-0.5 font-mono text-[10px] text-primary">
                     3

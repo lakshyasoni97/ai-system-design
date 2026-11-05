@@ -24,6 +24,15 @@ import {
 
 export type FlashcardRating = "unseen" | "hard" | "medium" | "easy";
 
+export interface FlashcardSRSItem {
+  rating: FlashcardRating;
+  intervalDays: number;
+  easeFactor: number;
+  repetitions: number;
+  dueAt: string;
+  lastReviewedAt: string;
+}
+
 export type HighlightColor = "amber" | "emerald" | "indigo" | "rose";
 
 export interface TextHighlight {
@@ -47,12 +56,14 @@ interface ProgressState {
   completedSessions: string[];
   completedItems: string[];
   flashcardRatings: Record<string, FlashcardRating>;
+  flashcardSRS?: Record<string, FlashcardSRSItem>;
   scratchpadNotes: Record<string, string>;
   highlights: TextHighlight[];
   lastModifiedAt?: string;
 }
 
 interface ProgressContextType extends ProgressState {
+  flashcardSRS: Record<string, FlashcardSRSItem>;
   isHydrated: boolean;
   // Cloud Sync state
   isSyncConfigured: boolean;
@@ -71,6 +82,8 @@ interface ProgressContextType extends ProgressState {
   isItemCompleted: (itemId: string) => boolean;
   rateFlashcard: (cardId: string, rating: FlashcardRating) => void;
   getFlashcardRating: (cardId: string) => FlashcardRating;
+  getFlashcardSRS: (cardId: string) => FlashcardSRSItem | null;
+  isCardDue: (cardId: string) => boolean;
   updateScratchpad: (key: string, note: string) => void;
   addHighlight: (hl: Omit<TextHighlight, "id" | "createdAt">) => TextHighlight;
   updateHighlight: (id: string, updates: Partial<Pick<TextHighlight, "color" | "note">>) => void;
@@ -90,6 +103,32 @@ const DEFAULT_STATE: ProgressState = {
     "fc-001": "easy",
     "fc-002": "medium",
     "fc-006": "easy",
+  },
+  flashcardSRS: {
+    "fc-001": {
+      rating: "easy",
+      intervalDays: 7,
+      easeFactor: 2.65,
+      repetitions: 2,
+      dueAt: "2026-11-08T12:00:00.000Z",
+      lastReviewedAt: "2026-11-01T12:00:00.000Z",
+    },
+    "fc-002": {
+      rating: "medium",
+      intervalDays: 3,
+      easeFactor: 2.5,
+      repetitions: 2,
+      dueAt: "2026-11-04T12:00:00.000Z",
+      lastReviewedAt: "2026-11-01T12:00:00.000Z",
+    },
+    "fc-006": {
+      rating: "easy",
+      intervalDays: 7,
+      easeFactor: 2.65,
+      repetitions: 2,
+      dueAt: "2026-11-08T12:00:00.000Z",
+      lastReviewedAt: "2026-11-01T12:00:00.000Z",
+    },
   },
   scratchpadNotes: {
     "session-01":
@@ -174,6 +213,10 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
             parsed.flashcardRatings && typeof parsed.flashcardRatings === "object"
               ? parsed.flashcardRatings
               : DEFAULT_STATE.flashcardRatings,
+          flashcardSRS:
+            parsed.flashcardSRS && typeof parsed.flashcardSRS === "object"
+              ? parsed.flashcardSRS
+              : DEFAULT_STATE.flashcardSRS || {},
           scratchpadNotes:
             parsed.scratchpadNotes && typeof parsed.scratchpadNotes === "object"
               ? parsed.scratchpadNotes
@@ -223,6 +266,7 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
       completedSessions: s.completedSessions,
       completedItems: s.completedItems,
       flashcardRatings: s.flashcardRatings,
+      flashcardSRS: s.flashcardSRS || {},
       scratchpadNotes: s.scratchpadNotes,
       highlights: s.highlights,
       lastModifiedAt: s.lastModifiedAt || new Date().toISOString(),
@@ -254,6 +298,7 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
             completedSessions: merged.completedSessions,
             completedItems: merged.completedItems || merged.completedSessions,
             flashcardRatings: merged.flashcardRatings,
+            flashcardSRS: merged.flashcardSRS || {},
             scratchpadNotes: merged.scratchpadNotes,
             highlights: merged.highlights,
             lastModifiedAt: merged.lastModifiedAt,
@@ -337,6 +382,7 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
           completedSessions: merged.completedSessions,
           completedItems: merged.completedItems || merged.completedSessions,
           flashcardRatings: merged.flashcardRatings,
+          flashcardSRS: merged.flashcardSRS || {},
           scratchpadNotes: merged.scratchpadNotes,
           highlights: merged.highlights,
           lastModifiedAt: merged.lastModifiedAt,
@@ -424,18 +470,79 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
   };
 
   const rateFlashcard = (cardId: string, rating: FlashcardRating) => {
-    setState((prev) => ({
-      ...prev,
-      flashcardRatings: {
-        ...prev.flashcardRatings,
-        [cardId]: rating,
-      },
-      lastModifiedAt: new Date().toISOString(),
-    }));
+    setState((prev) => {
+      const now = Date.now();
+      const prevSRS = prev.flashcardSRS?.[cardId];
+      let repetitions = prevSRS?.repetitions || 0;
+      let easeFactor = prevSRS?.easeFactor || 2.5;
+      let intervalDays = prevSRS?.intervalDays || 0;
+      let dueAt = new Date().toISOString();
+
+      if (rating === "hard") {
+        repetitions = 0;
+        intervalDays = 0;
+        easeFactor = Math.max(1.3, easeFactor - 0.2);
+        // Due in 10 minutes for immediate re-test
+        dueAt = new Date(now + 10 * 60 * 1000).toISOString();
+      } else if (rating === "medium") {
+        repetitions += 1;
+        if (repetitions === 1) {
+          intervalDays = 1;
+        } else if (repetitions === 2) {
+          intervalDays = 3;
+        } else {
+          intervalDays = Math.max(1, Math.round(intervalDays * easeFactor));
+        }
+        dueAt = new Date(now + intervalDays * 24 * 60 * 60 * 1000).toISOString();
+      } else if (rating === "easy") {
+        repetitions += 1;
+        easeFactor = easeFactor + 0.15;
+        if (repetitions === 1) {
+          intervalDays = 3;
+        } else if (repetitions === 2) {
+          intervalDays = 7;
+        } else {
+          intervalDays = Math.max(1, Math.round(intervalDays * easeFactor * 1.3));
+        }
+        dueAt = new Date(now + intervalDays * 24 * 60 * 60 * 1000).toISOString();
+      }
+
+      const nextSRS: FlashcardSRSItem = {
+        rating,
+        intervalDays,
+        easeFactor,
+        repetitions,
+        dueAt,
+        lastReviewedAt: new Date().toISOString(),
+      };
+
+      return {
+        ...prev,
+        flashcardRatings: {
+          ...prev.flashcardRatings,
+          [cardId]: rating,
+        },
+        flashcardSRS: {
+          ...(prev.flashcardSRS || {}),
+          [cardId]: nextSRS,
+        },
+        lastModifiedAt: new Date().toISOString(),
+      };
+    });
   };
 
   const getFlashcardRating = (cardId: string): FlashcardRating => {
     return state.flashcardRatings[cardId] || "unseen";
+  };
+
+  const getFlashcardSRS = (cardId: string): FlashcardSRSItem | null => {
+    return state.flashcardSRS?.[cardId] || null;
+  };
+
+  const isCardDue = (cardId: string): boolean => {
+    const srs = state.flashcardSRS?.[cardId];
+    if (!srs) return true; // unseen is considered due
+    return new Date(srs.dueAt).getTime() <= Date.now();
   };
 
   const updateScratchpad = (key: string, note: string) => {
@@ -521,6 +628,10 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
           parsed.flashcardRatings && typeof parsed.flashcardRatings === "object"
             ? parsed.flashcardRatings
             : {},
+        flashcardSRS:
+          parsed.flashcardSRS && typeof parsed.flashcardSRS === "object"
+            ? parsed.flashcardSRS
+            : {},
         scratchpadNotes:
           parsed.scratchpadNotes && typeof parsed.scratchpadNotes === "object"
             ? parsed.scratchpadNotes
@@ -539,6 +650,7 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
       completedSessions: [],
       completedItems: [],
       flashcardRatings: {},
+      flashcardSRS: {},
       scratchpadNotes: {},
       highlights: [],
       lastModifiedAt: new Date().toISOString(),
@@ -565,6 +677,9 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
         isItemCompleted,
         rateFlashcard,
         getFlashcardRating,
+        getFlashcardSRS,
+        isCardDue,
+        flashcardSRS: state.flashcardSRS || {},
         updateScratchpad,
         addHighlight,
         updateHighlight,
