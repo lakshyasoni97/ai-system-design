@@ -31,6 +31,7 @@ import {
   Highlighter,
   Cloud,
   CalendarDays,
+  Type,
 } from "lucide-react";
 import curriculumData from "@/data/curriculum.json";
 import projectsData from "@/data/projects.json";
@@ -67,6 +68,39 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState<boolean>(false);
   const [paletteQuery, setPaletteQuery] = useState<string>("");
   const [selectedPaletteIndex, setSelectedPaletteIndex] = useState<number>(0);
+  const [fontScale, setFontScale] = useState<"sm" | "md" | "lg">("sm");
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("antigravity_font_scale_v1") as "sm" | "md" | "lg" | null;
+      if (saved && ["sm", "md", "lg"].includes(saved)) {
+        setFontScale(saved);
+        if (saved === "sm") {
+          document.documentElement.removeAttribute("data-font-scale");
+        } else {
+          document.documentElement.setAttribute("data-font-scale", saved);
+        }
+      }
+    } catch {}
+  }, []);
+
+  const cycleFontScale = () => {
+    const nextScale: Record<"sm" | "md" | "lg", "sm" | "md" | "lg"> = {
+      sm: "md",
+      md: "lg",
+      lg: "sm",
+    };
+    const val = nextScale[fontScale];
+    setFontScale(val);
+    try {
+      localStorage.setItem("antigravity_font_scale_v1", val);
+      if (val === "sm") {
+        document.documentElement.removeAttribute("data-font-scale");
+      } else {
+        document.documentElement.setAttribute("data-font-scale", val);
+      }
+    } catch {}
+  };
   const [showSyncModal, setShowSyncModal] = useState<boolean>(false);
 
   // Active session context
@@ -792,6 +826,20 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
               )}
             </button>
 
+            {/* Reader Text Scale Toggle */}
+            <button
+              type="button"
+              onClick={cycleFontScale}
+              className="flex items-center gap-1 rounded-xl border border-border bg-card px-2.5 py-1.5 text-xs font-mono text-muted-foreground hover:border-primary/40 hover:text-foreground transition-colors cursor-pointer"
+              title={`Reading text size: ${fontScale === "sm" ? "Standard (16px)" : fontScale === "md" ? "Medium (17.5px)" : "Large (19px)"}. Tap to enlarge.`}
+              aria-label="Adjust reading font size"
+            >
+              <Type className="h-3.5 w-3.5 text-primary" />
+              <span className="font-semibold text-[11px]">
+                {fontScale === "sm" ? "1x" : fontScale === "md" ? "1.1x" : "1.2x"}
+              </span>
+            </button>
+
             {/* Theme Toggle Button */}
             <button
               type="button"
@@ -809,7 +857,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 max-w-7xl w-full mx-auto">
+        <main className="flex-1 px-3 py-4 sm:px-6 sm:py-6 lg:px-8 max-w-7xl w-full mx-auto min-w-0">
           {children}
         </main>
       </div>

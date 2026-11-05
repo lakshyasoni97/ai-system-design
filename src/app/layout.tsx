@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ProgressProvider } from "@/components/ProgressProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -8,6 +8,12 @@ export const metadata: Metadata = {
   title: "Production AI System Design Study Portal | Lakshya Soni",
   description:
     "Interactive 100x Scale AI System Design Study Portal — Distributed Systems, Production RAG, Multi-Agent Orchestration, High-Throughput NLP, and LLMOps.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
 };
 
 const antiFlashScript = `
@@ -21,6 +27,13 @@ const antiFlashScript = `
     } else {
       document.documentElement.classList.remove('dark');
       document.documentElement.classList.add('light');
+    }
+  } catch (e) {}
+
+  try {
+    var fontScale = localStorage.getItem('antigravity_font_scale_v1');
+    if (fontScale) {
+      document.documentElement.setAttribute('data-font-scale', fontScale);
     }
   } catch (e) {}
 })();

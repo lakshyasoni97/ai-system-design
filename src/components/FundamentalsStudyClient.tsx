@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, CheckCircle2, Circle, Clock, Cpu } from "lucide-
 import MarkdownArticle from "./MarkdownArticle";
 import ReadingList, { ReadingItem } from "./ReadingList";
 import StudyScratchpad from "./StudyScratchpad";
+import { useProgress } from "./ProgressProvider";
 
 const STORAGE_KEY = "fundamentals-done";
 
@@ -55,11 +56,17 @@ export default function FundamentalsStudyClient({
   next: Topic | null;
 }) {
   const { done, toggle } = useFundamentalsDone();
-  const isDone = done.includes(topic.id);
+  const { isSessionCompleted, toggleSessionCompleted } = useProgress();
+  const isDone = isSessionCompleted(topic.id) || done.includes(topic.id);
+
+  const handleToggle = () => {
+    toggle(topic.id);
+    toggleSessionCompleted(topic.id);
+  };
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <div className="rounded-2xl sm:rounded-3xl border border-border bg-card p-4 sm:p-6 md:p-8 shadow-xs">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <Link
@@ -79,7 +86,7 @@ export default function FundamentalsStudyClient({
           </div>
           <button
             type="button"
-            onClick={() => toggle(topic.id)}
+            onClick={handleToggle}
             className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 font-mono text-xs font-semibold transition-all cursor-pointer ${
               isDone
                 ? "border-primary/50 bg-primary/20 text-primary"

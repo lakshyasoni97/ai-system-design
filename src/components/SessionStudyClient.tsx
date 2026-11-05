@@ -98,7 +98,7 @@ function CodeBlockWithCopy({
           )}
         </button>
       </div>
-      <pre className="overflow-x-auto p-4 font-mono text-xs leading-relaxed text-foreground bg-muted/20">
+      <pre className="overflow-x-auto p-3.5 sm:p-4 font-mono text-xs sm:text-sm leading-relaxed text-foreground bg-muted/20">
         <code>{rawCode}</code>
       </pre>
     </div>
@@ -213,14 +213,14 @@ export default function SessionStudyClient({
       </div>
 
       {/* 1. Header Bar */}
-      <div className="rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-xs">
+      <div className="rounded-2xl sm:rounded-3xl border border-border bg-card p-4 sm:p-6 md:p-8 shadow-xs">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/curriculum"
               className="rounded-lg border border-border bg-secondary px-2.5 py-1 font-mono text-xs font-semibold text-foreground hover:bg-muted transition-colors"
             >
-              Session {String(session.number).padStart(2, "0")} of 20
+              Session {String(session.number).padStart(2, "0")} of 31
             </Link>
             <span className="inline-flex items-center gap-1 rounded-lg border border-border bg-secondary/60 px-2.5 py-1 font-mono text-xs text-muted-foreground">
               <Clock className="h-3.5 w-3.5 text-primary" />
@@ -295,7 +295,7 @@ export default function SessionStudyClient({
             sourceTitle={`Session ${String(session.number).padStart(2, "0")}: ${session.title}`}
             href={`/roadmap/${session.id}`}
           >
-            <article className="rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-xs">
+            <article className="rounded-2xl sm:rounded-3xl border border-border bg-card p-4 sm:p-6 md:p-8 shadow-xs">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
@@ -312,7 +312,7 @@ export default function SessionStudyClient({
                   return (
                     <h2
                       id={id}
-                      className="mt-10 mb-4 flex items-center gap-2 border-b border-border pb-2.5 text-xl font-bold tracking-tight text-foreground scroll-mt-24"
+                      className="mt-8 sm:mt-10 mb-3 sm:mb-4 flex items-center gap-2 border-b border-border pb-2 sm:pb-2.5 text-lg sm:text-xl font-bold tracking-tight text-foreground scroll-mt-24"
                     >
                       {children}
                     </h2>
@@ -327,24 +327,24 @@ export default function SessionStudyClient({
                   return (
                     <h3
                       id={id}
-                      className="mt-6 mb-2.5 text-base font-semibold text-foreground scroll-mt-24"
+                      className="mt-6 sm:mt-7 mb-2 sm:mb-2.5 text-base sm:text-lg font-semibold text-foreground scroll-mt-24"
                     >
                       {children}
                     </h3>
                   );
                 },
                 p: ({ children }) => (
-                  <p className="my-3.5 max-w-[75ch] text-sm sm:text-base leading-relaxed text-foreground/90">
+                  <p className="my-3.5 max-w-[75ch] text-[15.5px] sm:text-base leading-7 sm:leading-relaxed text-foreground/95">
                     {children}
                   </p>
                 ),
                 ul: ({ children }) => (
-                  <ul className="my-3 max-w-[75ch] list-disc space-y-2 pl-6 text-sm sm:text-base text-foreground/90">
+                  <ul className="my-3.5 max-w-[75ch] list-disc space-y-2 pl-5 sm:pl-6 text-[15.5px] sm:text-base leading-7 sm:leading-relaxed text-foreground/95">
                     {children}
                   </ul>
                 ),
                 ol: ({ children }) => (
-                  <ol className="my-3 max-w-[75ch] list-decimal space-y-2 pl-6 text-sm sm:text-base text-foreground/90">
+                  <ol className="my-3.5 max-w-[75ch] list-decimal space-y-2 pl-5 sm:pl-6 text-[15.5px] sm:text-base leading-7 sm:leading-relaxed text-foreground/95">
                     {children}
                   </ol>
                 ),
@@ -357,12 +357,11 @@ export default function SessionStudyClient({
                   </strong>
                 ),
                 blockquote: ({ children }) => (
-                  <blockquote className="my-6 rounded-2xl border-l-4 border-primary bg-primary/5 p-5 text-sm sm:text-base text-foreground shadow-2xs [&_strong]:text-primary [&_strong]:font-bold">
+                  <blockquote className="my-5 sm:my-6 rounded-2xl border-l-4 border-primary bg-primary/5 p-4 sm:p-5 text-[15px] sm:text-base leading-relaxed text-foreground shadow-2xs [&_strong]:text-primary [&_strong]:font-bold">
                     {children}
                   </blockquote>
                 ),
-                hr: () => <hr className="my-8 border-border" />,
-                pre: ({ children }) => <>{children}</>,
+                hr: () => <hr className="my-6 sm:my-8 border-border" />,
                 table: ({ children }) => <TradeoffTable>{children}</TradeoffTable>,
                 thead: ({ children }) => (
                   <thead className="border-b border-border bg-muted/60 font-mono text-xs uppercase tracking-wider text-foreground">
@@ -378,10 +377,10 @@ export default function SessionStudyClient({
                   </tr>
                 ),
                 th: ({ children }) => (
-                  <th className="px-4 py-3 font-semibold text-left">{children}</th>
+                  <th className="px-3.5 py-2.5 sm:px-4 sm:py-3 font-semibold text-left text-xs sm:text-sm">{children}</th>
                 ),
                 td: ({ children }) => (
-                  <td className="px-4 py-3 text-xs sm:text-sm text-foreground/90 leading-relaxed">
+                  <td className="px-3.5 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-sm text-foreground/90 leading-relaxed">
                     {children}
                   </td>
                 ),
@@ -408,7 +407,7 @@ export default function SessionStudyClient({
 
                   return (
                     <code
-                      className="rounded-md border border-border bg-secondary px-1.5 py-0.5 font-mono text-xs text-primary font-medium"
+                      className="rounded-md border border-border bg-secondary px-1.5 py-0.5 font-mono text-xs sm:text-[13px] text-primary font-medium"
                       {...props}
                     >
                       {children}
