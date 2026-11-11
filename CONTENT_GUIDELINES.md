@@ -6,8 +6,9 @@ Use this guide whenever populating or upgrading **Fundamentals (`src/content/fun
 
 ## 1. Core Persona & Teaching Philosophy
 
-Write every topic as a **patient, experienced senior staff engineer and teacher** who is mentoring a smart engineer ahead of high-stakes AI and distributed systems design interviews:
+Write every topic as a **patient, experienced senior staff engineer and teacher** who is mentoring a smart engineer ahead of high-stakes AI and distributed systems design interviews. **Assume the reader is smart but has never seen this concept before.** Build understanding from zero first, then climb to interview depth:
 
+0. **Basics Before Brilliance (Build It From Zero):** Before any jargon, golden rule, or interview angle, explain *what problem exists* and *why the obvious solution fails* in plain, everyday language. Use the **Socratic method** where it helps: ask the reader a guiding question, let them think, then answer it, so they "discover" the concept themselves before it is named.
 1. **Analogy First, Jargon Second:** Never introduce a distributed systems or AI term (*Linearizability, Quorum, Consistent Hashing, Write Amplification, B-Tree, LSM-Tree, Idempotency, Backpressure, KV-Cache, Speculative Decoding*) without first comparing it to a familiar real-world situation. **Invent a fresh, domain-accurate analogy for each concept** rather than reusing the same restaurant or library analogy across multiple files.
 2. **Walk Through Concrete Scenarios ("Alice & Bob"):** Don't just define a rule in the abstract. Show what happens step by step at `12:00:01.000 PM` when Alice clicks a button, a node crashes at `12:00:01.200 PM`, and Bob reads the data at `12:00:01.500 PM`.
 3. **Show the Numbers & Ground in Real Engines:** Replace vague words like *"fast"*, *"big"*, or *"many"* with concrete, memorable numbers (e.g., *"`0.5ms` in Redis vs `150ms` cross-region"*, *"100M 768-d float32 vectors = `~307 GB` raw + HNSW graph overhead = `~450 GB` RAM"*). Anchor mechanics in real production systems (e.g., how **DynamoDB, Kafka, RocksDB, Qdrant, or vLLM** actually implement it under the hood) rather than generic theory.
@@ -39,19 +40,35 @@ Write every topic as a **patient, experienced senior staff engineer and teacher*
 
 ---
 
-## 2. Standard 7-Part Article Structure
+## 2. Standard 8-Part Article Structure
 
-Every Fundamental (`fund-XX.md`) or Session (`session-XX.md`) file must follow this 7-part structure so it scans cleanly in the portal:
+Every Fundamental (`fund-XX.md`) or Session (`session-XX.md`) file must follow this 8-part structure so it scans cleanly in the portal. The order is deliberate: **simple → intuitive → technical → interview-ready.**
 
-### Part 1: Title, Prerequisites & Quick Summary Callout (`> Blockquote`)
+### Part 1: Title, Prerequisites & Plain-English Summary (`> Blockquote`)
 * Start with `# Title` (Note: `MarkdownArticle.tsx` hides `h1` because the page header renders the title, so always follow `# Title` immediately with a `>` blockquote summary).
-* Inside the blockquote, include **4 crisp bullet points**:
-  * **Prerequisites:** 2–3 foundational concepts to know first (and a 1-line reminder of what they mean).
-  * **Plain-English Core:** What this topic is really about in one sentence.
-  * **Why Interviewers Care:** Why this makes or breaks an AI System Design interview.
-  * **The 10-Second Mental Model:** The golden rule to remember under pressure.
+* Keep this light. It is a welcome mat, not a cheat sheet. Inside the blockquote, include **2 crisp bullet points**:
+  * **Prerequisites:** 2–3 foundational concepts to know first (and a 1-line, jargon-free reminder of what they mean).
+  * **Plain-English Core:** What this topic is really about in one sentence a non-engineer could follow.
+* Do **not** put the golden rule or interview framing here. Those land in Part 3, once the reader actually understands the idea.
 
-### Part 2: First Principles, Analogies & Capacity Math
+### Part 2: Build It From Zero (Basics + Socratic Walkthrough)
+This is the most important part for first-time learners. **No jargon is allowed until the very end of this part.**
+* **Start With the Problem, Not the Term:** Describe a simple world where this concept doesn't exist yet (e.g., "You have one database server and it's getting slow..."). Make the pain obvious in everyday words.
+* **Socratic Ladder (3–5 questions):** Guide the reader to the solution through a chain of questions, each followed by a short, plain answer:
+  * Format each step as a bold question followed by its answer, e.g. **🤔 What's the simplest thing you could try?** → answer.
+  * Typical flow: *naive solution* → *"What breaks when traffic grows 10× / a machine dies / two users act at once?"* → *a smarter fix* → *"What new problem does that create?"* → *the real technique*.
+  * Questions must feel natural, never quiz-like or condescending. Skip the ladder only if the concept is genuinely trivial; then use a 3-step "naive → breaks → fix" narrative instead.
+* **Name It Last:** Only after the reader has "invented" the idea, reveal the official term: *"What you just designed is called **Consistent Hashing**."*
+* **Explain-It-in-Layers Close:** End with three escalating explanations:
+  * **One line (explain to a 12-year-old):** No technical words at all.
+  * **One paragraph (explain to a non-backend engineer):** Light technical words, each defined inline.
+  * **Engineer version:** The precise definition using correct terminology, setting up Part 3.
+* **For `session-XX.md`:** Open with *"What are we actually building, and why is it hard?"*. Describe the product as a user experiences it, then use 2–3 Socratic questions to surface the core scaling/AI challenges (e.g., *"What happens when 10,000 users ask the LLM at the same second?"*) before any requirements or math.
+
+### Part 3: First Principles, Analogies, Interview Framing & Capacity Math
+* Open with a `>` callout containing:
+  * **Why Interviewers Care:** Why this makes or breaks an AI System Design interview.
+  * **The 10-Second Mental Model:** The golden rule to remember under pressure (now meaningful, because Part 2 built the intuition).
 * **For `fund-XX.md` (Fundamentals):**
   * Break down foundational concepts one by one (`### 1. Concept Name — "The Everyday Analogy"`).
   * Walk through a timestamped story so the reader *feels* the problem before seeing the engineering solution.
@@ -60,24 +77,24 @@ Every Fundamental (`fund-XX.md`) or Session (`session-XX.md`) file must follow t
   * Define **Functional & Non-Functional Requirements** (latency SLAs, availability vs. consistency, scale).
   * Show full **Capacity & Scale Estimations** (DAU, average/peak QPS, token throughput, vector RAM sizing, and storage math).
 
-### Part 3: Visual Architecture / Concept Blueprint (`mermaid`)
+### Part 4: Visual Architecture / Concept Blueprint (`mermaid`)
 * Walk the reader through the flow with numbered steps (`1 → 2 → 3`) **right above** the diagram.
 * Include at least one clean `mermaid` diagram (`flowchart TD` or `flowchart LR`) mapping the data flow, failure recovery, or decision tree.
 
-### Part 4: Side-by-Side Comparison / Trade-Off Table
+### Part 5: Side-by-Side Comparison / Trade-Off Table
 * Use a Markdown table (rendered by `TradeoffTable.tsx`) comparing the major architectural options.
 * Always include an actionable **"When to Pick / Winner"** column and a **"Watch Out For (The Trap)"** column so trade-offs are easy to vocalize in an interview.
 
-### Part 5: Deep-Dive Mechanics & Production Failure Analysis
+### Part 6: Deep-Dive Mechanics & Production Failure Analysis
 * **Under-the-Hood Tricks:** Explain the math and edge cases that separate a Junior answer from a Senior Staff answer (e.g., `R + W > N` quorum math, Virtual Nodes on a hash ring, Hot Keys, Write Amplification, Outbox Pattern, Claim-Check Pattern, HNSW `efSearch` vs. recall trade-offs).
 * **What Breaks in Production at 2 AM:** Explicitly detail **2 real-world failure modes** (e.g., split-brain, thundering herd, OOM on vector index rebuild, poison pill messages in Pub/Sub), how to detect them via metrics, and the exact mitigation.
 
-### Part 6: Production AI & Resume Tie-In (With Complete Code)
+### Part 7: Production AI & Resume Tie-In (With Complete Code)
 * Show how this pattern operates inside modern AI infrastructure and **1–2 genuinely relevant resume projects** (from Deloitte or Network18).
 * Include a **complete, runnable-style Python, SQL, or Redis snippet** (25–45 lines) with heavy inline comments explaining *why* each line exists.
 * **Zero Placeholders:** Never write `# TODO` or `# ... rest of implementation here`. Write the actual retry loop, Redis Lua script, async lock, or SQL query.
 
-### Part 7: Common Interview Questions, Follow-Up Probes & Quick Recall
+### Part 8: Common Interview Questions, Follow-Up Probes & Quick Recall
 * Include **at least 3 high-signal interview questions** (1 foundational, 1 failure/edge-case, 1 AI-scale trade-off).
 * Format each question as a three-part coaching block:
   * **What they are really testing:** 1 sentence revealing the interviewer's hidden signal.
@@ -92,7 +109,7 @@ Every Fundamental (`fund-XX.md`) or Session (`session-XX.md`) file must follow t
 To ensure every file renders cleanly in the Next.js study portal (`MarkdownArticle.tsx`, `MermaidDiagram.tsx`, `TradeoffTable.tsx`):
 
 1. **Headings:**
-   * Use `##` for the 7 main parts (renders with a bottom border and anchor slug).
+   * Use `##` for the 8 main parts (renders with a bottom border and anchor slug).
    * Use `###` for sub-sections and individual interview questions.
 2. **Callouts (`>`):**
    * Blockquotes (`>`) render as styled emerald/indigo callout cards with a thick left border. Use them for **Quick Summaries**, **Golden Rules**, and **Spoken Interview Answers**.
@@ -108,7 +125,7 @@ To ensure every file renders cleanly in the Next.js study portal (`MarkdownArtic
    * Wrap technical metrics, config keys, complexities, formulas, and SQL/Redis commands in single backticks (e.g., `` `R + W > N` ``, `` `SET key val NX EX 30` ``, `` `O(log N)` ``, `` `<150ms` ``) so they render as highlighted pills.
    * Use fenced multi-line code blocks with `python`, `sql`, `bash`, or `text`.
 5. **Anti-Laziness & Completeness Guardrails:**
-   * **Never truncate or summarize Parts 5, 6, or 7** to save output tokens. Every part must be written at full depth.
+   * **Never truncate or summarize Parts 2, 6, 7, or 8** to save output tokens. Every part must be written at full depth.
    * **No hand-waving in code:** Code snippets must demonstrate real mechanics (e.g., idempotency keys, exponential backoff with jitter, token bucket math), not empty wrapper functions.
 
 ---
@@ -118,9 +135,11 @@ To ensure every file renders cleanly in the Next.js study portal (`MarkdownArtic
 Before completing any markdown file, verify:
 
 - [ ] Could an engineer learning this concept for the first time understand every paragraph without Googling a single term?
-- [ ] Does Part 1 list prerequisites and a 10-second mental model inside a `>` blockquote?
+- [ ] Does Part 1 stay light, with only prerequisites and a plain-English core inside a `>` blockquote?
+- [ ] Does Part 2 start from the problem in everyday language, walk a 3–5 step Socratic ladder (naive → breaks → fix), name the concept only at the end, and close with the 3-layer explanation?
+- [ ] Does Part 3 open with "Why Interviewers Care" and the 10-second mental model *after* the intuition is built?
 - [ ] Does every concept use a fresh analogy, a timestamped step-by-step scenario, and concrete numbers grounded in real tools (Kafka, Redis, DynamoDB, Qdrant, vLLM)?
 - [ ] Are all Mermaid node labels wrapped in `"..."` and all edge labels `|...|` free of parentheses?
-- [ ] Does Part 5 cover both under-the-hood math AND "What Breaks at 2 AM" production failure modes?
-- [ ] Does Part 6 connect naturally to AI Systems and 1–2 relevant Deloitte/Network18 projects with a complete, placeholder-free code snippet?
-- [ ] Does Part 7 include 3 spoken-English interview answers, follow-up probes, and a 60-second rapid-fire self-check?
+- [ ] Does Part 6 cover both under-the-hood math AND "What Breaks at 2 AM" production failure modes?
+- [ ] Does Part 7 connect naturally to AI Systems and 1–2 relevant Deloitte/Network18 projects with a complete, placeholder-free code snippet?
+- [ ] Does Part 8 include 3 spoken-English interview answers, follow-up probes, and a 60-second rapid-fire self-check?
