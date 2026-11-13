@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, CheckCircle2, Circle, Clock, Cpu } from "lucide-
 import MarkdownArticle from "./MarkdownArticle";
 import ReadingList, { ReadingItem } from "./ReadingList";
 import StudyScratchpad from "./StudyScratchpad";
+import ScenarioQuiz, { QuizQuestion } from "./ScenarioQuiz";
 import { useProgress } from "./ProgressProvider";
 
 export function useFundamentalsDone() {
@@ -29,12 +30,14 @@ export default function FundamentalsStudyClient({
   topic,
   content,
   reading,
+  quizzes = [],
   prev,
   next,
 }: {
   topic: Topic;
   content: string;
   reading: ReadingItem[];
+  quizzes?: QuizQuestion[];
   prev: Topic | null;
   next: Topic | null;
 }) {
@@ -89,6 +92,17 @@ export default function FundamentalsStudyClient({
         sourceTitle={`Topic ${topic.number}: ${topic.title}`}
         href={`/fundamentals/${topic.id}`}
       />
+      {quizzes.length > 0 && (
+        <div id="topic-quiz" className="scroll-mt-24">
+          <ScenarioQuiz
+            questions={quizzes}
+            sourceTitle={topic.title}
+            sourceId={topic.id}
+            isTopicCompleted={isDone}
+            onMarkTopicCompleted={handleToggle}
+          />
+        </div>
+      )}
       <ReadingList items={reading} />
       <StudyScratchpad
         sourceId={topic.id}

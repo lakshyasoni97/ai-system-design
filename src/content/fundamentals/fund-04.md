@@ -91,16 +91,15 @@ When a broker delivers a message to an AI worker, there are 3 theoretical modes:
    - `12:00:08.405 PM` — **CRASH!** An out-of-memory (`OOMKilled`) spike kills Worker Pod 1 **5 milliseconds before** it can send `ACK` to Pub/Sub.
    - `12:00:31.050 PM` — The `30-second` Ack Deadline expires. Pub/Sub assumes `doc_88` failed and hands `doc_88` to **Worker Pod 2**.
    - `12:00:31.100 PM` — Without an **Idempotency Check**, Worker Pod 2 calls Vertex AI Gemini *a second time*, charging **Bob's** department double (`$0.10`) and inserting a duplicate summary row!
-   - **The Engineering Fix:**
-     $$\text{Effective Exactly-Once} = \text{At-Least-Once Delivery} + \text{Idempotent Consumer}$$
+   - **The Engineering Fix:** `Effective Exactly-Once = At-Least-Once Delivery + Idempotent Consumer (SET job_key NX)`
 
 ### Back-of-the-Envelope Rule of Thumb (15-Second Queue & Log Math)
 - **Worker Count Needed (`Little's Law`):**
-  $$\text{Workers} = \frac{\text{Arrival Rate } (\lambda \text{ jobs/sec}) \times \text{Processing Time } (W \text{ sec/job})}{\text{Concurrency per Worker}}$$
+  - **Formula:** `Workers = (Arrival Rate λ jobs/sec × Processing Time W sec/job) / Concurrency per Worker`
   - *Example:* Ingesting `200 PDFs/sec`, each taking `3 seconds` to embed, with `10 async coroutines` per worker pod = `(200 × 3) / 10 = 60 worker pods`.
 - **Spike Buffer Sizing:** If traffic jumps `10x` to `2,000 PDFs/sec` for `15 minutes` (`900s`), the queue accumulates `(2,000 - 200) × 900 = 1.62M messages`. Because you use the **Claim-Check Pattern** (`1 KB` JSON pointer per message instead of a `10 MB` PDF), the entire 1.62M-job backlog takes only **`1.62 GB` of broker disk** instead of `16.2 TB`!
 - **Kafka Log Retention Disk Math:**
-  $$\text{Disk} = \text{Messages/sec} \times \text{Avg Payload Bytes} \times 86,400 \times \text{Retention Days} \times \text{Replication Factor (3)}$$
+  - **Formula:** `Disk = Messages/sec × Avg Payload Bytes × 86,400 × Retention Days × Replication Factor (3)`
   - *Example:* `5,000 events/sec` × `2 KB` × `86,400s` × `7 days` × `3 replicas` ≈ **`18.1 TB` total cluster SSD** (or `~6 TB` with LZ4 compression).
 
 ---

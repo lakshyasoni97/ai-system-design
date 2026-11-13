@@ -33,6 +33,12 @@ export interface FlashcardSRSItem {
   lastReviewedAt: string;
 }
 
+export interface QuizAttempt {
+  selectedOptionId: "A" | "B" | "C" | "D";
+  isCorrect: boolean;
+  answeredAt: string;
+}
+
 export type HighlightColor = "amber" | "emerald" | "indigo" | "rose";
 
 export interface TextHighlight {
@@ -57,6 +63,7 @@ interface ProgressState {
   completedItems: string[];
   flashcardRatings: Record<string, FlashcardRating>;
   flashcardSRS?: Record<string, FlashcardSRSItem>;
+  quizResults?: Record<string, QuizAttempt>;
   scratchpadNotes: Record<string, string>;
   highlights: TextHighlight[];
   lastModifiedAt?: string;
@@ -64,6 +71,7 @@ interface ProgressState {
 
 interface ProgressContextType extends ProgressState {
   flashcardSRS: Record<string, FlashcardSRSItem>;
+  quizResults: Record<string, QuizAttempt>;
   isHydrated: boolean;
   // Cloud Sync state
   isSyncConfigured: boolean;
@@ -84,6 +92,12 @@ interface ProgressContextType extends ProgressState {
   getFlashcardRating: (cardId: string) => FlashcardRating;
   getFlashcardSRS: (cardId: string) => FlashcardSRSItem | null;
   isCardDue: (cardId: string) => boolean;
+  recordQuizAnswer: (
+    questionId: string,
+    selectedOptionId: "A" | "B" | "C" | "D",
+    isCorrect: boolean
+  ) => void;
+  resetQuizQuestions: (questionIds: string[]) => void;
   updateScratchpad: (key: string, note: string) => void;
   addHighlight: (hl: Omit<TextHighlight, "id" | "createdAt">) => TextHighlight;
   updateHighlight: (id: string, updates: Partial<Pick<TextHighlight, "color" | "note">>) => void;
@@ -130,6 +144,7 @@ const DEFAULT_STATE: ProgressState = {
       lastReviewedAt: "2026-11-01T12:00:00.000Z",
     },
   },
+  quizResults: {},
   scratchpadNotes: {
     "session-01":
       "Remember to emphasize KEDA scaling on in-flight requests/PubSub lag vs naive CPU HPA when defending Deloitte GKE setup.",
@@ -217,6 +232,10 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
             parsed.flashcardSRS && typeof parsed.flashcardSRS === "object"
               ? parsed.flashcardSRS
               : DEFAULT_STATE.flashcardSRS || {},
+          quizResults:
+            parsed.quizResults && typeof parsed.quizResults === "object"
+              ? parsed.quizResults
+              : {},
           scratchpadNotes:
             parsed.scratchpadNotes && typeof parsed.scratchpadNotes === "object"
               ? parsed.scratchpadNotes
@@ -267,6 +286,7 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
       completedItems: s.completedItems,
       flashcardRatings: s.flashcardRatings,
       flashcardSRS: s.flashcardSRS || {},
+      quizResults: s.quizResults || {},
       scratchpadNotes: s.scratchpadNotes,
       highlights: s.highlights,
       lastModifiedAt: s.lastModifiedAt || new Date().toISOString(),
@@ -299,6 +319,7 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
             completedItems: merged.completedItems || merged.completedSessions,
             flashcardRatings: merged.flashcardRatings,
             flashcardSRS: merged.flashcardSRS || {},
+            quizResults: merged.quizResults || {},
             scratchpadNotes: merged.scratchpadNotes,
             highlights: merged.highlights,
             lastModifiedAt: merged.lastModifiedAt,
@@ -383,6 +404,7 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
           completedItems: merged.completedItems || merged.completedSessions,
           flashcardRatings: merged.flashcardRatings,
           flashcardSRS: merged.flashcardSRS || {},
+          quizResults: merged.quizResults || {},
           scratchpadNotes: merged.scratchpadNotes,
           highlights: merged.highlights,
           lastModifiedAt: merged.lastModifiedAt,
@@ -545,6 +567,42 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
     return new Date(srs.dueAt).getTime() <= Date.now();
   };
 
+  const recordQuizAnswer = (
+    questionId: string,
+    selectedOptionId: "A" | "B" | "C" | "D",
+    isCorrect: boolean
+  ) => {
+    const nowIso = new Date().toISOString();
+    setState((prev) => ({
+      ...prev,
+      quizResults: {
+        ...(prev.quizResults || {}),
+        [questionId]: {
+          selectedOptionId,
+          isCorrect,
+          answeredAt: nowIso,
+        },
+      },
+      lastModifiedAt: nowIso,
+    }));
+  };
+
+  const resetQuizQuestions = (questionIds: string[]) => {
+    if (questionIds.length === 0) return;
+    const idSet = new Set(questionIds);
+    setState((prev) => {
+      const nextQuiz = { ...(prev.quizResults || {}) };
+      idSet.forEach((id) => {
+        delete nextQuiz[id];
+      });
+      return {
+        ...prev,
+        quizResults: nextQuiz,
+        lastModifiedAt: new Date().toISOString(),
+      };
+    });
+  };
+
   const updateScratchpad = (key: string, note: string) => {
     setState((prev) => ({
       ...prev,
@@ -632,6 +690,10 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
           parsed.flashcardSRS && typeof parsed.flashcardSRS === "object"
             ? parsed.flashcardSRS
             : {},
+        quizResults:
+          parsed.quizResults && typeof parsed.quizResults === "object"
+            ? parsed.quizResults
+            : {},
         scratchpadNotes:
           parsed.scratchpadNotes && typeof parsed.scratchpadNotes === "object"
             ? parsed.scratchpadNotes
@@ -651,6 +713,7 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
       completedItems: [],
       flashcardRatings: {},
       flashcardSRS: {},
+      quizResults: {},
       scratchpadNotes: {},
       highlights: [],
       lastModifiedAt: new Date().toISOString(),
@@ -680,6 +743,9 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
         getFlashcardSRS,
         isCardDue,
         flashcardSRS: state.flashcardSRS || {},
+        quizResults: state.quizResults || {},
+        recordQuizAnswer,
+        resetQuizQuestions,
         updateScratchpad,
         addHighlight,
         updateHighlight,

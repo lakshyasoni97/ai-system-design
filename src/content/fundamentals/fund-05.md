@@ -72,7 +72,7 @@ In a traditional microservice, a database query takes `2ms` and fails `0.001%` o
 ### 2. Retries with Exponential Backoff & Full Jitter — "The Staggered Fire-Drill Exit"
 - **The Analogy:** Suppose the fire alarm rings for 2 seconds and then stops, and 500 employees all try to squeeze back through the revolving door at the **exact same second** (`12:00:02.000`). They jam the door! If everyone waits **exactly 4 seconds** and pushes again at `12:00:06.000`, they jam it again! **Jitter** tells each person to pick a **random wait time** between `0` and `8 seconds` so people trickle back through smoothly.
 - **The Math (AWS "Full Jitter" Standard):**
-  $$\text{sleep\_seconds} = \text{random\_uniform}\left(0,\ \min\left(\text{cap},\ \text{base} \times 2^{\text{attempt}}\right)\right)$$
+  - **Formula:** `sleep_seconds = random_uniform(0, min(cap, base × 2^attempt))`
   - *Example (`base = 0.5s`, `cap = 16s`):*
     - Attempt 1 fails → sleep random value in `[0s, 1.0s]` (e.g., `0.37s`).
     - Attempt 2 fails → sleep random value in `[0s, 2.0s]` (e.g., `1.62s`).
@@ -103,15 +103,15 @@ Watch how a single slow third-party tool call takes down an unprotected FastAPI 
 
 ### Back-of-the-Envelope Rule of Thumb (15-Second Reliability Math)
 - **Little's Law for Concurrency Pool Sizing (`L = λ × W`):**
-  $$\text{Concurrent Slots } (L) = \text{Throughput } (\lambda \text{ req/s}) \times \text{Avg Latency } (W \text{ sec})$$
+  - **Formula:** `Concurrent Slots (L) = Throughput (λ req/s) × Avg Latency (W sec)`
   - *The Math:* At `100 req/s` with normal latency `W = 0.2s`, you only hold `100 × 0.2 = 20` active connections. If a downstream LLM slows down `25x` to `W = 5.0s`, active connections explode to `100 × 5.0 = 500`—instantly exhausting a `250-connection` pool!
 - **Multi-Layer Retry Amplification Trap:**
   If Browser retries `3x` → API Gateway retries `3x` → Orchestrator retries `3x` → Tool Client retries `3x`:
-  $$\text{Total Downstream Calls per User Click} = 3 \times 3 \times 3 \times 3 = \mathbf{81\text{x traffic explosion!}}$$
+  - **Formula:** `Total Downstream Calls per User Click = 3 × 3 × 3 × 3 = 81x traffic explosion!`
   - **Rule:** Retry at **ONLY ONE layer** (the innermost caller that understands idempotency and rate-limit headers), or enforce a shared **cluster-wide retry budget (`max 10%` of total requests may be retries)**.
 - **Tail Latency & Hedged Requests Math:**
   If a single tool call has a `P99` of `5 seconds` (`1%` slow), and an AI agent calls `10` tools in parallel:
-  $$P(\text{at least 1 slow tool}) = 1 - (0.99)^{10} \approx \mathbf{9.6\%\text{ of users wait 5 seconds!}}$$
+  - **Formula:** `P(at least 1 slow tool) = 1 - (0.99)^10 ≈ 9.6% of users wait 5 seconds!`
   - **Hedged Request Fix:** If a read-only call hasn't returned by the **`P95` latency (`400ms`)**, fire a second parallel request to another replica and take whichever finishes first—Wait time drops from `5,000ms` to `<500ms` at the cost of just `5%` extra load!
 
 ---

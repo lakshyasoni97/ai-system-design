@@ -143,3 +143,4 @@ Before completing any markdown file, verify:
 - [ ] Does Part 6 cover both under-the-hood math AND "What Breaks at 2 AM" production failure modes?
 - [ ] Does Part 7 connect naturally to AI Systems and 1–2 relevant Deloitte/Network18 projects with a complete, placeholder-free code snippet?
 - [ ] Does Part 8 include 3 spoken-English interview answers, follow-up probes, and a 60-second rapid-fire self-check?
+- [ ] Have 3–4 scenario-based MCQs (`src/data/quizzes.json`) been added for this `sourceId` with concrete production numbers, per-option `trapLabel` + `explanation`, and a 1-line `takeaway`?

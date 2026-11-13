@@ -27,6 +27,7 @@ import ReadingList from "./ReadingList";
 import HighlightableArticle from "./HighlightableArticle";
 import StudyScratchpad from "./StudyScratchpad";
 import CodeBlock from "./CodeBlock";
+import ScenarioQuiz, { QuizQuestion } from "./ScenarioQuiz";
 import resourcesData from "@/data/resources.json";
 import { useProgress } from "./ProgressProvider";
 import {
@@ -51,6 +52,7 @@ interface SessionStudyClientProps {
   session: SessionMeta;
   markdownContent: string;
   sessionFlashcards: FlashcardItem[];
+  sessionQuizzes?: QuizQuestion[];
   prevSession: { id: string; number: number; title: string } | null;
   nextSession: { id: string; number: number; title: string } | null;
 }
@@ -65,6 +67,7 @@ export default function SessionStudyClient({
   session,
   markdownContent,
   sessionFlashcards,
+  sessionQuizzes = [],
   prevSession,
   nextSession,
 }: SessionStudyClientProps) {
@@ -73,7 +76,17 @@ export default function SessionStudyClient({
     toggleSessionCompleted,
     scratchpadNotes,
     getHighlightsForSource,
+    quizResults,
   } = useProgress();
+
+  const quizAnsweredCount = useMemo(
+    () => sessionQuizzes.filter((q) => Boolean(quizResults[q.id])).length,
+    [sessionQuizzes, quizResults]
+  );
+  const quizCorrectCount = useMemo(
+    () => sessionQuizzes.filter((q) => quizResults[q.id]?.isCorrect).length,
+    [sessionQuizzes, quizResults]
+  );
 
   const [copiedPrompt, setCopiedPrompt] = useState(false);
   const [activeSectionId, setActiveSectionId] = useState<string>("");
@@ -408,6 +421,19 @@ export default function SessionStudyClient({
             placeholder="Jot down personal metrics, interview analogies, or trade-offs to remember for this session..."
           />
 
+          {/* 3b. Scenario & Trade-Off Defense Quiz */}
+          {sessionQuizzes.length > 0 && (
+            <div id="session-quiz" className="scroll-mt-24">
+              <ScenarioQuiz
+                questions={sessionQuizzes}
+                sourceTitle={session.title}
+                sourceId={session.id}
+                isTopicCompleted={completed}
+                onMarkTopicCompleted={() => toggleSessionCompleted(session.id)}
+              />
+            </div>
+          )}
+
           {/* 4. Check Your Understanding — Session Flashcards */}
           <div
             id="session-flashcards"
@@ -541,6 +567,23 @@ export default function SessionStudyClient({
                 </span>
                 <ChevronRight className="h-3 w-3 text-amber-500" />
               </button>
+              {sessionQuizzes.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => scrollToElement("session-quiz")}
+                  className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span>Scenario Quiz</span>
+                    {quizAnsweredCount > 0 && (
+                      <span className="rounded-full bg-amber-500/15 px-1.5 py-0.2 text-[10px] font-semibold text-amber-500">
+                        {quizCorrectCount}/{sessionQuizzes.length}
+                      </span>
+                    )}
+                  </span>
+                  <ChevronRight className="h-3 w-3 text-amber-500" />
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => scrollToElement("session-flashcards")}

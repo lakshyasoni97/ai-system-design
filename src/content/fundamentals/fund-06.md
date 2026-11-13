@@ -59,7 +59,7 @@ Watch what happens at `09:00:00 AM` when market open hits an unprotected Financi
 
 ### Back-of-the-Envelope Rule of Thumb (15-Second Cache & Quota Math)
 - **Effective Latency Equation:**
-  $$L_{\text{effective}} = (h_{\text{exact}} \times 1\text{ms}) + (h_{\text{semantic}} \times 20\text{ms}) + ((1 - h_{\text{total}}) \times L_{\text{LLM}})$$
+  - **Formula:** `L_effective = (h_exact × 1ms) + (h_semantic × 20ms) + ((1 - h_total) × L_LLM)`
   - *Example:* If raw LLM latency is `2,500ms`, `15%` hit L1 Exact Cache (`1ms`), and `25%` hit L2 Semantic Cache (`20ms`), average latency drops from `2,500ms` to `(0.15×1) + (0.25×20) + (0.60×2500) =` **`1,505ms` (`40%` faster & `40%` cheaper)**!
 - **Semantic Cache RAM Sizing:**
   - `1,000,000` cached Q&A pairs with `768-d float32` vectors (`3 KB`) + `2 KB` JSON answer + HNSW overhead ≈ **`6.5 GB` of Redis RAM** (`~$150/month` on Cloud Memorystore)—saving **`$15,000+/month`** in avoided LLM API calls!

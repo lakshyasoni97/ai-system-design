@@ -2,14 +2,17 @@
 
 import React from "react";
 import Link from "next/link";
-import { BookOpen, CheckCircle2, Circle, Clock, Library } from "lucide-react";
+import { BookOpen, CheckCircle2, Circle, Clock, Library, ShieldAlert } from "lucide-react";
 import fundamentals from "@/data/fundamentals.json";
 import resources from "@/data/resources.json";
+import quizzesData from "@/data/quizzes.json";
 import ReadingList from "@/components/ReadingList";
 import { useFundamentalsDone } from "@/components/FundamentalsStudyClient";
+import { useProgress } from "@/components/ProgressProvider";
 
 export default function FundamentalsIndexPage() {
   const { done } = useFundamentalsDone();
+  const { quizResults } = useProgress();
   const pct = Math.round((done.length / fundamentals.topics.length) * 100);
 
   return (
@@ -36,6 +39,12 @@ export default function FundamentalsIndexPage() {
       <div className="grid gap-4 md:grid-cols-2">
         {fundamentals.topics.map((t) => {
           const isDone = done.includes(t.id);
+          const topicQuestions = quizzesData.filter((q) => q.sourceId === t.id);
+          const answeredCount = topicQuestions.filter((q) => quizResults[q.id]).length;
+          const correctCount = topicQuestions.filter(
+            (q) => quizResults[q.id]?.isCorrect
+          ).length;
+
           return (
             <Link
               key={t.id}
@@ -56,9 +65,33 @@ export default function FundamentalsIndexPage() {
               <p className="mt-2 text-xs text-muted-foreground">
                 <span className="font-semibold text-foreground">AI tie-in:</span> {t.aiTieIn}
               </p>
-              <span className="mt-3 inline-flex items-center gap-1 font-mono text-[11px] text-muted-foreground">
-                <Clock className="h-3 w-3" /> {t.readTime}
-              </span>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-1 font-mono text-[11px] text-muted-foreground">
+                  <Clock className="h-3 w-3" /> {t.readTime}
+                </span>
+                {topicQuestions.length > 0 && (
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-mono text-[11px] font-semibold ${
+                      answeredCount === topicQuestions.length &&
+                      correctCount === topicQuestions.length
+                        ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        : answeredCount > 0
+                        ? "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                        : "border-border bg-secondary text-muted-foreground"
+                    }`}
+                  >
+                    <ShieldAlert className="h-3 w-3" />
+                    {answeredCount > 0
+                      ? `Quiz: ${correctCount}/${topicQuestions.length}${
+                          answeredCount === topicQuestions.length &&
+                          correctCount === topicQuestions.length
+                            ? " ✓"
+                            : ""
+                        }`
+                      : `${topicQuestions.length} Scenario MCQs`}
+                  </span>
+                )}
+              </div>
             </Link>
           );
         })}

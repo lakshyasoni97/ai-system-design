@@ -3,7 +3,9 @@ import path from "path";
 import { notFound } from "next/navigation";
 import curriculumData from "@/data/curriculum.json";
 import flashcardsData from "@/data/flashcards.json";
+import quizzesData from "@/data/quizzes.json";
 import SessionStudyClient from "@/components/SessionStudyClient";
+import { QuizQuestion } from "@/components/ScenarioQuiz";
 
 export function generateStaticParams() {
   return curriculumData.modules.flatMap((mod) =>
@@ -58,11 +60,18 @@ export default function SessionRoadmapPage({
   const moduleCards = flashcardsData.filter((c) => c.module === modNumber);
   const sessionFlashcards = exactCards.length > 0 ? exactCards : moduleCards;
 
+  // Filter scenario quizzes linked to this session (or fallback to same module)
+  const typedQuizzes = quizzesData as QuizQuestion[];
+  const exactQuizzes = typedQuizzes.filter((q) => q.sourceId === session.id);
+  const moduleQuizzes = typedQuizzes.filter((q) => q.module === modNumber);
+  const sessionQuizzes = exactQuizzes.length > 0 ? exactQuizzes : moduleQuizzes;
+
   return (
     <SessionStudyClient
       session={session}
       markdownContent={markdownContent}
       sessionFlashcards={sessionFlashcards}
+      sessionQuizzes={sessionQuizzes}
       prevSession={prevSession}
       nextSession={nextSession}
     />

@@ -3,7 +3,9 @@ import path from "path";
 import { notFound } from "next/navigation";
 import fundamentals from "@/data/fundamentals.json";
 import resources from "@/data/resources.json";
+import quizzesData from "@/data/quizzes.json";
 import FundamentalsStudyClient from "@/components/FundamentalsStudyClient";
+import { QuizQuestion } from "@/components/ScenarioQuiz";
 
 export function generateStaticParams() {
   return fundamentals.topics.map((t) => ({ id: t.id }));
@@ -29,11 +31,16 @@ export default function FundamentalsTopicPage({ params }: { params: { id: string
       topic.id
     ] || [];
 
+  const topicQuizzes = (quizzesData as QuizQuestion[]).filter(
+    (q) => q.sourceId === topic.id
+  );
+
   return (
     <FundamentalsStudyClient
       topic={topic}
       content={content}
       reading={reading}
+      quizzes={topicQuizzes}
       prev={idx > 0 ? fundamentals.topics[idx - 1] : null}
       next={idx < fundamentals.topics.length - 1 ? fundamentals.topics[idx + 1] : null}
     />
