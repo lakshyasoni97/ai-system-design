@@ -1,18 +1,63 @@
 # Caching & Rate Limiting Fundamentals (Plain-English Guide)
 
-> **Quick Summary — What This Is & Why Interviewers Care**
+> **Prerequisites & Plain-English Summary**
 >
 > - **Prerequisites:**
->   - **Hashing (`SHA-256`) vs. Vector Embeddings:** Exact byte-for-byte fingerprint matching (`O(1)`) vs. cosine similarity in `768-d` vector space (`>= 0.94`).
->   - **In-Memory Key-Value Store (`Redis`):** Sub-millisecond (`0.5ms`) RAM storage supporting TTL expirations and single-threaded atomic **Lua scripts**.
->   - **LLM Billing & Quotas (`RPM` vs. `TPM`):** Cloud LLM providers throttle you on both **Requests Per Minute (`RPM`)** and **Tokens Per Minute (`TPM`)**.
-> - **Plain-English Core:** Caching avoids repeating slow, expensive AI computations (`$0.02` and `3,000ms` per LLM call → `$0` and `2ms` in Redis), while Rate Limiting ensures no single noisy tenant or runaway agent loop can exhaust your shared GPU/TPM quota or bankrupt your token budget.
-> - **Why Interviewers Care:** In AI System Design, caching and rate limiting are completely different from traditional web apps: users rarely type the exact same character-for-character prompt (requiring **Semantic Caching** and **Prefix/KV Caching**), and a single request can cost **`100 tokens` or `100,000 tokens`** (requiring **Token-Aware `TPM` Pre-Authorization + Post-Stream Reconciliation**).
-> - **The 10-Second Mental Model:** **"Layer your AI caches (`L1 Exact Redis` → `L2 Semantic Vector Cache with Entity Check` → `L3 Provider Prefix Cache`), coalesce cache misses with `Singleflight`, and enforce `RPM + TPM` quotas atomically via a single Redis Lua script."**
+>   - **Fingerprints vs. Meaning-Maps (Hashing vs. Embeddings):** A hash (`SHA-256`) is a fingerprint that only matches if two texts are *byte-for-byte identical*; an embedding is a list of numbers that places sentences with *similar meaning* close together, so "reset my VPN" and "fix my work VPN" land near each other.
+>   - **Redis:** A super-fast notebook kept in RAM (`~0.5ms` per read) that can auto-erase entries after a timer (TTL) and run tiny scripts with no one else interrupting.
+>   - **LLM Quotas (`RPM` vs. `TPM`):** Cloud AI providers limit you on both how many *requests* you send per minute and how many *tokens* (word pieces) you send per minute.
+> - **Plain-English Core:** Caching means "don't pay to ask the AI the same question twice," and rate limiting means "don't let one customer (or one runaway bot) eat everyone else's share of the AI."
 
 ---
 
-## 1. First Principles, Analogies & Capacity Math
+## 1. Build It From Zero (Basics + Socratic Walkthrough)
+
+### The Naive World (Before This Concept Exists)
+You launch an internal HR assistant for a 20,000-person company. Every question goes straight to Gemini: the server builds a prompt, waits `~3 seconds`, pays `~$0.02`, and returns the answer. On day one, `500` people use it. Life is good.
+
+On Monday at `9:00 AM`, HR emails everyone: *"Open enrollment for health insurance closes Friday."* Within ten minutes, `6,000` employees ask the bot some version of *"When does open enrollment close?"* Your monthly bill and your latency graph both go vertical, and halfway through the morning Gemini starts returning `429 Too Many Requests` to *everyone*—including the CFO asking about something completely different.
+
+### The Socratic Ladder: Discovering Caches and Rate Limits
+
+**🤔 Question 1: Six thousand people just asked the same question. Why are we paying the AI six thousand times to produce the same answer?**
+We shouldn't. The first time anyone asks, save the answer in a fast notebook (Redis) under a label. Next time someone asks the exact same thing, read the notebook in `0.5ms` instead of paying `$0.02` and waiting `3s`.
+→ Label each answer with a **fingerprint of the question** (a hash) and look it up before calling the AI.
+
+**🤔 Question 2: Great—but people don't type identically. "When does open enrollment close?", "open enrollment deadline??", and "last day to pick my health plan" all miss the fingerprint. How can the notebook recognize questions that *mean* the same thing?**
+Turn each question into a meaning-map (an embedding) and look for a stored question whose map is *very close* (say, 94%+ similar). If you find one, reuse its answer.
+→ But be careful: *"2024 enrollment deadline"* and *"2025 enrollment deadline"* look `97%` similar to an embedding model. So before reusing an answer, double-check that the hard facts—years, numbers, names, "not"—match exactly.
+
+**🤔 Question 3: At `10:00:00 AM` your saved answer's timer expires. At `10:00:00.050`, 400 people ask at once. All 400 see "not in notebook." What happens next?**
+All 400 call the AI at the same instant to regenerate the same answer. That's a stampede—400× the cost and a quota blowout for one answer.
+→ Let **only the first request** go fetch the new answer (it grabs a "I'm on it" sticky note), and make the other 399 wait a moment and share the result. Even better: refresh popular answers *slightly before* they expire, while still serving the old one.
+
+**🤔 Question 4: Caching helps repeated questions, but one team writes a script that sends 50,000 unique questions overnight. It burns your entire company-wide AI quota, and morning users get errors. How do you stop one user from eating everyone's share?**
+Give each team an allowance that refills steadily—like a pouch that gains 1,000 tokens every second, holding at most 60,000. Each request spends from the pouch; empty pouch means "please wait."
+→ That allows short bursts (uploading a big PDF) while capping the long-term average.
+
+**🤔 Question 5: But AI requests aren't all the same size. One question is 50 tokens; another pastes a 100,000-token contract. And you don't know how long the *answer* will be until it finishes streaming. How do you charge the allowance fairly?**
+Do what a gas station does: put a **temporary hold** for the input tokens plus a typical answer length *before* you start, then **refund the difference** once you know the real total. And do the check-and-deduct in a single uninterruptible step, so 50 servers can't all see "plenty left" at the same moment and overspend.
+
+### Naming What You Just Invented
+1. The fingerprint notebook is an **Exact-Match Cache** using the **Cache-Aside** pattern.
+2. The meaning-based notebook with a facts double-check is a **Semantic Cache with an Entity Guard**.
+3. "Only one goes to fetch, others wait" is **Singleflight / Request Coalescing**; refreshing early is **Stale-While-Revalidate**, and the problem itself is a **Cache Stampede (Thundering Herd)**.
+4. The refilling allowance pouch is a **Token Bucket Rate Limiter**, applied **per tenant**.
+5. The gas-station hold with refund is **Token-Aware (`TPM`) Pre-Authorization + Post-Stream Reconciliation**, made safe with an **atomic Redis Lua script**.
+
+### Explain It in Layers
+- **One Line (Explain to a 12-Year-Old):** Write down answers you've already worked out so you don't redo them, and give everyone a fair allowance so no one hogs the shared toy.
+- **One Paragraph (Explain to a Non-Backend Engineer):** Calling an AI model is slow (seconds) and costs money per word, so we keep a fast store of previous answers (a **cache**) and check it first—both for exact repeats and for questions that mean the same thing. When a popular answer expires, we make sure only one request regenerates it. Separately, the AI provider gives us a limited budget of words per minute, so we split that budget between customers (**rate limiting**) and charge each request by its real size, not just as "one request."
+- **Engineer Version:** Production AI gateways layer an **L1 exact cache** (`sha256` over a normalized, versioned prompt key), an **L2 tenant- and ACL-scoped semantic cache** with a cosine threshold (`~0.94`) plus deterministic entity/number/negation verification, and **L3 provider prefix/KV caching** via static-first prompt ordering. Misses are coalesced with **Singleflight** (`SET NX` locks) and hot keys use **soft/hard TTLs with jitter**. Admission control is a **dual `RPM + TPM` token bucket** executed atomically in a Redis Lua script, with **pre-authorization** of `input + P90 output` tokens and **post-stream reconciliation**, partitioned into **priority pools** so batch work can never starve interactive traffic.
+
+---
+
+## 2. First Principles, Analogies, Interview Framing & Capacity Math
+
+> **Why Interviewers Care & The 10-Second Mental Model**
+>
+> - **Why Interviewers Care:** In AI System Design, caching and rate limiting are completely different from traditional web apps: users rarely type the exact same character-for-character prompt (requiring **Semantic Caching** and **Prefix/KV Caching**), and a single request can cost **`100 tokens` or `100,000 tokens`** (requiring **Token-Aware `TPM` Pre-Authorization + Post-Stream Reconciliation**).
+> - **The 10-Second Mental Model:** **"Layer your AI caches (`L1 Exact Redis` → `L2 Semantic Vector Cache with Entity Check` → `L3 Provider Prefix Cache`), coalesce cache misses with `Singleflight`, and enforce `RPM + TPM` quotas atomically via a single Redis Lua script."**
 
 Calling a frontier LLM (`Gemini 1.5 Pro` or `GPT-4o`) is **6,000x slower** (`3,000ms` vs. `0.5ms`) and **100,000x more expensive** than reading a key from Redis. Let's break down the foundational patterns for caching and rate limiting using concrete real-world models.
 
@@ -68,7 +113,7 @@ Watch what happens at `09:00:00 AM` when market open hits an unprotected Financi
 
 ---
 
-## 2. Visual Architecture Blueprint
+## 3. Visual Architecture Blueprint
 
 Follow the numbered steps (`1 → 7`) below to trace how an incoming AI request passes through **Atomic Dual Rate Limiting (`RPM + TPM`)**, the **3-Tier AI Cache**, **Singleflight Stampede Protection**, and **Post-Stream Token Reconciliation**:
 
@@ -101,7 +146,7 @@ flowchart TD
 
 ---
 
-## 3. Side-by-Side Comparison & Trade-Off Table
+## 4. Side-by-Side Comparison & Trade-Off Table
 
 ### Table A: AI Caching Strategies Compared
 
@@ -121,7 +166,7 @@ flowchart TD
 
 ---
 
-## 4. Deep-Dive Mechanics & Production Failure Analysis
+## 5. Deep-Dive Mechanics & Production Failure Analysis
 
 ### Under-the-Hood Tricks (What Separates Junior from Senior Answers)
 
@@ -167,7 +212,7 @@ flowchart TD
 
 ---
 
-## 5. Production AI & Resume Tie-In
+## 6. Production AI & Resume Tie-In
 
 ### 1. Deloitte Internal Asset Discovery Chatbot & Multi-Agent Orchestration (RBAC Semantic Cache + Per-Tenant TPM Quotas)
 - **The Challenge:** Across our **Deloitte** internal presentation RAG chatbot (**ChromaDB, LangGraph, Vision LLMs**) and our **GKE Multi-Agent Customer Support** platform (**Google ADK, FastAPI, Vertex AI**), hundreds of consultants and support users frequently asked variations of high-frequency queries—while complex multi-agent research loops could consume `25,000+` tokens in a single turn.
@@ -223,10 +268,19 @@ if new_rpm == 1 then redis.call('EXPIRE', rpm_key, 60) end
 return {1, math.floor(tokens), 0}
 """
 
+# Atomic refund: clamp the bucket to [0, max_tpm] after adding back (or charging) the delta
+LUA_REFUND = """
+local cur = tonumber(redis.call('HGET', KEYS[1], 'tokens') or ARGV[2])
+local new = math.min(tonumber(ARGV[2]), math.max(0, cur + tonumber(ARGV[1])))
+redis.call('HSET', KEYS[1], 'tokens', new)
+return math.floor(new)
+"""
+
 class AIGatewayRateLimiterAndCache:
     def __init__(self, redis_client: redis.Redis) -> None:
         self.redis = redis_client
         self.lua_Limiter = self.redis.register_script(LUA_DUAL_RATE_LIMIT)
+        self.lua_refund = self.redis.register_script(LUA_REFUND)
 
     @staticmethod
     def extract_hard_tokens(text: str) -> set[str]:
@@ -250,16 +304,16 @@ class AIGatewayRateLimiterAndCache:
     async def reconcile_post_stream_tokens(
         self, tenant_id: str, reserved_tokens: int, actual_total_tokens: int, max_tpm: int = 120_000
     ) -> None:
-        # Refund unused pre-authorized output tokens (or deduct extra if output exceeded estimate)
+        # Refund unused pre-authorized tokens (or charge extra if output exceeded the estimate).
+        # Done in Lua too: a Python HGET-then-HSET would race with concurrent pre-auth deductions.
         delta = reserved_tokens - actual_total_tokens
         if delta != 0:
-            cur = float(await self.redis.hget(f"rl:tpm:{tenant_id}", "tokens") or max_tpm)
-            await self.redis.hset(f"rl:tpm:{tenant_id}", "tokens", min(max_tpm, max(0.0, cur + delta)))
+            await self.lua_refund(keys=[f"rl:tpm:{tenant_id}"], args=[delta, max_tpm])
 ```
 
 ---
 
-## 6. Common Interview Questions, Follow-Up Probes & Quick Recall
+## 7. Common Interview Questions, Follow-Up Probes & Quick Recall
 
 ### Q1: "How does rate limiting an LLM API differ from rate limiting a normal REST API—and how do you handle unknown output token counts before streaming starts?"
 - **What they are really testing:** Do you know that `RPM` alone is useless when 1 prompt can contain `100,000 tokens`, and do you know the **Pre-Authorization + Post-Stream Refund** pattern?

@@ -108,7 +108,7 @@
       "title": "Back-of-the-Envelope Estimation Toolkit",
       "readTime": "14 min",
       "aiTieIn": "Tokens/sec, GPU RAM, vector index size, cost per 1k requests and cost per resolved task",
-      "status": "skeleton",
+      "status": "written",
       "topics": [
         "Latency numbers every engineer should know",
         "QPS, storage, bandwidth estimation method",
@@ -126,7 +126,7 @@
       "title": "Observability, SLOs & Percentile Thinking",
       "readTime": "12 min",
       "aiTieIn": "TTFT P99, agent traces, quality SLOs next to latency SLOs",
-      "status": "skeleton",
+      "status": "written",
       "topics": [
         "SLI/SLO/error budgets",
         "Percentiles vs averages; P99 thinking",
