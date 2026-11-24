@@ -22,7 +22,6 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ChevronRight as BreadcrumbSeparator,
-  ArrowRight,
   Command,
   Settings,
   Target,
@@ -30,12 +29,14 @@ import {
   ListChecks,
   Highlighter,
   Cloud,
+  RefreshCw,
   CalendarDays,
   Type,
 } from "lucide-react";
 import curriculumData from "@/data/curriculum.json";
 import projectsData from "@/data/projects.json";
 import flashcardsData from "@/data/flashcards.json";
+import problemsData from "@/data/problems.json";
 import { useProgress } from "./ProgressProvider";
 import { useTheme } from "./ThemeProvider";
 import CloudSyncModal from "./CloudSyncModal";
@@ -231,14 +232,14 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
           id: "nav-curriculum",
           category: "Navigation",
           title: "Go to Curriculum (Modules 0–5)",
-          subtitle: "Distributed fundamentals, 31 sessions & mind map",
+          subtitle: `Distributed fundamentals, ${allSessions.length} sessions & mind map`,
           onSelect: () => router.push("/curriculum"),
         },
         {
           id: "nav-problems",
           category: "Navigation",
           title: "Go to Problem Bank",
-          subtitle: "18 canonical AI system design problems",
+          subtitle: `${problemsData.length} canonical AI system design problems`,
           onSelect: () => router.push("/problems"),
         },
         {
@@ -298,8 +299,8 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
         results.push({
           id: `session-${s.id}`,
           category: "Sessions",
-          title: `Session ${String(s.number).padStart(2, "0")}: ${s.title}`,
-          subtitle: `${s.moduleTitle} • ${s.projectTieIn}`,
+          title: `Session ${s.number}: ${s.title}`,
+          subtitle: `${s.moduleTitle} — ${s.projectTieIn}`,
           onSelect: () => router.push(`/roadmap/${s.id}`),
         });
       }
@@ -356,7 +357,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
           id: `hl-${h.id}`,
           category: "Notes & Highlights",
           title: displayTitle,
-          subtitle: `${h.sourceTitle} • "${h.text.slice(0, 50)}..."`,
+          subtitle: `${h.sourceTitle} — "${h.text.slice(0, 50)}..."`,
           onSelect: () => router.push(`${h.href}?highlight=${h.id}`),
         });
       }
@@ -394,7 +395,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
           id: `fc-${fc.id}`,
           category: "Flashcards",
           title: fc.question,
-          subtitle: `${fc.module} • ${fc.projectTag}`,
+          subtitle: `${fc.module} — ${fc.projectTag}`,
           onSelect: () => router.push("/flashcards"),
         });
       }
@@ -567,7 +568,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
                 onClick={() => setMobileOpen(false)}
                 className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                   isActive
-                    ? "bg-primary/15 text-primary border border-primary/30 font-semibold shadow-2xs"
+                    ? "bg-primary/15 text-primary border border-primary/30 font-semibold shadow-sm"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent"
                 }`}
               >
@@ -617,7 +618,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
         {activeModule ? (
           <div className="space-y-2">
             <div className="flex items-center justify-between px-1">
-              <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <span className="text-xs font-medium text-muted-foreground">
                 Current Module
               </span>
               <span className="font-mono text-[11px] font-semibold text-primary">
@@ -655,7 +656,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
                       )}
                       <div className="min-w-0 flex-1">
                         <span className="font-mono text-[10px] text-muted-foreground mr-1">
-                          S{String(s.number).padStart(2, "0")}
+                          S{s.number}
                         </span>
                         <span className="truncate">{s.title}</span>
                       </div>
@@ -670,25 +671,23 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
               onClick={() => setMobileOpen(false)}
               className="flex items-center justify-between rounded-lg px-2 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
-              <span>View all 5 modules</span>
-              <ArrowRight className="h-3 w-3" />
+              <span>View all {curriculumData.modules.length} modules</span>
             </Link>
           </div>
         ) : (
           <div className="rounded-xl border border-border/80 bg-secondary/30 p-3 space-y-2 text-xs">
-            <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground block">
+            <span className="text-xs font-medium text-muted-foreground block">
               Curriculum Summary
             </span>
             <p className="text-[11px] text-muted-foreground leading-relaxed">
-              31 sessions across Backend, RAG, Agents, Serving, and LLMOps.
+              {allSessions.length} sessions across Backend, RAG, Agents, Serving, and LLMOps.
             </p>
             <Link
               href="/curriculum"
               onClick={() => setMobileOpen(false)}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+              className="inline-flex items-center text-xs font-semibold text-primary hover:underline"
             >
-              <span>Explore Curriculum Roadmap</span>
-              <ArrowRight className="h-3 w-3" />
+              Explore Curriculum Roadmap
             </Link>
           </div>
         )}
@@ -706,10 +705,11 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
         >
           <div className="flex items-center gap-2 min-w-0">
             {isSyncConfigured ? (
-              <span className={`relative flex h-2 w-2 ${isSyncing ? "animate-spin" : ""}`}>
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-              </span>
+              isSyncing ? (
+                <RefreshCw className="h-3 w-3 animate-spin text-amber-500 shrink-0" />
+              ) : (
+                <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+              )
             ) : (
               <Cloud className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
             )}
@@ -851,7 +851,11 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
               }
               aria-label="Cloud sync settings"
             >
-              <Cloud className={`h-3.5 w-3.5 ${isSyncing ? "animate-pulse text-amber-500" : ""}`} />
+              {isSyncing ? (
+                <RefreshCw className="h-3.5 w-3.5 animate-spin text-amber-500" />
+              ) : (
+                <Cloud className="h-3.5 w-3.5" />
+              )}
               <span>
                 {isSyncConfigured
                   ? isSyncing
@@ -962,7 +966,7 @@ export default function Sidebar({ children }: { children: React.ReactNode }) {
       {/* Global Command Palette Modal */}
       {commandPaletteOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 sm:pt-24 bg-background/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-2xl rounded-2xl border border-border bg-card shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+          <div className="w-full max-w-2xl rounded-2xl border border-border bg-card shadow-2xl overflow-hidden">
             {/* Search Input Bar */}
             <div className="relative flex items-center border-b border-border px-4 py-3">
               <Search className="h-4 w-4 text-primary shrink-0" />

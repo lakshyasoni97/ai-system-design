@@ -8,6 +8,7 @@ import ReadingList, { ReadingItem } from "./ReadingList";
 import StudyScratchpad from "./StudyScratchpad";
 import ScenarioQuiz, { QuizQuestion } from "./ScenarioQuiz";
 import { useProgress } from "./ProgressProvider";
+import fundamentalsData from "@/data/fundamentals.json";
 
 export function useFundamentalsDone() {
   const { completedItems, toggleItemCompleted, isItemCompleted } = useProgress();
@@ -50,14 +51,14 @@ export default function FundamentalsStudyClient({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl sm:rounded-3xl border border-border bg-card p-4 sm:p-6 md:p-8 shadow-xs">
+      <div className="rounded-2xl sm:rounded-3xl border border-border bg-card p-4 sm:p-6 md:p-8 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/fundamentals"
               className="inline-flex items-center gap-1 rounded-lg border border-border bg-secondary/60 px-2.5 py-1 font-mono text-xs text-muted-foreground hover:text-foreground"
             >
-              Module 0 · Topic {topic.number} of 8
+              Module 0 / Topic {topic.number} of {fundamentalsData.topics.length}
             </Link>
             <span className="inline-flex items-center gap-1 rounded-lg border border-border bg-secondary/60 px-2.5 py-1 font-mono text-xs text-muted-foreground">
               <Clock className="h-3.5 w-3.5 text-primary" />
@@ -133,7 +134,7 @@ export default function FundamentalsStudyClient({
             href="/roadmap/session-01"
             className="inline-flex items-center gap-2 rounded-xl border border-primary/40 bg-primary/10 px-4 py-2.5 text-sm font-semibold text-primary"
           >
-            Start Session 01 <ArrowRight className="h-4 w-4" />
+            Start Session 1 <ArrowRight className="h-4 w-4" />
           </Link>
         )}
       </div>

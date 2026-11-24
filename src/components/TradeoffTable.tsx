@@ -46,11 +46,11 @@ export default function TradeoffTable({
 
   if (children) {
     return (
-      <div className="my-6 overflow-hidden rounded-xl sm:rounded-2xl border border-border bg-card shadow-xs">
+      <div className="my-6 overflow-hidden rounded-xl sm:rounded-2xl border border-border bg-card shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/60 px-3.5 py-2 sm:px-4 sm:py-2.5">
           <div className="flex items-center gap-2">
             <Scale className="h-4 w-4 text-accent shrink-0" />
-            <span className="font-mono text-xs font-semibold uppercase tracking-wider text-foreground">
+            <span className="font-mono text-xs font-semibold text-foreground">
               {title || "Architectural Trade-Off Decision Matrix"}
             </span>
           </div>
@@ -86,10 +86,10 @@ export default function TradeoffTable({
                 const isMasked = td.getAttribute("data-revealed") !== "true";
                 if (isMasked) {
                   td.setAttribute("data-revealed", "true");
-                  td.classList.remove("blur-xs", "opacity-40", "select-none");
+                  td.classList.remove("blur-sm", "opacity-40", "select-none");
                 } else {
                   td.removeAttribute("data-revealed");
-                  td.classList.add("blur-xs", "opacity-40", "select-none");
+                  td.classList.add("blur-sm", "opacity-40", "select-none");
                 }
               }
             }
@@ -98,7 +98,7 @@ export default function TradeoffTable({
           <table
             className={`w-full border-collapse text-left text-xs sm:text-sm ${
               isBlinded
-                ? "[&_tbody_tr_td:last-child:not([data-revealed='true'])]:blur-xs [&_tbody_tr_td:last-child:not([data-revealed='true'])]:opacity-40 [&_tbody_tr_td:last-child:not([data-revealed='true'])]:select-none"
+                ? "[&_tbody_tr_td:last-child:not([data-revealed='true'])]:blur-sm [&_tbody_tr_td:last-child:not([data-revealed='true'])]:opacity-40 [&_tbody_tr_td:last-child:not([data-revealed='true'])]:select-none"
                 : ""
             }`}
           >
@@ -110,11 +110,11 @@ export default function TradeoffTable({
   }
 
   return (
-    <div className="my-6 overflow-hidden rounded-xl sm:rounded-2xl border border-border bg-card shadow-xs">
+    <div className="my-6 overflow-hidden rounded-xl sm:rounded-2xl border border-border bg-card shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/60 px-3.5 py-2.5 sm:px-4 sm:py-3">
         <div className="flex items-center gap-2">
           <Scale className="h-4 w-4 text-accent shrink-0" />
-          <span className="font-mono text-xs font-semibold uppercase tracking-wider text-foreground">
+          <span className="font-mono text-xs font-semibold text-foreground">
             {title || "Architectural Trade-Off Decision Matrix"}
           </span>
         </div>

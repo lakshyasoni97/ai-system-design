@@ -92,13 +92,13 @@ function ProjectsDefenseContent() {
                 onClick={() => handleSelectProject(proj.id)}
                 className={`flex flex-col justify-between rounded-xl border p-3.5 text-left transition-all cursor-pointer ${
                   isSelected
-                    ? "border-primary bg-primary/10 shadow-xs"
+                    ? "border-primary bg-primary/10 shadow-sm"
                     : "border-border bg-card hover:border-primary/40 hover:bg-muted/40"
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span
-                    className={`rounded px-2 py-0.5 font-mono text-[10px] font-semibold uppercase ${
+                    className={`rounded px-2 py-0.5 font-mono text-[11px] font-semibold ${
                       proj.company === "Deloitte"
                         ? "bg-primary/20 text-primary"
                         : "bg-accent/20 text-accent"
@@ -123,8 +123,9 @@ function ProjectsDefenseContent() {
       <div id="pitch" className="rounded-2xl border border-border bg-card p-6 shadow-sm scroll-mt-24">
         <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-4">
           <div>
-            <div className="font-mono text-xs font-semibold uppercase tracking-wider text-primary">
-              {activeProject.company} • {activeProject.tag}
+            <div className="flex items-center gap-2 font-mono text-xs font-semibold text-primary">
+              <span>{activeProject.company}</span>
+              <span className="text-muted-foreground font-normal">{activeProject.tag}</span>
             </div>
             <h2 className="mt-1 text-xl font-bold text-foreground sm:text-2xl">
               {activeProject.title}
@@ -155,7 +156,7 @@ function ProjectsDefenseContent() {
 
         {/* Elevator Pitch Box */}
         <div className="mt-4 rounded-xl border border-primary/30 bg-primary/10 p-4">
-          <div className="mb-1.5 font-mono text-[11px] font-semibold uppercase tracking-wider text-primary">
+          <div className="mb-1.5 font-mono text-xs font-semibold text-primary">
             The 30-Second Elevator Pitch
           </div>
           <p className="text-sm sm:text-base leading-relaxed text-foreground">
@@ -212,7 +213,7 @@ function ProjectsDefenseContent() {
               onClick={() => setDiagramMode("split")}
               className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-mono text-xs font-semibold transition-colors cursor-pointer ${
                 diagramMode === "split"
-                  ? "bg-card text-foreground shadow-xs"
+                  ? "bg-card text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -224,7 +225,7 @@ function ProjectsDefenseContent() {
               onClick={() => setDiagramMode("current")}
               className={`rounded-lg px-2.5 py-1 font-mono text-xs font-semibold transition-colors cursor-pointer ${
                 diagramMode === "current"
-                  ? "bg-card text-foreground shadow-xs"
+                  ? "bg-card text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -235,7 +236,7 @@ function ProjectsDefenseContent() {
               onClick={() => setDiagramMode("100x")}
               className={`rounded-lg px-2.5 py-1 font-mono text-xs font-semibold transition-colors cursor-pointer ${
                 diagramMode === "100x"
-                  ? "bg-primary text-primary-foreground shadow-xs"
+                  ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -302,7 +303,7 @@ function ProjectsDefenseContent() {
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
           <div className="rounded-xl border border-border bg-muted/20 p-4">
-            <div className="flex items-center gap-1.5 font-mono text-xs uppercase text-primary font-semibold">
+            <div className="flex items-center gap-1.5 font-mono text-xs text-primary font-semibold">
               <TrendingUp className="h-3.5 w-3.5" />
               <span>QPS Target</span>
             </div>
@@ -312,7 +313,7 @@ function ProjectsDefenseContent() {
           </div>
 
           <div className="rounded-xl border border-border bg-muted/20 p-4">
-            <div className="flex items-center gap-1.5 font-mono text-xs uppercase text-accent font-semibold">
+            <div className="flex items-center gap-1.5 font-mono text-xs text-accent font-semibold">
               <Cpu className="h-3.5 w-3.5" />
               <span>Daily Volume</span>
             </div>
@@ -322,7 +323,7 @@ function ProjectsDefenseContent() {
           </div>
 
           <div className="rounded-xl border border-border bg-muted/20 p-4">
-            <div className="flex items-center gap-1.5 font-mono text-xs uppercase text-amber-600 dark:text-amber-400 font-semibold">
+            <div className="flex items-center gap-1.5 font-mono text-xs text-amber-600 dark:text-amber-400 font-semibold">
               <Gauge className="h-3.5 w-3.5" />
               <span>P50 / P99 Latency</span>
             </div>
@@ -332,7 +333,7 @@ function ProjectsDefenseContent() {
           </div>
 
           <div className="rounded-xl border border-border bg-muted/20 p-4">
-            <div className="flex items-center gap-1.5 font-mono text-xs uppercase text-primary font-semibold">
+            <div className="flex items-center gap-1.5 font-mono text-xs text-primary font-semibold">
               <DollarSign className="h-3.5 w-3.5" />
               <span>Unit Economics</span>
             </div>
@@ -342,7 +343,7 @@ function ProjectsDefenseContent() {
           </div>
 
           <div className="rounded-xl border border-border bg-muted/20 p-4">
-            <div className="flex items-center gap-1.5 font-mono text-xs uppercase text-accent font-semibold">
+            <div className="flex items-center gap-1.5 font-mono text-xs text-accent font-semibold">
               <Award className="h-3.5 w-3.5" />
               <span>Eval Metrics</span>
             </div>

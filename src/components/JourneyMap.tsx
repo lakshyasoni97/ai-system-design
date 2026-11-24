@@ -5,16 +5,12 @@ import Link from "next/link";
 import {
   CheckCircle2,
   Circle,
-  ArrowRight,
   Clock,
   Layers,
   CalendarDays,
-  Target,
-  Sparkles,
   ChevronDown,
   ChevronRight,
   Check,
-  Flame,
   Copy,
 } from "lucide-react";
 import curriculumData from "@/data/curriculum.json";
@@ -85,7 +81,7 @@ export default function JourneyMap() {
             rawId: itemId,
             type: "fundamental",
             typeLabel: "Distributed Fundamental",
-            badgeCode: `F${String(t?.number || 0).padStart(2, "0")}`,
+            badgeCode: `F${t?.number || 0}`,
             title: t ? t.title : itemId,
             subtitle: t?.aiTieIn || "Distributed System Building Block",
             href: `/fundamentals/${itemId}`,
@@ -120,7 +116,7 @@ export default function JourneyMap() {
           rawId: itemId,
           type: "session",
           typeLabel: "Session",
-          badgeCode: `S${String(s?.number || 0).padStart(2, "0")}`,
+          badgeCode: `S${s?.number || 0}`,
           title: s ? s.title : itemId,
           subtitle: s?.projectTieIn || "Architecture Topic",
           href: `/roadmap/${itemId}`,
@@ -193,33 +189,33 @@ export default function JourneyMap() {
     } catch {}
   };
 
+  const totalItemsCount = useMemo(
+    () => processedWeeks.reduce((acc, w) => acc + w.items.length, 0),
+    [processedWeeks]
+  );
+
   return (
     <div className="space-y-6">
       {/* 1. Header with Mode Switcher */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-border/60 pb-4">
         <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-xl font-bold tracking-tight text-foreground">
-              Mastery Roadmap & Progression
-            </h2>
-            <span className="rounded-full bg-primary/10 px-2.5 py-0.5 font-mono text-xs font-semibold text-primary">
-              10 Weeks · 5 Phases · 57 Items
-            </span>
-          </div>
+          <h2 className="text-xl font-bold tracking-tight text-foreground">
+            Mastery Roadmap & Progression
+          </h2>
           <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Progressive 10-week syllabus with automatic milestone focusing and 1-click completion tracking.
+            {curriculumData.weeks.length} weeks, {curriculumData.phases.length} phases, {totalItemsCount} items with milestone focusing and completion tracking.
           </p>
         </div>
 
         {/* View Toggle */}
         <div className="flex items-center gap-2 self-start sm:self-auto">
-          <div className="flex items-center rounded-xl border border-border bg-card p-1 shadow-2xs">
+          <div className="flex items-center rounded-xl border border-border bg-card p-1 shadow-sm">
             <button
               type="button"
               onClick={() => setViewMode("TIMELINE")}
               className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                 viewMode === "TIMELINE"
-                  ? "bg-primary text-primary-foreground shadow-2xs"
+                  ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -231,7 +227,7 @@ export default function JourneyMap() {
               onClick={() => setViewMode("MODULES")}
               className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                 viewMode === "MODULES"
-                  ? "bg-primary text-primary-foreground shadow-2xs"
+                  ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -243,10 +239,10 @@ export default function JourneyMap() {
       </div>
 
       {/* 2. TIER 1 MACRO PROGRESSION: 5-PHASE STEPPER */}
-      <div className="rounded-2xl border border-border/70 bg-secondary/30 p-3.5 sm:p-4">
-        <div className="flex items-center justify-between text-xs font-semibold mb-2.5">
-          <span className="font-mono uppercase text-muted-foreground text-[11px] tracking-wider">
-            Curriculum Phase Progression
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between text-xs font-semibold">
+          <span className="text-xs font-medium text-muted-foreground">
+            Curriculum phase progression
           </span>
           <span className="font-mono text-[11px] text-primary">
             Current: Phase {phaseStats.find((p) => p.isCurrentPhase)?.number ?? 0}
@@ -259,7 +255,7 @@ export default function JourneyMap() {
               key={phase.id}
               className={`rounded-xl border p-2.5 transition-all ${
                 phase.isCurrentPhase
-                  ? "border-primary/60 bg-card ring-1 ring-primary/40 shadow-xs"
+                  ? "border-primary/60 bg-card ring-1 ring-primary/40 shadow-sm"
                   : phase.isPhaseDone
                   ? "border-border/60 bg-card/60 opacity-90"
                   : "border-border/40 bg-card/30 opacity-70"
@@ -270,7 +266,7 @@ export default function JourneyMap() {
                   {phase.isPhaseDone ? (
                     <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
                   ) : phase.isCurrentPhase ? (
-                    <div className="h-2 w-2 rounded-full bg-primary animate-pulse shrink-0" />
+                    <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
                   ) : (
                     <Circle className="h-3 w-3 text-muted-foreground/40 shrink-0" />
                   )}
@@ -345,19 +341,18 @@ export default function JourneyMap() {
                           Week {w.week}: {w.focus}
                         </span>
                         {isCurrent && (
-                          <span className="rounded bg-primary px-2 py-0.2 font-mono text-[10px] font-bold text-primary-foreground shrink-0 animate-pulse">
-                            ACTIVE FOCUS
+                          <span className="rounded bg-primary px-2 py-0.5 font-mono text-[11px] font-semibold text-primary-foreground shrink-0">
+                            Current
                           </span>
                         )}
                         {w.isCompleted && (
-                          <span className="rounded bg-primary/10 border border-primary/25 px-1.5 py-0.2 font-mono text-[10px] font-semibold text-primary shrink-0">
-                            COMPLETED
+                          <span className="rounded bg-primary/10 border border-primary/25 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-primary shrink-0">
+                            Done
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground font-mono">
+                      <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground font-mono">
                         <span>Phase {w.phase}</span>
-                        <span>•</span>
                         <span className="truncate max-w-[280px] sm:max-w-md">
                           Milestone: {w.milestone}
                         </span>
@@ -396,7 +391,7 @@ export default function JourneyMap() {
                             className={`group flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border p-3 sm:px-3.5 sm:py-2.5 transition-all ${
                               item.isDone
                                 ? "border-border/50 bg-secondary/30 text-muted-foreground hover:bg-secondary/50"
-                                : "border-border bg-card text-foreground hover:border-primary/50 hover:shadow-2xs"
+                                : "border-border bg-card text-foreground hover:border-primary/50 hover:shadow-sm"
                             }`}
                           >
                             {/* Left: Checkbox + Badges + Title */}
@@ -471,14 +466,13 @@ export default function JourneyMap() {
 
                               <Link
                                 href={item.href}
-                                className={`inline-flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs sm:text-sm font-semibold transition-colors ${
+                                className={`inline-flex items-center rounded-xl px-3 py-1.5 text-xs sm:text-sm font-semibold transition-colors ${
                                   item.isDone
                                     ? "border border-border bg-card text-muted-foreground hover:text-foreground"
                                     : "bg-primary text-primary-foreground hover:opacity-90"
                                 }`}
                               >
-                                <span>{item.isDone ? "Review" : "Study"}</span>
-                                <ArrowRight className="h-3.5 w-3.5" />
+                                {item.isDone ? "Review" : "Study"}
                               </Link>
                             </div>
                           </div>
@@ -503,7 +497,7 @@ export default function JourneyMap() {
             return (
               <div
                 key={mod.id}
-                className="rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-xs"
+                className="rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-sm"
               >
                 <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between border-b border-border/60 pb-3 mb-3.5">
                   <div className="flex items-center gap-2.5">
@@ -555,8 +549,9 @@ export default function JourneyMap() {
                       >
                         <div>
                           <div className="flex items-center justify-between gap-1.5 mb-1.5">
-                            <span className="font-mono text-[10px] font-bold text-muted-foreground">
-                              S{String(s.number).padStart(2, "0")} · W{s.week}
+                            <span className="inline-flex items-center gap-2 font-mono text-[10px] font-bold text-muted-foreground">
+                              <span>S{s.number}</span>
+                              <span>W{s.week}</span>
                             </span>
                             <button
                               type="button"

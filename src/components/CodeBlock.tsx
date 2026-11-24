@@ -109,7 +109,7 @@ export default function CodeBlock({
             </span>
             {linesCount > 1 && (
               <span className="hidden sm:inline font-mono text-[11px] text-zinc-500 shrink-0">
-                • {linesCount} lines
+                {linesCount} lines
               </span>
             )}
           </div>
@@ -119,7 +119,7 @@ export default function CodeBlock({
         <button
           type="button"
           onClick={handleCopy}
-          className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 px-2.5 py-1 font-mono text-[11px] text-zinc-300 hover:text-white transition-all cursor-pointer shadow-xs active:scale-95"
+          className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 px-2.5 py-1 font-mono text-[11px] text-zinc-300 hover:text-white transition-all cursor-pointer shadow-sm active:scale-95"
           title="Copy code to clipboard"
           aria-label="Copy code to clipboard"
         >

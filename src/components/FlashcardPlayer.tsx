@@ -8,7 +8,6 @@ import {
   ChevronLeft,
   ChevronRight,
   RotateCw,
-  Sparkles,
   Filter,
   Flame,
   CheckCircle2,
@@ -283,25 +282,25 @@ export default function FlashcardPlayer({
       case "hard":
         return (
           <span className="inline-flex items-center gap-1 rounded-full border border-destructive/40 bg-destructive/15 px-2.5 py-0.5 font-mono text-xs text-destructive font-semibold">
-            <Flame className="h-3 w-3" /> Hard · {dueText}
+            <Flame className="h-3 w-3" /> Hard ({dueText})
           </span>
         );
       case "medium":
         return (
           <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/15 px-2.5 py-0.5 font-mono text-xs text-amber-600 dark:text-amber-400 font-semibold">
-            <Clock className="h-3 w-3" /> Good · {dueText}
+            <Clock className="h-3 w-3" /> Good ({dueText})
           </span>
         );
       case "easy":
         return (
           <span className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/15 px-2.5 py-0.5 font-mono text-xs text-primary font-semibold">
-            <CheckCircle2 className="h-3 w-3" /> Easy · {dueText}
+            <CheckCircle2 className="h-3 w-3" /> Easy ({dueText})
           </span>
         );
       default:
         return (
           <span className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary px-2.5 py-0.5 font-mono text-xs text-muted-foreground font-medium">
-            <HelpCircle className="h-3 w-3" /> Unseen · Due Now
+            <HelpCircle className="h-3 w-3" /> Unseen (Due now)
           </span>
         );
     }
@@ -467,14 +466,13 @@ export default function FlashcardPlayer({
             <div>
               <div className="mb-4 flex items-center justify-between">
                 <span
-                  className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-mono text-xs font-semibold uppercase tracking-wider ${
+                  className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-mono text-xs font-semibold ${
                     isFlipped
                       ? "bg-primary/20 text-primary"
                       : "bg-accent/20 text-accent"
                   }`}
                 >
-                  <Sparkles className="h-3.5 w-3.5" />
-                  {isFlipped ? "Production Defense Answer" : "Interview Question"}
+                  {isFlipped ? "Production defense answer" : "Interview question"}
                 </span>
 
                 <span className="flex items-center gap-1.5 font-mono text-xs text-muted-foreground group-hover:text-foreground">
@@ -526,8 +524,8 @@ export default function FlashcardPlayer({
                   {/* Show committed pre-flip note if present */}
                   {committedNotes[activeCard.id]?.trim() && (
                     <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-xs font-mono text-foreground">
-                      <div className="text-[10px] uppercase font-semibold text-primary mb-1">
-                        Your Pre-Flip Answer Commitment:
+                      <div className="text-[11px] font-semibold text-primary mb-1">
+                        Your pre-flip answer commitment:
                       </div>
                       <p className="text-foreground/90">{committedNotes[activeCard.id]}</p>
                     </div>
@@ -619,7 +617,7 @@ export default function FlashcardPlayer({
               <button
                 type="button"
                 onClick={() => setIsFlipped((f) => !f)}
-                className={`flex items-center justify-center gap-1.5 rounded-xl border px-4 py-2 text-xs font-semibold transition-all cursor-pointer shadow-xs ${
+                className={`flex items-center justify-center gap-1.5 rounded-xl border px-4 py-2 text-xs font-semibold transition-all cursor-pointer shadow-sm ${
                   !isFlipped
                     ? "border-primary bg-primary text-primary-foreground hover:opacity-90"
                     : "border-border bg-card text-foreground hover:bg-muted"

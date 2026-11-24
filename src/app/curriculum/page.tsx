@@ -10,7 +10,6 @@ import {
   Circle,
   Copy,
   Check,
-  ArrowRight,
   Clock,
   Compass,
   Filter,
@@ -120,19 +119,19 @@ export default function CurriculumPage() {
             </span>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            31 sessions across 5 modules, sequenced into a 10-week, 5-phase plan. See the Study Plan page for the week-by-week view.
+            {allSessions.length} sessions across {curriculumData.modules.length} modules, sequenced into a {curriculumData.weeks.length}-week, {curriculumData.phases.length}-phase plan. See the Study Plan page for the week-by-week view.
           </p>
         </div>
 
         {/* View Toggle (List vs Mind Map) */}
         <div className="flex items-center gap-2 self-start sm:self-auto">
-          <div className="flex items-center rounded-xl border border-border bg-card p-1 shadow-2xs">
+          <div className="flex items-center rounded-xl border border-border bg-card p-1 shadow-sm">
             <button
               type="button"
               onClick={() => setViewMode("LIST")}
               className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
                 viewMode === "LIST"
-                  ? "bg-primary text-primary-foreground shadow-2xs"
+                  ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -144,7 +143,7 @@ export default function CurriculumPage() {
               onClick={() => setViewMode("MINDMAP")}
               className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
                 viewMode === "MINDMAP"
-                  ? "bg-primary text-primary-foreground shadow-2xs"
+                  ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -156,7 +155,7 @@ export default function CurriculumPage() {
       </div>
 
       {/* 2. Filters Bar */}
-      <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-3 shadow-2xs">
+      <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-3 shadow-sm">
         {/* Module Filter Tabs */}
         <div className="flex items-center gap-1.5 border-b border-border/70 pb-2.5 overflow-x-auto no-scrollbar py-0.5">
           <button
@@ -296,7 +295,7 @@ export default function CurriculumPage() {
         <div className="space-y-4">
           {/* Module 0: Fundamentals (when ALL or mod-0 is selected) */}
           {(activeModuleTab === "ALL" || activeModuleTab === "mod-0") && (
-            <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-xs">
+            <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
               <button
                 type="button"
                 onClick={() => toggleModuleCollapse("mod-0")}
@@ -363,12 +362,12 @@ export default function CurriculumPage() {
                             </div>
 
                             <div className="space-y-1 min-w-0">
-                              <div className="flex flex-wrap items-center gap-2">
+                              <div className="flex flex-wrap items-center gap-2.5">
                                 <span className="font-mono text-xs font-semibold text-accent">
-                                  Topic {String(t.number).padStart(2, "0")}
+                                  Topic {t.number}
                                 </span>
                                 <span className="text-xs text-muted-foreground truncate">
-                                  • Module 0
+                                  Module 0
                                 </span>
                               </div>
 
@@ -379,9 +378,8 @@ export default function CurriculumPage() {
                                 {t.title}
                               </Link>
 
-                              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground font-mono">
+                              <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground font-mono">
                                 <span>AI tie-in: {t.aiTieIn}</span>
-                                <span>•</span>
                                 <span className="inline-flex items-center gap-1">
                                   <Clock className="h-3 w-3" />
                                   {t.readTime}
@@ -393,10 +391,9 @@ export default function CurriculumPage() {
                           <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
                             <Link
                               href={`/fundamentals/${t.id}`}
-                              className="inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-colors border border-border bg-card text-foreground hover:bg-muted"
+                              className="inline-flex items-center rounded-xl px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-colors border border-border bg-card text-foreground hover:bg-muted"
                             >
-                              <span>{isCompleted ? "Review" : "Study"}</span>
-                              <ArrowRight className="h-3.5 w-3.5" />
+                              {isCompleted ? "Review" : "Study"}
                             </Link>
                           </div>
                         </div>
@@ -426,7 +423,7 @@ export default function CurriculumPage() {
               return (
                 <div
                   key={mod.id}
-                  className="rounded-2xl border border-border bg-card overflow-hidden shadow-xs"
+                  className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm"
                 >
                   {/* Module Group Header */}
                   <button
@@ -488,17 +485,17 @@ export default function CurriculumPage() {
                               </div>
 
                               <div className="space-y-1 min-w-0">
-                                <div className="flex flex-wrap items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-2.5">
                                   <span className="font-mono text-xs font-semibold text-muted-foreground">
-                                    Session {String(session.number).padStart(2, "0")}
+                                    Session {session.number}
                                   </span>
                                   {isNext && (
-                                    <span className="rounded bg-primary/15 px-1.5 py-0.2 font-mono text-[10px] font-semibold text-primary">
-                                      Next Up
+                                    <span className="rounded bg-primary/15 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-primary">
+                                      Next up
                                     </span>
                                   )}
                                   <span className="text-xs text-muted-foreground truncate">
-                                    • {session.moduleTitle}
+                                    {session.moduleTitle}
                                   </span>
                                 </div>
 
@@ -509,9 +506,8 @@ export default function CurriculumPage() {
                                   {session.title}
                                 </Link>
 
-                                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground font-mono">
+                                <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground font-mono">
                                   <span>Anchor: {session.projectTieIn}</span>
-                                  <span>•</span>
                                   <span className="inline-flex items-center gap-1">
                                     <Clock className="h-3 w-3" />
                                     {session.estimatedReadTime || "15 min"}
@@ -538,14 +534,13 @@ export default function CurriculumPage() {
 
                               <Link
                                 href={`/roadmap/${session.id}`}
-                                className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-colors ${
+                                className={`inline-flex items-center rounded-xl px-3.5 py-1.5 text-xs sm:text-sm font-medium transition-colors ${
                                   isNext
                                     ? "bg-primary text-primary-foreground font-semibold"
                                     : "border border-border bg-card text-foreground hover:bg-muted"
                                 }`}
                               >
-                                <span>{isCompleted ? "Review" : "Study"}</span>
-                                <ArrowRight className="h-3.5 w-3.5" />
+                                {isCompleted ? "Review" : "Study"}
                               </Link>
                             </div>
                           </div>

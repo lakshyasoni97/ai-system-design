@@ -42,22 +42,22 @@ const MODEL_PRICING: Record<
   }
 > = {
   "gemini-flash": {
-    name: "Gemini 1.5 / 2.0 Flash",
-    inputPer1M: 0.1,
-    outputPer1M: 0.4,
-    ttftNote: "~220ms P50 TTFT • Ideal for Intent Routers & High-QPS RAG",
+    name: "Gemini 2.5 Flash",
+    inputPer1M: 0.15,
+    outputPer1M: 0.6,
+    ttftNote: "Fast tier (benchmark on your prompts) — suited for intent routers & high-QPS RAG",
   },
   "gemini-pro": {
-    name: "Gemini 1.5 Pro",
+    name: "Gemini 2.5 Pro",
     inputPer1M: 1.25,
-    outputPer1M: 5.0,
-    ttftNote: "~680ms P50 TTFT • Ideal for Complex Multi-Hop Synthesis",
+    outputPer1M: 10.0,
+    ttftNote: "Reasoning tier (benchmark on your prompts) — suited for complex multi-hop synthesis",
   },
   "vllm-self-hosted": {
     name: "Self-Hosted vLLM (Llama-3-70B on GKE)",
     inputPer1M: 0.35,
     outputPer1M: 0.9,
-    ttftNote: "~310ms P50 TTFT • Fixed GPU Node Pool OpEx at high sustained QPS",
+    ttftNote: "Fixed GPU node pool OpEx — economical at high sustained QPS",
   },
 };
 
@@ -270,7 +270,7 @@ export default function CapacityCalculator() {
           <div className="rounded-xl border border-primary/30 bg-primary/10 p-4">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <div>
-                <span className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+                <span className="text-xs text-muted-foreground font-semibold">
                   Total HNSW Memory Required
                 </span>
                 <div className="mt-1 font-mono text-3xl font-bold text-primary">
@@ -308,7 +308,7 @@ export default function CapacityCalculator() {
                 onClick={() => setQuantization(item.type)}
                 className={`rounded-xl border p-2.5 text-left transition-colors cursor-pointer ${
                   quantization === item.type
-                    ? "border-primary bg-primary/15 shadow-2xs"
+                    ? "border-primary bg-primary/15 shadow-sm"
                     : "border-border bg-secondary hover:border-primary/40"
                 }`}
               >
@@ -515,11 +515,16 @@ export default function CapacityCalculator() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-border bg-muted/30 p-3 text-xs text-foreground/90">
-            <span className="font-mono font-semibold text-accent">
-              {MODEL_PRICING[modelTier].name}:
-            </span>{" "}
-            {MODEL_PRICING[modelTier].ttftNote}
+          <div className="rounded-xl border border-border bg-muted/30 p-3 text-xs text-foreground/90 space-y-1">
+            <div>
+              <span className="font-mono font-semibold text-accent">
+                {MODEL_PRICING[modelTier].name}:
+              </span>{" "}
+              {MODEL_PRICING[modelTier].ttftNote}
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Token rates are illustrative reference values; verify against current provider pricing and benchmark latency on your own prompts.
+            </p>
           </div>
         </div>
       </div>

@@ -23,7 +23,6 @@ import {
   Eye,
   EyeOff,
   StickyNote,
-  Sparkles,
   PanelRightOpen,
 } from "lucide-react";
 import {
@@ -603,9 +602,9 @@ export default function HighlightableArticle({
             headerRow.className = "flex items-center gap-2";
 
             const tagSpan = document.createElement("span");
-            tagSpan.className = "font-mono text-[10px] font-bold uppercase tracking-wider opacity-85";
+            tagSpan.className = "font-mono text-[11px] font-semibold opacity-85";
             tagSpan.style.color = COLOR_METAS[hl.color].hex;
-            tagSpan.textContent = `💬 ${COLOR_METAS[hl.color].label} Note`;
+            tagSpan.textContent = `${COLOR_METAS[hl.color].label} note`;
 
             headerRow.appendChild(tagSpan);
 
@@ -731,7 +730,7 @@ export default function HighlightableArticle({
   return (
     <div className="relative space-y-4">
       {/* 0. Top-of-Article Annotations & Comments Control Strip */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card/90 px-4 py-2.5 shadow-2xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card/90 px-4 py-2.5 shadow-sm">
         <div className="flex flex-wrap items-center gap-2.5">
           <span className="inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-foreground">
             <Highlighter className="h-3.5 w-3.5 text-primary" />
@@ -838,7 +837,7 @@ export default function HighlightableArticle({
             top: typeof window !== "undefined" && window.innerWidth < 640 ? "auto" : `${selectionBox.top}px`,
             left: typeof window !== "undefined" && window.innerWidth < 640 ? "0px" : `${selectionBox.left}px`,
           }}
-          className="fixed sm:absolute bottom-0 sm:bottom-auto inset-x-0 sm:inset-x-auto z-50 w-full sm:w-[360px] flex flex-col rounded-t-3xl sm:rounded-2xl border border-border bg-card/95 backdrop-blur-md p-4 sm:p-2.5 shadow-2xl animate-in slide-in-from-bottom sm:zoom-in-95 duration-150 pb-[max(1rem,env(safe-area-inset-bottom))]"
+          className="fixed sm:absolute bottom-0 sm:bottom-auto inset-x-0 sm:inset-x-auto z-50 w-full sm:w-[360px] flex flex-col rounded-t-3xl sm:rounded-2xl border border-border bg-card/95 backdrop-blur-md p-4 sm:p-2.5 shadow-2xl pb-[max(1rem,env(safe-area-inset-bottom))]"
         >
           <div className="flex items-center justify-between gap-1">
             {/* 4 Semantic Color Choices with labels */}
@@ -967,7 +966,7 @@ export default function HighlightableArticle({
                   <button
                     type="button"
                     onClick={() => handleCreateHighlight(toolbarSelectedColor, true)}
-                    className="inline-flex items-center gap-1 rounded-xl bg-primary px-3 py-1 font-mono text-[11px] font-semibold text-primary-foreground hover:opacity-90 transition-opacity cursor-pointer shadow-2xs"
+                    className="inline-flex items-center gap-1 rounded-xl bg-primary px-3 py-1 font-mono text-[11px] font-semibold text-primary-foreground hover:opacity-90 transition-opacity cursor-pointer shadow-sm"
                   >
                     <Check className="h-3 w-3" />
                     <span>Save Comment</span>
@@ -987,7 +986,7 @@ export default function HighlightableArticle({
             top: typeof window !== "undefined" && window.innerWidth < 640 ? "auto" : `${activePopoverPos.top}px`,
             left: typeof window !== "undefined" && window.innerWidth < 640 ? "0px" : `${activePopoverPos.left}px`,
           }}
-          className="fixed sm:absolute bottom-0 sm:bottom-auto inset-x-0 sm:inset-x-auto z-50 w-full sm:w-[360px] rounded-t-3xl sm:rounded-2xl border border-border bg-card/95 backdrop-blur-md p-5 sm:p-4 shadow-2xl animate-in slide-in-from-bottom sm:zoom-in-95 duration-150 space-y-3 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+          className="fixed sm:absolute bottom-0 sm:bottom-auto inset-x-0 sm:inset-x-auto z-50 w-full sm:w-[360px] rounded-t-3xl sm:rounded-2xl border border-border bg-card/95 backdrop-blur-md p-5 sm:p-4 shadow-2xl space-y-3 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
         >
           {/* Header: Semantic Badge + Section + Close */}
           <div className="flex items-center justify-between border-b border-border pb-2.5">
@@ -1043,8 +1042,7 @@ export default function HighlightableArticle({
 
           {/* Quoted Excerpt Preview */}
           <blockquote
-            className="line-clamp-2 rounded-xl bg-muted/40 pl-3 pr-2.5 py-1.5 text-xs italic text-muted-foreground border-l-3"
-            style={{ borderLeftColor: COLOR_METAS[activeHighlight.color].hex }}
+            className="line-clamp-2 rounded-lg border border-border/70 bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground"
           >
             &ldquo;{activeHighlight.text}&rdquo;
           </blockquote>
@@ -1053,9 +1051,9 @@ export default function HighlightableArticle({
           {!isEditingPopoverNote && activeHighlight.note?.trim() ? (
             <div className="rounded-xl border border-border bg-secondary/40 p-3 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-primary">
+                <span className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold text-primary">
                   <MessageSquare className="h-3 w-3" />
-                  Architect Comment
+                  Architect comment
                 </span>
                 <button
                   type="button"
@@ -1076,8 +1074,8 @@ export default function HighlightableArticle({
           ) : (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  {activeHighlight.note?.trim() ? "Edit Comment:" : "Attach Architect Comment:"}
+                <label className="font-mono text-[11px] font-semibold text-muted-foreground">
+                  {activeHighlight.note?.trim() ? "Edit comment:" : "Attach architect comment:"}
                 </label>
               </div>
               <div className="flex flex-wrap items-center gap-1">
@@ -1183,7 +1181,7 @@ export default function HighlightableArticle({
       {pageHighlights.length > 0 && (
         <div
           id="page-highlights-drawer"
-          className="mt-8 rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-xs scroll-mt-24"
+          className="mt-8 rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-sm scroll-mt-24"
         >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <button
@@ -1217,7 +1215,7 @@ export default function HighlightableArticle({
                     onClick={() => setDrawerFilter("all")}
                     className={`rounded-lg px-2.5 py-1 transition-all cursor-pointer ${
                       drawerFilter === "all"
-                        ? "bg-card text-foreground font-semibold shadow-2xs"
+                        ? "bg-card text-foreground font-semibold shadow-sm"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
@@ -1228,7 +1226,7 @@ export default function HighlightableArticle({
                     onClick={() => setDrawerFilter("comments")}
                     className={`rounded-lg px-2.5 py-1 transition-all cursor-pointer ${
                       drawerFilter === "comments"
-                        ? "bg-card text-foreground font-semibold shadow-2xs"
+                        ? "bg-card text-foreground font-semibold shadow-sm"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
@@ -1261,7 +1259,7 @@ export default function HighlightableArticle({
                 return (
                   <div
                     key={hl.id}
-                    className="flex flex-col justify-between rounded-2xl border border-border bg-card p-4 text-xs space-y-3 hover:border-primary/40 transition-all shadow-2xs"
+                    className="flex flex-col justify-between rounded-2xl border border-border bg-card p-4 text-xs space-y-3 hover:border-primary/40 transition-all shadow-sm"
                   >
                     <div className="space-y-2.5">
                       {/* Header badge + section */}
@@ -1279,8 +1277,7 @@ export default function HighlightableArticle({
 
                       {/* Quoted anchor text */}
                       <blockquote
-                        className="line-clamp-3 rounded-xl bg-muted/35 pl-3 pr-2.5 py-2 text-xs text-foreground/85 italic font-serif leading-relaxed border-l-3"
-                        style={{ borderLeftColor: meta.hex }}
+                        className="line-clamp-3 rounded-lg border border-border/70 bg-muted/35 px-3 py-2 text-xs text-foreground/85 leading-relaxed"
                       >
                         &ldquo;{hl.text}&rdquo;
                       </blockquote>
@@ -1337,9 +1334,9 @@ export default function HighlightableArticle({
                           className="group/note rounded-xl border border-border bg-secondary/35 p-3 space-y-1 cursor-pointer hover:border-primary/40 transition-colors"
                         >
                           <div className="flex items-center justify-between">
-                            <span className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-primary">
+                            <span className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold text-primary">
                               <MessageSquare className="h-2.5 w-2.5" />
-                              Architect Comment
+                              Architect comment
                             </span>
                             <span className="font-mono text-[10px] text-muted-foreground opacity-0 group-hover/note:opacity-100 transition-opacity">
                               Edit
@@ -1429,15 +1426,15 @@ export default function HighlightableArticle({
       {sideDrawerOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div
-            className="fixed inset-0 bg-background/60 backdrop-blur-xs"
+            className="fixed inset-0 bg-background/60 backdrop-blur-sm"
             onClick={() => setSideDrawerOpen(false)}
           />
-          <div className="relative z-10 flex h-full w-full max-w-lg flex-col border-l border-border bg-card shadow-2xl animate-in slide-in-from-right duration-200">
+          <div className="relative z-10 flex h-full w-full max-w-lg flex-col border-l border-border bg-card shadow-2xl">
             {/* Drawer Header */}
             <div className="flex items-center justify-between border-b border-border px-5 py-4">
               <div>
-                <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-primary">
-                  Study Companion Drawer
+                <span className="font-mono text-[11px] font-semibold text-primary">
+                  Study companion drawer
                 </span>
                 <h3 className="text-sm sm:text-base font-bold text-foreground truncate max-w-[340px]">
                   {sourceTitle}
@@ -1460,7 +1457,7 @@ export default function HighlightableArticle({
                 onClick={() => setSideDrawerTab("comments")}
                 className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 font-mono text-xs font-semibold transition-all cursor-pointer ${
                   sideDrawerTab === "comments"
-                    ? "bg-primary text-primary-foreground shadow-2xs"
+                    ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`}
               >
@@ -1472,7 +1469,7 @@ export default function HighlightableArticle({
                 onClick={() => setSideDrawerTab("notebook")}
                 className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 font-mono text-xs font-semibold transition-all cursor-pointer ${
                   sideDrawerTab === "notebook"
-                    ? "bg-primary text-primary-foreground shadow-2xs"
+                    ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`}
               >
@@ -1524,16 +1521,15 @@ export default function HighlightableArticle({
                         </div>
 
                         <blockquote
-                          className="rounded-xl bg-muted/40 pl-3 pr-2.5 py-2 text-xs italic text-foreground/85 font-serif border-l-3"
-                          style={{ borderLeftColor: meta.hex }}
+                          className="rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-xs text-foreground/85 leading-relaxed"
                         >
                           &ldquo;{hl.text}&rdquo;
                         </blockquote>
 
                         <div className="space-y-1">
-                          <label className="font-mono text-[10px] font-semibold uppercase tracking-wider text-primary flex items-center gap-1">
-                            <Sparkles className="h-2.5 w-2.5" />
-                            Architect Comment
+                          <label className="font-mono text-[11px] font-semibold text-primary flex items-center gap-1">
+                            <MessageSquare className="h-2.5 w-2.5" />
+                            Architect comment
                           </label>
                           <textarea
                             rows={2}

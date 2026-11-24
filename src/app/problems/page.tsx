@@ -12,7 +12,7 @@ import { useProgress } from "@/components/ProgressProvider";
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-      <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-foreground">{title}</h3>
+      <h3 className="mb-3 text-sm font-bold text-foreground">{title}</h3>
       {children}
     </div>
   );
@@ -90,7 +90,7 @@ function ProblemsContent() {
       <div className="grid gap-6 lg:grid-cols-12">
         {/* Mobile Dropdown Selector (< lg) */}
         <div className="lg:hidden rounded-2xl border border-border bg-card p-4 space-y-2">
-          <label htmlFor="mobile-problem-select" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+          <label htmlFor="mobile-problem-select" className="text-xs font-semibold text-muted-foreground block">
             Select Case Study ({visible.length} available)
           </label>
           <select
@@ -101,7 +101,7 @@ function ProblemsContent() {
           >
             {visible.map((x) => (
               <option key={x.id} value={x.id}>
-                {x.title.replace(/^Design an? /, "")} ({x.difficulty} • {x.tier})
+                {x.title.replace(/^Design an? /, "")} ({x.difficulty}, {x.tier})
               </option>
             ))}
           </select>
@@ -124,7 +124,7 @@ function ProblemsContent() {
                   <div className="text-sm font-semibold text-foreground">{x.title.replace(/^Design an? /, "")}</div>
                   {itemDone && <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />}
                 </div>
-                <div className="mt-1 flex items-center gap-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                <div className="mt-1 flex items-center gap-2 font-mono text-[11px] text-muted-foreground">
                   <span>{x.difficulty}</span>
                   <span className="text-primary">{x.tier}</span>
                   <span>W{x.week}</span>

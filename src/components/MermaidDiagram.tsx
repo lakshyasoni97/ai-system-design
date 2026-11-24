@@ -229,12 +229,13 @@ export default function MermaidDiagram({ chart, title }: MermaidDiagramProps) {
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/60 px-4 py-2.5">
         <div className="flex items-center gap-2">
           <span className="inline-block h-2 w-2 rounded-full bg-primary" />
-          <span className="font-mono text-xs font-semibold uppercase tracking-wider text-foreground">
+          <span className="font-mono text-xs font-semibold text-foreground">
             {title || "System Architecture Blueprint (Mermaid.js)"}
           </span>
           {!showRaw && (
-            <span className="hidden sm:inline-block rounded bg-secondary px-2 py-0.5 font-mono text-[11px] text-muted-foreground">
-              Drag to Pan • {Math.round(zoom * 100)}%
+            <span className="hidden sm:inline-flex items-center gap-2 rounded bg-secondary px-2 py-0.5 font-mono text-[11px] text-muted-foreground">
+              <span>Drag to pan</span>
+              <span>{Math.round(zoom * 100)}%</span>
             </span>
           )}
         </div>

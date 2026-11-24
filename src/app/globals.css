@@ -9,7 +9,7 @@
     --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-    /* Light Theme — Calm Editorial Paper */
+    /* Light Theme */
     --background: 210 20% 98%;           /* #f8f9fb */
     --foreground: 222 47% 11%;           /* #0f172a */
     --card: 0 0% 100%;                   /* #ffffff */
@@ -302,45 +302,37 @@ mark.text-highlight-rose {
 .highlight-inline-callout-amber {
   background-color: rgba(245, 158, 11, 0.07);
   border: 1px solid rgba(245, 158, 11, 0.28);
-  border-left: 3.5px solid #f59e0b;
 }
 .dark .highlight-inline-callout-amber {
   background-color: rgba(245, 158, 11, 0.09);
   border: 1px solid rgba(251, 191, 36, 0.25);
-  border-left: 3.5px solid #fbbf24;
 }
 
 .highlight-inline-callout-emerald {
   background-color: rgba(16, 185, 129, 0.07);
   border: 1px solid rgba(16, 185, 129, 0.28);
-  border-left: 3.5px solid #10b981;
 }
 .dark .highlight-inline-callout-emerald {
   background-color: rgba(16, 185, 129, 0.09);
   border: 1px solid rgba(52, 211, 153, 0.25);
-  border-left: 3.5px solid #34d399;
 }
 
 .highlight-inline-callout-indigo {
   background-color: rgba(99, 102, 241, 0.07);
   border: 1px solid rgba(99, 102, 241, 0.28);
-  border-left: 3.5px solid #6366f1;
 }
 .dark .highlight-inline-callout-indigo {
   background-color: rgba(99, 102, 241, 0.1);
   border: 1px solid rgba(129, 140, 248, 0.28);
-  border-left: 3.5px solid #818cf8;
 }
 
 .highlight-inline-callout-rose {
   background-color: rgba(244, 63, 94, 0.07);
   border: 1px solid rgba(244, 63, 94, 0.28);
-  border-left: 3.5px solid #f43f5e;
 }
 .dark .highlight-inline-callout-rose {
   background-color: rgba(244, 63, 94, 0.1);
   border: 1px solid rgba(251, 113, 133, 0.28);
-  border-left: 3.5px solid #fb7185;
 }
 
 /* Deep link spotlight pulse */

@@ -15,7 +15,6 @@ import {
   Eye,
   EyeOff,
   LogOut,
-  Sparkles,
   Smartphone,
   Laptop,
 } from "lucide-react";
@@ -105,7 +104,7 @@ export default function CloudSyncModal({ isOpen, onClose }: CloudSyncModalProps)
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm">
       <div className="relative w-full max-w-lg rounded-3xl border border-border bg-card p-6 shadow-2xl space-y-5 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border pb-4">
@@ -139,14 +138,14 @@ export default function CloudSyncModal({ isOpen, onClose }: CloudSyncModalProps)
             onClick={() => setActiveTab("cloud")}
             className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-1.5 transition-all cursor-pointer ${
               activeTab === "cloud"
-                ? "bg-card text-foreground font-semibold shadow-xs border border-border"
+                ? "bg-card text-foreground font-semibold shadow-sm border border-border"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <Cloud className="h-3.5 w-3.5 text-primary" />
             <span>GitHub Gist Sync</span>
             {isSyncConfigured && (
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
             )}
           </button>
           <button
@@ -154,7 +153,7 @@ export default function CloudSyncModal({ isOpen, onClose }: CloudSyncModalProps)
             onClick={() => setActiveTab("file")}
             className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg py-1.5 transition-all cursor-pointer ${
               activeTab === "file"
-                ? "bg-card text-foreground font-semibold shadow-xs border border-border"
+                ? "bg-card text-foreground font-semibold shadow-sm border border-border"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -194,7 +193,7 @@ export default function CloudSyncModal({ isOpen, onClose }: CloudSyncModalProps)
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium mt-0.5">
-                          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                          <span className="h-2 w-2 rounded-full bg-emerald-500" />
                           <span>Connected to Private Gist</span>
                         </div>
                       </div>
@@ -225,7 +224,7 @@ export default function CloudSyncModal({ isOpen, onClose }: CloudSyncModalProps)
                         Current Store:
                       </span>
                       <span className="font-semibold text-foreground">
-                        {highlights.length} highlights • {completedSessions.length} done
+                        {highlights.length} highlights, {completedSessions.length} done
                       </span>
                     </div>
                   </div>
@@ -245,7 +244,7 @@ export default function CloudSyncModal({ isOpen, onClose }: CloudSyncModalProps)
                     type="button"
                     onClick={triggerSyncNow}
                     disabled={isSyncing}
-                    className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground shadow-xs hover:opacity-95 disabled:opacity-50 transition-all cursor-pointer"
+                    className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground shadow-sm hover:opacity-95 disabled:opacity-50 transition-all cursor-pointer"
                   >
                     <RefreshCw
                       className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`}
@@ -348,7 +347,7 @@ export default function CloudSyncModal({ isOpen, onClose }: CloudSyncModalProps)
                 <button
                   type="submit"
                   disabled={connecting || !tokenInput.trim()}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground shadow-xs hover:opacity-95 disabled:opacity-50 transition-all cursor-pointer"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground shadow-sm hover:opacity-95 disabled:opacity-50 transition-all cursor-pointer"
                 >
                   {connecting ? (
                     <>
@@ -357,7 +356,7 @@ export default function CloudSyncModal({ isOpen, onClose }: CloudSyncModalProps)
                     </>
                   ) : (
                     <>
-                      <Sparkles className="h-4 w-4" />
+                      <Cloud className="h-4 w-4" />
                       <span>Connect & Sync This Device</span>
                     </>
                   )}
@@ -381,7 +380,7 @@ export default function CloudSyncModal({ isOpen, onClose }: CloudSyncModalProps)
             <button
               type="button"
               onClick={handleDownloadFile}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground shadow-xs hover:opacity-95 transition-all cursor-pointer"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground shadow-sm hover:opacity-95 transition-all cursor-pointer"
             >
               <Download className="h-4 w-4" />
               <span>Download Progress JSON ({highlights.length} highlights)</span>

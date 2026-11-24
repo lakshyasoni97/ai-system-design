@@ -18,7 +18,6 @@ import {
   Briefcase,
   List,
   ChevronRight,
-  Sparkles,
 } from "lucide-react";
 import MermaidDiagram from "./MermaidDiagram";
 import TradeoffTable from "./TradeoffTable";
@@ -166,7 +165,7 @@ export default function SessionStudyClient({
   return (
     <div className="relative space-y-8">
       {/* 1. Header Bar */}
-      <div className="rounded-2xl sm:rounded-3xl border border-border bg-card p-4 sm:p-6 md:p-8 shadow-xs">
+      <div className="rounded-2xl sm:rounded-3xl border border-border bg-card p-4 sm:p-6 md:p-8 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
           <div className="flex flex-wrap items-center gap-2">
             <Link
@@ -229,7 +228,7 @@ export default function SessionStudyClient({
         </div>
 
         <div className="mt-4">
-          <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+          <div className="font-mono text-xs text-muted-foreground">
             {session.moduleTitle}
           </div>
           <h1 className="mt-1 text-2xl font-bold text-foreground sm:text-3xl tracking-tight">
@@ -244,7 +243,7 @@ export default function SessionStudyClient({
         <div className="lg:col-span-9 space-y-8 min-w-0">
           {/* Mobile In-Page TOC Accordion (< lg) */}
           {tocItems.length > 0 && (
-            <div className="lg:hidden rounded-2xl border border-border bg-card p-3.5 shadow-2xs">
+            <div className="lg:hidden rounded-2xl border border-border bg-card p-3.5 shadow-sm">
               <details className="group">
                 <summary className="flex items-center justify-between cursor-pointer list-none font-mono text-xs font-semibold text-foreground">
                   <span className="flex items-center gap-2">
@@ -282,7 +281,7 @@ export default function SessionStudyClient({
                 sourceTitle={`Session ${String(session.number).padStart(2, "0")}: ${session.title}`}
                 href={`/roadmap/${session.id}`}
               >
-                <article className="rounded-2xl sm:rounded-3xl border border-border bg-card p-4 sm:p-6 md:p-8 shadow-xs">
+                <article className="rounded-2xl sm:rounded-3xl border border-border bg-card p-4 sm:p-6 md:p-8 shadow-sm">
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     components={{
@@ -437,7 +436,7 @@ export default function SessionStudyClient({
           {/* 4. Check Your Understanding — Session Flashcards */}
           <div
             id="session-flashcards"
-            className="rounded-3xl border border-border bg-card p-6 shadow-xs scroll-mt-24"
+            className="rounded-3xl border border-border bg-card p-6 shadow-sm scroll-mt-24"
           >
             <div className="mb-5 flex flex-wrap items-center justify-between gap-2 border-b border-border pb-4">
               <div className="flex items-center gap-2.5">
@@ -467,15 +466,15 @@ export default function SessionStudyClient({
             {prevSession ? (
               <Link
                 href={`/roadmap/${prevSession.id}`}
-                className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-xs text-muted-foreground hover:border-primary/40 hover:text-foreground transition-colors shadow-2xs"
+                className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-xs text-muted-foreground hover:border-primary/40 hover:text-foreground transition-colors shadow-sm"
               >
                 <ArrowLeft className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <div className="font-mono text-[10px] uppercase text-muted-foreground">
+                  <div className="font-mono text-[11px] text-muted-foreground">
                     Previous Session
                   </div>
                   <div className="font-semibold text-foreground">
-                    S{String(prevSession.number).padStart(2, "0")}:{" "}
+                    S{prevSession.number}:{" "}
                     {prevSession.title}
                   </div>
                 </div>
@@ -487,14 +486,14 @@ export default function SessionStudyClient({
             {nextSession && (
               <Link
                 href={`/roadmap/${nextSession.id}`}
-                className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-right text-xs text-muted-foreground hover:border-primary/40 hover:text-foreground transition-colors shadow-2xs"
+                className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-right text-xs text-muted-foreground hover:border-primary/40 hover:text-foreground transition-colors shadow-sm"
               >
                 <div>
-                  <div className="font-mono text-[10px] uppercase text-primary font-semibold">
+                  <div className="font-mono text-[11px] text-primary font-semibold">
                     Next Session
                   </div>
                   <div className="font-semibold text-foreground">
-                    S{String(nextSession.number).padStart(2, "0")}:{" "}
+                    S{nextSession.number}:{" "}
                     {nextSession.title}
                   </div>
                 </div>
@@ -506,11 +505,11 @@ export default function SessionStudyClient({
 
         {/* Sticky Right-Rail Table of Contents (lg:col-span-3) */}
         <aside className="hidden lg:block lg:col-span-3">
-          <div className="sticky top-20 rounded-2xl border border-border bg-card p-4 shadow-xs space-y-4">
+          <div className="sticky top-20 rounded-2xl border border-border bg-card p-4 shadow-sm space-y-4">
             <div className="flex items-center justify-between border-b border-border pb-2.5">
-              <span className="flex items-center gap-1.5 font-mono text-xs font-semibold uppercase tracking-wider text-foreground">
+              <span className="flex items-center gap-1.5 font-mono text-xs font-semibold text-foreground">
                 <List className="h-3.5 w-3.5 text-primary" />
-                On This Page
+                On this page
               </span>
             </div>
 

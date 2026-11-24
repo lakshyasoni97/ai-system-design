@@ -9,12 +9,12 @@ import problems from "@/data/problems.json";
 import fundamentals from "@/data/fundamentals.json";
 
 const moduleLabels: Record<string, string> = {
-  fund: "M0 · Fundamentals",
-  "mod-1": "M1 · Backend, Cache & Capacity",
-  "mod-2": "M2 · RAG, Search & Multimodal",
-  "mod-3": "M3 · Agents, Memory & Latency",
-  "mod-4": "M4 · Models & Serving",
-  "mod-5": "M5 · LLMOps, Evals, Security",
+  fund: "M0: Fundamentals",
+  "mod-1": "M1: Backend, Cache & Capacity",
+  "mod-2": "M2: RAG, Search & Multimodal",
+  "mod-3": "M3: Agents, Memory & Latency",
+  "mod-4": "M4: Models & Serving",
+  "mod-5": "M5: LLMOps, Evals, Security",
 };
 
 const weightText: Record<number, string> = { 3: "Core", 2: "Solid", 1: "Skim", 0: "Skip" };
@@ -44,7 +44,7 @@ export default function RolesPage() {
               href={`/roadmap/${id}`}
               className={`block rounded-lg border px-3 py-1.5 text-xs transition-colors hover:border-primary/50 ${tone}`}
             >
-              <span className="font-mono font-semibold">S{String(sessionMap[id]?.number).padStart(2, "0")}</span>{" "}
+              <span className="font-mono font-semibold">S{sessionMap[id]?.number}</span>{" "}
               {sessionMap[id]?.title}
             </Link>
           </li>
@@ -61,7 +61,7 @@ export default function RolesPage() {
       const id = item.replace("problem:", "");
       return { href: `/problems?id=${id}`, label: `Problem: ${id}` };
     }
-    return { href: `/roadmap/${item}`, label: `S${String(sessionMap[item]?.number).padStart(2, "0")}` };
+    return { href: `/roadmap/${item}`, label: `S${sessionMap[item]?.number}` };
   };
 
   return (
@@ -88,7 +88,7 @@ export default function RolesPage() {
                 : "border-border bg-card hover:border-primary/30"
             }`}
           >
-            <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-primary">{r.priority}</span>
+            <span className="font-mono text-[11px] font-semibold text-primary">{r.priority}</span>
             <div className="mt-1 text-sm font-bold text-foreground">{r.title}</div>
             <div className="mt-1 text-[11px] text-muted-foreground">{r.fit}</div>
           </button>

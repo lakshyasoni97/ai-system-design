@@ -20,7 +20,7 @@ On Monday at `9:00 AM`, HR emails everyone: *"Open enrollment for health insuran
 ### The Socratic Ladder: Discovering Caches and Rate Limits
 
 **🤔 Question 1: Six thousand people just asked the same question. Why are we paying the AI six thousand times to produce the same answer?**
-We shouldn't. The first time anyone asks, save the answer in a fast notebook (Redis) under a label. Next time someone asks the exact same thing, read the notebook in `0.5ms` instead of paying `$0.02` and waiting `3s`.
+Instead of recomputing it, save the answer the first time anyone asks in a fast notebook (Redis) under a label. Next time someone asks the exact same thing, read the notebook in `0.5ms` instead of paying `$0.02` and waiting `3s`.
 → Label each answer with a **fingerprint of the question** (a hash) and look it up before calling the AI.
 
 **🤔 Question 2: Great—but people don't type identically. "When does open enrollment close?", "open enrollment deadline??", and "last day to pick my health plan" all miss the fingerprint. How can the notebook recognize questions that *mean* the same thing?**
@@ -186,7 +186,7 @@ flowchart TD
      - **Shared Burst Pool (`20%` = `400k TPM`):** Borrowable by P0 tenants when overall cluster utilization is `<80%`.
      - **Background / Batch Pool (`10%` = `200k TPM`):** Strictly caps offline PDF ingestion and LLM-as-a-Judge evals so background jobs can **never** starve a live user.
 
-### What Breaks in Production at 2 AM (Real Failure Modes)
+### Failure Modes in Production
 
 #### Failure Mode 1: Semantic Cache Cross-Contamination ("2024 vs 2025 Revenue" & RBAC Data Leak)
 - **How It Happens at 2 AM:**

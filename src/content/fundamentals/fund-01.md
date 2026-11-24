@@ -137,7 +137,7 @@ When a user sends a write to the **Leader**, when does the Leader say *"Saved! (
 
 ## 7. CAP and PACELC Without the Confusing Myths
 
-Interviewers love asking about **CAP** and **PACELC**, and 80% of candidates recite a textbook definition without understanding what it means in real life. Here is the plain-English truth:
+Interviewers frequently ask about **CAP** and **PACELC**, and most candidates recite a textbook definition without connecting it to production trade-offs. Here is how they work in practice:
 
 ### The CAP Theorem (What Happens During a Network Cut)
 Imagine you have two database servers—one in **New York (Server A)** and one in **London (Server B)**—and a shark bites the undersea internet cable between them. This broken connection is called a **Network Partition (`P`)**.

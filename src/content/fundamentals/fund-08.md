@@ -28,7 +28,7 @@ Suppose 90 out of 100 requests hit a cache and return in `50ms`, and 10 go to th
 → A measurement (time to first token) is an **SLI**; the target (99% under 1.5s) is an **SLO**.
 
 **🤔 Question 3: If the target is 99%, that means 1% can fail. Is that 1% something to fear—or something to spend?**
-Spend it! With 10 million requests a month, 1% is `100,000` slow requests you're *allowed*. If you've used very little of it, ship features faster and take risks. If you've burned most of it by mid-month, freeze risky deploys and fix reliability.
+You should spend it: with 10 million requests a month, 1% is `100,000` slow requests you're *allowed*. If you've used very little of it, ship features faster and take risks. If you've burned most of it by mid-month, freeze risky deploys and fix reliability.
 → That allowance is an **Error Budget**.
 
 **🤔 Question 4: P99 got worse. But a single question goes through six steps—guardrail, router, embedding, vector search, tool call, LLM. Which step is slow?**
@@ -36,7 +36,7 @@ Averages per service won't tell you, because a slow step for *one* request might
 → Give each request an ID that every step carries, and record start/end times per step. That's **Distributed Tracing** (standardized by **OpenTelemetry**).
 
 **🤔 Question 5: Everything is fast and nothing errors—but the bot told a customer something false. Which of your metrics caught it?**
-None. A request can return `200 OK` in `400ms` and be completely wrong. For AI systems, "working" includes "correct."
+None of them, because a request can return `200 OK` in `400ms` and be completely wrong. For AI systems, "working" includes "correct."
 → Automatically grade a sample of real answers (is it grounded in the retrieved documents? did it cite sources? did the user escalate?) and set a target for that too: a **Quality SLO**.
 
 **🤔 Question 6: Now you have 200 metrics. If you alert on all of them, your phone buzzes 40 times a night. How do you only get woken up for things that matter?**
@@ -119,7 +119,7 @@ Alert on **what users feel** (SLOs), and only when you're burning error budget *
 - **Agent dashboards (the "golden signals" for agents):** per-route TTFT/TPOT P50/P95/P99, goodput, error rate by step (guardrail, router, tool, LLM), **steps per task** distribution, **tokens per task**, tool-call failure rate per tool, fallback/degradation rate, cache hit rate, quality SLO trend, and cost per resolved task.
 
 ### 7. Timestamped Story ("Alice & Bob"): The Green Dashboard Outage
-- `Tue 10:00 AM` — A teammate upgrades the router prompt. Dashboard: availability `99.97%`, average latency `410ms`. All green.
+- `Tue 10:00 AM` — A teammate upgrades the router prompt. Dashboard: availability `99.97%`, average latency `410ms`, with every alert green.
 - `Tue 10:05 AM` — The new prompt sends `12%` of billing questions to the "Refund Policy" sub-agent, which now calls a slow CRM tool twice. Those requests take `7s` to show their first token.
 - `Tue 10:30 AM` — **Alice** waits 7 seconds, refreshes, asks again (double load). The average barely moves because `80%` of traffic is fast cached FAQ answers.
 - `Tue 11:15 AM` — **Bob** gets a confident answer: *"Your fare is refundable."* It isn't—the sub-agent skipped retrieval when the CRM timed out and answered from the model's memory. HTTP `200 OK` in `6.8s`.
@@ -213,7 +213,7 @@ flowchart TD
 5. **Redact Before Export:**
    - Prompts and completions often contain PII. Capture them only on sampled traces, run redaction in the Collector (or SDK), and restrict access—observability data is a common accidental data leak.
 
-### What Breaks in Production at 2 AM (Real Failure Modes)
+### Failure Modes in Production
 
 #### Failure Mode 1: Metric Cardinality Explosion Takes Down Monitoring
 - **How It Happens at 2 AM:**
@@ -231,7 +231,7 @@ flowchart TD
 - **How It Happens at 2 AM:**
   1. An embedding model version changes during a nightly re-index, but the query path still uses the old model. Vectors now live in slightly different spaces.
   2. Retrieval returns plausible-looking but wrong chunks. The LLM writes fluent, confident answers from them.
-  3. Availability `99.98%`, TTFT P99 `0.9s`, zero `5xx`. Nothing pages. By morning, thousands of users have received wrong policy answers.
+  3. Availability `99.98%`, TTFT P99 `0.9s`, zero `5xx`, so nothing pages, and by morning thousands of users have received wrong policy answers.
 - **How to Detect It in Metrics:**
   - Sampled **faithfulness / groundedness** score and **retrieval relevance** (judge-rated or reranker score of the top-k) dropping on the quality dashboard.
   - Implicit signals: thumbs-down rate, escalation rate, and "user rephrased the same question" rate rising per route; retrieval **empty-result** or **low-similarity** rate shifting.

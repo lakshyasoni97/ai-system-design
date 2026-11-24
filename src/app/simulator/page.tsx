@@ -7,7 +7,6 @@ import {
   Pause,
   RotateCcw,
   CheckCircle2,
-  Sparkles,
   FileCode2,
   CheckSquare,
   Square,
@@ -168,13 +167,13 @@ export default function SimulatorPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-1.5 rounded-xl border border-border bg-card p-1 shadow-2xs">
+        <div className="flex items-center gap-1.5 rounded-xl border border-border bg-card p-1 shadow-sm">
           <button
             type="button"
             onClick={() => setActiveTab("all")}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-mono text-xs font-semibold transition-colors cursor-pointer ${
               activeTab === "all"
-                ? "bg-primary text-primary-foreground shadow-2xs"
+                ? "bg-primary text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -186,7 +185,7 @@ export default function SimulatorPage() {
             onClick={() => setActiveTab("timer")}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-mono text-xs font-semibold transition-colors cursor-pointer ${
               activeTab === "timer"
-                ? "bg-primary text-primary-foreground shadow-2xs"
+                ? "bg-primary text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -198,7 +197,7 @@ export default function SimulatorPage() {
             onClick={() => setActiveTab("calc")}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-mono text-xs font-semibold transition-colors cursor-pointer ${
               activeTab === "calc"
-                ? "bg-primary text-primary-foreground shadow-2xs"
+                ? "bg-primary text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -226,9 +225,9 @@ export default function SimulatorPage() {
             </div>
 
             {/* Digital Clock & Controls */}
-            <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-secondary p-4 shadow-2xs">
+            <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-secondary p-4 shadow-sm">
               <div className="pr-3 border-r border-border">
-                <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                <div className="font-mono text-[11px] text-muted-foreground">
                   Elapsed / 45:00
                 </div>
                 <div className="font-mono text-3xl font-bold text-primary">
@@ -245,7 +244,7 @@ export default function SimulatorPage() {
                 <button
                   type="button"
                   onClick={() => setIsRunning((r) => !r)}
-                  className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 font-mono text-xs font-semibold transition-opacity cursor-pointer shadow-xs ${
+                  className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 font-mono text-xs font-semibold transition-opacity cursor-pointer shadow-sm ${
                     isRunning
                       ? "bg-amber-500 text-zinc-950 hover:opacity-90"
                       : "bg-primary text-primary-foreground hover:opacity-90"
@@ -284,7 +283,7 @@ export default function SimulatorPage() {
           <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <label
               htmlFor="scenario-select"
-              className="font-mono text-xs font-semibold uppercase tracking-wider text-accent"
+              className="font-mono text-xs font-semibold text-accent"
             >
               Target Interview Prompt:
             </label>
@@ -315,7 +314,7 @@ export default function SimulatorPage() {
                   onClick={() => setElapsedSeconds(phase.startMin * 60)}
                   className={`flex flex-col justify-between rounded-xl border p-3.5 text-left transition-all cursor-pointer ${
                     isCurrent
-                      ? "border-primary bg-primary/10 shadow-xs ring-1 ring-primary/20"
+                      ? "border-primary bg-primary/10 shadow-sm ring-1 ring-primary/20"
                       : isPast
                       ? "border-border bg-muted/40 opacity-80"
                       : "border-border bg-card hover:border-primary/40"
@@ -348,9 +347,9 @@ export default function SimulatorPage() {
           {/* Active Phase Guidance & Interactive Checklist + Whiteboard */}
           <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-12">
             <div className="lg:col-span-5 rounded-2xl border border-primary/30 bg-primary/5 p-5">
-              <div className="flex items-center justify-between font-mono text-xs font-semibold uppercase tracking-wider text-primary">
+              <div className="flex items-center justify-between font-mono text-xs font-semibold text-primary">
                 <span className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4" />
+                  <Timer className="h-4 w-4" />
                   Phase ({activePhase.rangeLabel}): {activePhase.title}
                 </span>
                 <span className="text-[10px] text-muted-foreground font-normal">

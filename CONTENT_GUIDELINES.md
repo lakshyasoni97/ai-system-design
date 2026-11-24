@@ -48,7 +48,7 @@ Every Fundamental (`fund-XX.md`) or Session (`session-XX.md`) file must follow t
 * Start with `# Title` (Note: `MarkdownArticle.tsx` hides `h1` because the page header renders the title, so always follow `# Title` immediately with a `>` blockquote summary).
 * Keep this light. It is a welcome mat, not a cheat sheet. Inside the blockquote, include **2 crisp bullet points**:
   * **Prerequisites:** 2–3 foundational concepts to know first (and a 1-line, jargon-free reminder of what they mean).
-  * **Plain-English Core:** What this topic is really about in one sentence a non-engineer could follow.
+  * **Plain-English Core:** What this topic solves in one sentence a non-engineer could follow.
 * Do **not** put the golden rule or interview framing here. Those land in Part 3, once the reader actually understands the idea.
 
 ### Part 2: Build It From Zero (Basics + Socratic Walkthrough)
@@ -56,7 +56,7 @@ This is the most important part for first-time learners. **No jargon is allowed 
 * **Start With the Problem, Not the Term:** Describe a simple world where this concept doesn't exist yet (e.g., "You have one database server and it's getting slow..."). Make the pain obvious in everyday words.
 * **Socratic Ladder (3–5 questions):** Guide the reader to the solution through a chain of questions, each followed by a short, plain answer:
   * Format each step as a bold question followed by its answer, e.g. **🤔 What's the simplest thing you could try?** → answer.
-  * Typical flow: *naive solution* → *"What breaks when traffic grows 10× / a machine dies / two users act at once?"* → *a smarter fix* → *"What new problem does that create?"* → *the real technique*.
+  * Typical flow: *naive solution* → *"What breaks when traffic grows 10× / a machine dies / two users act at once?"* → *a smarter fix* → *"What new problem does that create?"* → *the production technique*.
   * Questions must feel natural, never quiz-like or condescending. Skip the ladder only if the concept is genuinely trivial; then use a 3-step "naive → breaks → fix" narrative instead.
 * **Name It Last:** Only after the reader has "invented" the idea, reveal the official term: *"What you just designed is called **Consistent Hashing**."*
 * **Explain-It-in-Layers Close:** End with three escalating explanations:
@@ -87,7 +87,7 @@ This is the most important part for first-time learners. **No jargon is allowed 
 
 ### Part 6: Deep-Dive Mechanics & Production Failure Analysis
 * **Under-the-Hood Tricks:** Explain the math and edge cases that separate a Junior answer from a Senior Staff answer (e.g., `R + W > N` quorum math, Virtual Nodes on a hash ring, Hot Keys, Write Amplification, Outbox Pattern, Claim-Check Pattern, HNSW `efSearch` vs. recall trade-offs).
-* **What Breaks in Production at 2 AM:** Explicitly detail **2 real-world failure modes** (e.g., split-brain, thundering herd, OOM on vector index rebuild, poison pill messages in Pub/Sub), how to detect them via metrics, and the exact mitigation.
+* **Failure Modes in Production:** Explicitly detail **2 production failure modes** (e.g., split-brain, thundering herd, OOM on vector index rebuild, poison pill messages in Pub/Sub), how to detect them via metrics, and the exact mitigation.
 
 ### Part 7: Production AI & Resume Tie-In (With Complete Code)
 * Show how this pattern operates inside modern AI infrastructure and **1–2 genuinely relevant resume projects** (from Deloitte or Network18).
@@ -97,7 +97,7 @@ This is the most important part for first-time learners. **No jargon is allowed 
 ### Part 8: Common Interview Questions, Follow-Up Probes & Quick Recall
 * Include **at least 3 high-signal interview questions** (1 foundational, 1 failure/edge-case, 1 AI-scale trade-off).
 * Format each question as a three-part coaching block:
-  * **What they are really testing:** 1 sentence revealing the interviewer's hidden signal.
+  * **What the interviewer is testing:** 1 sentence revealing the interviewer's hidden signal.
   * **How to answer simply:** A `> "..."` blockquote written in natural, first-person spoken English ready to say word-for-word.
   * **Likely Follow-Up Probe ("The Double-Click"):** The follow-up question a senior interviewer will ask next to test your depth, plus a crisp 2-sentence answer.
 * **End with a `### 60-Second Rapid Fire (Self-Check)` block:** 3 ultra-short bulleted Q&As (1 line each) to lock in retention after reading.
@@ -112,7 +112,7 @@ To ensure every file renders cleanly in the Next.js study portal (`MarkdownArtic
    * Use `##` for the 8 main parts (renders with a bottom border and anchor slug).
    * Use `###` for sub-sections and individual interview questions.
 2. **Callouts (`>`):**
-   * Blockquotes (`>`) render as styled emerald/indigo callout cards with a thick left border. Use them for **Quick Summaries**, **Golden Rules**, and **Spoken Interview Answers**.
+   * Blockquotes (`>`) render as flat tinted callout boxes. Use them for **Quick Summaries**, **Golden Rules**, and **Spoken Interview Answers**.
 3. **Mermaid Diagrams (`MermaidDiagram.tsx`):**
    * Only use `flowchart TD` or `flowchart LR`.
    * **Always wrap node labels in double quotes** if they contain parentheses, slashes, colons, or line breaks:
@@ -127,6 +127,10 @@ To ensure every file renders cleanly in the Next.js study portal (`MarkdownArtic
 5. **Anti-Laziness & Completeness Guardrails:**
    * **Never truncate or summarize Parts 2, 6, 7, or 8** to save output tokens. Every part must be written at full depth.
    * **No hand-waving in code:** Code snippets must demonstrate real mechanics (e.g., idempotency keys, exponential backoff with jitter, token bucket math), not empty wrapper functions.
+6. **Prose & Specificity Guardrails:**
+   * **No unsourced statistics or invented percentages:** Never claim e.g. *"80% of candidates..."* without a real source; use qualitative phrasing (*"most candidates"*) or back-of-the-envelope examples explicitly labeled as assumptions.
+   * **No dramatic one- or two-word fragment sentences:** Merge punchy fragments (e.g. *"Nothing pages. All green."*) into complete, natural sentences.
+   * **Avoid filler intensifiers:** Skip phrases like *"real failure modes"*, *"plain-English truth"*, and *"really testing"* in headings and callouts.
 
 ---
 

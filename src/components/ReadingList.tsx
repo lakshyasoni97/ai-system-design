@@ -30,7 +30,7 @@ export default function ReadingList({
   if (!items || items.length === 0) return null;
 
   return (
-    <div className="rounded-3xl border border-border bg-card p-6 shadow-xs">
+    <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
       <h2 className="mb-1 flex items-center gap-2 text-base font-semibold text-foreground">
         <BookOpen className="h-4 w-4 text-primary" />
         {title}
@@ -45,7 +45,7 @@ export default function ReadingList({
           const body = (
             <>
               <span className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1 rounded-md border border-border bg-secondary px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <span className="inline-flex items-center gap-1 rounded-md border border-border bg-secondary px-1.5 py-0.5 font-mono text-[11px] font-semibold text-muted-foreground">
                   <Icon className="h-3 w-3" />
                   {style.label}
                 </span>

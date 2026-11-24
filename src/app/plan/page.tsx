@@ -9,12 +9,10 @@ import {
   Flag,
   Target,
   Clock,
-  Sparkles,
   ChevronDown,
   ChevronRight,
   Copy,
   Check,
-  ArrowRight,
 } from "lucide-react";
 import curriculum from "@/data/curriculum.json";
 import fundamentals from "@/data/fundamentals.json";
@@ -147,7 +145,7 @@ export default function PlanPage() {
               )}
             </button>
             <span className="rounded bg-accent/15 border border-accent/30 px-1.5 py-0.5 font-mono text-[11px] font-bold text-accent shrink-0">
-              F{String(t?.number || 0).padStart(2, "0")}
+              F{t?.number || 0}
             </span>
             <div className="min-w-0">
               <Link
@@ -184,14 +182,13 @@ export default function PlanPage() {
             </button>
             <Link
               href={`/fundamentals/${itemId}`}
-              className={`inline-flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs sm:text-sm font-semibold transition-colors ${
+              className={`inline-flex items-center rounded-xl px-3 py-1.5 text-xs sm:text-sm font-semibold transition-colors ${
                 isDone
                   ? "border border-border bg-card text-muted-foreground hover:text-foreground"
                   : "bg-primary text-primary-foreground hover:opacity-90"
               }`}
             >
-              <span>{isDone ? "Review" : "Study"}</span>
-              <ArrowRight className="h-3.5 w-3.5" />
+              {isDone ? "Review" : "Study"}
             </Link>
           </div>
         </div>
@@ -243,7 +240,7 @@ export default function PlanPage() {
 
           <div className="flex items-center gap-2.5 self-end sm:self-center shrink-0 pt-1 sm:pt-0 border-t sm:border-t-0 border-border/50 w-full sm:w-auto justify-end">
             <span
-              className={`rounded px-2 py-0.5 font-mono text-[10px] font-bold uppercase border ${
+              className={`rounded px-2 py-0.5 font-mono text-[10px] font-bold border ${
                 tierStyle[p?.tier || "secondary"]
               }`}
             >
@@ -266,14 +263,13 @@ export default function PlanPage() {
             </button>
             <Link
               href={`/problems?id=${pId}`}
-              className={`inline-flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs sm:text-sm font-semibold transition-colors ${
+              className={`inline-flex items-center rounded-xl px-3 py-1.5 text-xs sm:text-sm font-semibold transition-colors ${
                 isDone
                   ? "border border-border bg-card text-muted-foreground hover:text-foreground"
                   : "bg-primary text-primary-foreground hover:opacity-90"
               }`}
             >
-              <span>{isDone ? "Review" : "Solve"}</span>
-              <ArrowRight className="h-3.5 w-3.5" />
+              {isDone ? "Review" : "Solve"}
             </Link>
           </div>
         </div>
@@ -306,7 +302,7 @@ export default function PlanPage() {
             )}
           </button>
           <span className="rounded bg-primary/15 border border-primary/30 px-1.5 py-0.5 font-mono text-[11px] font-bold text-primary shrink-0">
-            S{String(s?.number || 0).padStart(2, "0")}
+            S{s?.number || 0}
           </span>
           <div className="min-w-0">
             <Link
@@ -349,14 +345,13 @@ export default function PlanPage() {
           </button>
           <Link
             href={`/roadmap/${itemId}`}
-            className={`inline-flex items-center gap-1 rounded-xl px-3 py-1.5 text-xs sm:text-sm font-semibold transition-colors ${
+            className={`inline-flex items-center rounded-xl px-3 py-1.5 text-xs sm:text-sm font-semibold transition-colors ${
               isDone
                 ? "border border-border bg-card text-muted-foreground hover:text-foreground"
                 : "bg-primary text-primary-foreground hover:opacity-90"
             }`}
           >
-            <span>{isDone ? "Review" : "Study"}</span>
-            <ArrowRight className="h-3.5 w-3.5" />
+            {isDone ? "Review" : "Study"}
           </Link>
         </div>
       </div>
@@ -365,12 +360,13 @@ export default function PlanPage() {
 
   return (
     <div className="space-y-8 pb-16">
-      {/* 1. Header Banner */}
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-xs">
-        <div className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 font-mono text-xs font-semibold text-primary">
-          <CalendarDays className="h-3.5 w-3.5" /> 10-Week Study Plan
-        </div>
-        <h1 className="mt-2.5 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+      {/* 1. Header */}
+      <div className="border-b border-border pb-5">
+        <p className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          <CalendarDays className="h-3.5 w-3.5 text-primary" />
+          <span>10-Week Study Plan</span>
+        </p>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
           Curriculum Roadmap & Milestone Checklist
         </h1>
         <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
@@ -383,7 +379,7 @@ export default function PlanPage() {
         {phaseStats.map((ph) => (
           <div
             key={ph.id}
-            className={`rounded-2xl border p-5 shadow-xs transition-all ${
+            className={`rounded-2xl border p-5 shadow-sm transition-all ${
               ph.isCurrent
                 ? "border-primary/60 bg-card ring-1 ring-primary/25"
                 : "border-border bg-card"
@@ -448,7 +444,7 @@ export default function PlanPage() {
               key={w.week}
               className={`rounded-2xl border transition-all ${
                 isCurrent
-                  ? "border-primary/60 bg-card shadow-xs ring-1 ring-primary/20"
+                  ? "border-primary/60 bg-card shadow-sm ring-1 ring-primary/20"
                   : w.isCompleted
                   ? "border-border/60 bg-card/80"
                   : "border-border bg-card"
@@ -479,19 +475,18 @@ export default function PlanPage() {
                         Week {w.week}: {w.focus}
                       </span>
                       {isCurrent && (
-                        <span className="rounded bg-primary px-2 py-0.2 font-mono text-[10px] font-bold text-primary-foreground shrink-0 animate-pulse">
-                          ACTIVE FOCUS
+                        <span className="rounded bg-primary px-2 py-0.5 font-mono text-[11px] font-semibold text-primary-foreground shrink-0">
+                          Current
                         </span>
                       )}
                       {w.isCompleted && (
-                        <span className="rounded bg-primary/10 border border-primary/25 px-1.5 py-0.2 font-mono text-[10px] font-semibold text-primary shrink-0">
-                          COMPLETED
+                        <span className="rounded bg-primary/10 border border-primary/25 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-primary shrink-0">
+                          Done
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground font-mono">
+                    <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground font-mono">
                       <span>Phase {w.phase} ({phase?.title.replace(/^Phase \d+: /, "")})</span>
-                      <span>•</span>
                       <span className="truncate max-w-[280px] sm:max-w-md">
                         Milestone: {w.milestone}
                       </span>

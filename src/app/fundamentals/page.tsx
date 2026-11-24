@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { BookOpen, CheckCircle2, Circle, Clock, Library, ShieldAlert } from "lucide-react";
+import { BookOpen, CheckCircle2, Circle, Clock, ShieldAlert } from "lucide-react";
 import fundamentals from "@/data/fundamentals.json";
 import resources from "@/data/resources.json";
 import quizzesData from "@/data/quizzes.json";
@@ -17,12 +17,9 @@ export default function FundamentalsIndexPage() {
 
   return (
     <div className="space-y-8">
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-        <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 font-mono text-xs font-semibold text-accent">
-          <Library className="h-3.5 w-3.5" />
-          Module 0 · Start here
-        </div>
-        <h1 className="mt-2.5 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+      <div className="border-b border-border pb-5">
+        <p className="text-xs font-medium text-muted-foreground">Module 0</p>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
           {fundamentals.title.replace("Module 0: ", "")}
         </h1>
         <p className="mt-1 max-w-3xl text-sm text-muted-foreground">{fundamentals.focus}</p>
@@ -53,7 +50,7 @@ export default function FundamentalsIndexPage() {
             >
               <div className="flex items-center justify-between">
                 <span className="font-mono text-xs font-semibold text-muted-foreground">
-                  TOPIC {String(t.number).padStart(2, "0")}
+                  Topic {t.number}
                 </span>
                 {isDone ? (
                   <CheckCircle2 className="h-4 w-4 text-primary" />

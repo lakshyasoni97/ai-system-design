@@ -12,16 +12,14 @@ import {
   Circle,
   Copy,
   Check,
-  ArrowRight,
-  Sparkles,
   Layers,
   Clock,
   ShieldCheck,
   Compass,
-  Flame,
   X,
   Target,
   ExternalLink,
+  MessageSquare,
 } from "lucide-react";
 import flashcardsData from "@/data/flashcards.json";
 import projectsData from "@/data/projects.json";
@@ -351,7 +349,7 @@ export default function RoadmapMindMap({
       {/* 1. TOP CONTROL BAR */}
       <div className="absolute top-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2.5 pointer-events-none">
         {/* Left: Project Highlighting Filter Pills */}
-        <div className="flex flex-wrap items-center gap-1.5 pointer-events-auto rounded-2xl border border-border/80 bg-background/90 p-1.5 backdrop-blur-md shadow-xs">
+        <div className="flex flex-wrap items-center gap-1.5 pointer-events-auto rounded-2xl border border-border/80 bg-background/90 p-1.5 backdrop-blur-md shadow-sm">
           <span className="hidden sm:inline-flex items-center gap-1 px-2 font-mono text-[11px] font-semibold text-muted-foreground">
             <ShieldCheck className="h-3.5 w-3.5 text-primary" />
             Resume Defense:
@@ -361,7 +359,7 @@ export default function RoadmapMindMap({
             onClick={() => setSelectedProjectId(null)}
             className={`rounded-xl px-2.5 py-1 font-mono text-xs font-semibold transition-all cursor-pointer ${
               selectedProjectId === null
-                ? "bg-primary text-primary-foreground shadow-xs"
+                ? "bg-primary text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground hover:bg-muted"
             }`}
           >
@@ -376,7 +374,7 @@ export default function RoadmapMindMap({
                 onClick={() => setSelectedProjectId(isSel ? null : p.id)}
                 className={`flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-medium transition-all cursor-pointer ${
                   isSel
-                    ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                    ? "bg-primary text-primary-foreground font-semibold shadow-sm"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 }`}
                 title={p.title}
@@ -391,7 +389,7 @@ export default function RoadmapMindMap({
         </div>
 
         {/* Right: Canvas Zoom & Viewport Tools */}
-        <div className="flex items-center gap-1.5 pointer-events-auto rounded-2xl border border-border/80 bg-background/90 p-1.5 backdrop-blur-md shadow-xs">
+        <div className="flex items-center gap-1.5 pointer-events-auto rounded-2xl border border-border/80 bg-background/90 p-1.5 backdrop-blur-md shadow-sm">
           <button
             type="button"
             onClick={centerOnNextUp}
@@ -560,7 +558,7 @@ export default function RoadmapMindMap({
 
           {/* CENTRAL CORE HUB NODE */}
           <div
-            className="absolute -translate-x-1/2 -translate-y-1/2 rounded-3xl border-2 border-primary/50 bg-card p-6 shadow-2xl backdrop-blur-md"
+            className="absolute -translate-x-1/2 -translate-y-1/2 rounded-3xl border-2 border-primary/50 bg-card p-6 shadow-2xl"
             style={{
               left: `${CENTER_NODE.x}px`,
               top: `${CENTER_NODE.y}px`,
@@ -613,7 +611,7 @@ export default function RoadmapMindMap({
                   onClick={centerOnNextUp}
                   className="text-primary hover:underline font-mono text-[11px] cursor-pointer"
                 >
-                  Jump to S{String(nextUpSession?.number || 1).padStart(2, "0")} →
+                  Jump to S{nextUpSession?.number || 1}
                 </button>
               </div>
             </div>
@@ -629,7 +627,7 @@ export default function RoadmapMindMap({
             return (
               <div
                 key={mod.id}
-                className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-2xl border ${cfg.border} bg-card/95 p-4 shadow-lg backdrop-blur-md transition-all ${
+                className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-2xl border ${cfg.border} bg-card p-4 shadow-lg transition-all ${
                   isModActive ? "opacity-100" : "opacity-40"
                 }`}
                 style={{
@@ -714,12 +712,12 @@ export default function RoadmapMindMap({
                       {isCompleted ? (
                         <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                       ) : isNext ? (
-                        <div className="h-4 w-4 rounded-full border-2 border-primary bg-primary/20 shrink-0 animate-pulse" />
+                        <div className="h-4 w-4 rounded-full border-2 border-primary bg-primary/20 shrink-0" />
                       ) : (
                         <Circle className="h-4 w-4 text-muted-foreground/40 shrink-0" />
                       )}
                       <span className="font-mono text-[11px] font-bold text-muted-foreground">
-                        S{String(session.number).padStart(2, "0")}
+                        S{session.number}
                       </span>
                     </div>
 
@@ -730,8 +728,8 @@ export default function RoadmapMindMap({
                         </span>
                       )}
                       {isNext && (
-                        <span className="rounded bg-accent/20 px-1.5 py-0.2 font-mono text-[9px] font-bold text-accent animate-pulse">
-                          Next Up
+                        <span className="rounded bg-accent/20 px-1.5 py-0.5 font-mono text-[9px] font-bold text-accent">
+                          Next up
                         </span>
                       )}
                     </div>
@@ -754,16 +752,15 @@ export default function RoadmapMindMap({
 
       {/* 3. DOCKED RICH NODE INSPECTOR (Side Sheet Desktop / Bottom Sheet Mobile) */}
       {isInspectorOpen && selectedSession && (
-        <aside className="absolute right-0 bottom-0 top-auto lg:top-0 z-30 w-full max-w-none lg:max-w-md max-h-[70vh] lg:max-h-none border-t lg:border-t-0 lg:border-l border-border bg-card/95 p-5 backdrop-blur-xl shadow-2xl overflow-y-auto flex flex-col justify-between rounded-t-3xl lg:rounded-none animate-in slide-in-from-bottom lg:slide-in-from-right duration-200 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+        <aside className="absolute right-0 bottom-0 top-auto lg:top-0 z-30 w-full max-w-none lg:max-w-md max-h-[70vh] lg:max-h-none border-t lg:border-t-0 lg:border-l border-border bg-card/95 p-5 backdrop-blur-xl shadow-2xl overflow-y-auto flex flex-col justify-between rounded-t-3xl lg:rounded-none pb-[max(1.25rem,env(safe-area-inset-bottom))]">
           <div className="space-y-4">
             {/* Inspector Header */}
             <div className="flex items-start justify-between border-b border-border pb-3">
               <div className="space-y-1">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5">
                   <span className="font-mono text-xs font-bold text-primary">
-                    Session {String(selectedSession.number).padStart(2, "0")}
+                    Session {selectedSession.number}
                   </span>
-                  <span className="text-xs text-muted-foreground">•</span>
                   <span className="text-xs font-medium text-muted-foreground">
                     {selectedSession.moduleTitle}
                   </span>
@@ -815,19 +812,19 @@ export default function RoadmapMindMap({
               <div className="grid grid-cols-4 gap-1.5 text-center font-mono text-[11px]">
                 <div className="rounded-lg bg-secondary p-1.5">
                   <div className="font-bold text-muted-foreground">{selectedSessionFlashcards.unseen}</div>
-                  <div className="text-[9px] text-muted-foreground uppercase">Unseen</div>
+                  <div className="text-[10px] text-muted-foreground">Unseen</div>
                 </div>
                 <div className="rounded-lg bg-destructive/15 p-1.5">
                   <div className="font-bold text-destructive">{selectedSessionFlashcards.hard}</div>
-                  <div className="text-[9px] text-destructive uppercase">Hard</div>
+                  <div className="text-[10px] text-destructive">Hard</div>
                 </div>
                 <div className="rounded-lg bg-amber-500/15 p-1.5">
                   <div className="font-bold text-amber-500">{selectedSessionFlashcards.medium}</div>
-                  <div className="text-[9px] text-amber-500 uppercase">Med</div>
+                  <div className="text-[10px] text-amber-500">Med</div>
                 </div>
                 <div className="rounded-lg bg-primary/15 p-1.5">
                   <div className="font-bold text-primary">{selectedSessionFlashcards.easy}</div>
-                  <div className="text-[9px] text-primary uppercase">Easy</div>
+                  <div className="text-[10px] text-primary">Easy</div>
                 </div>
               </div>
             </div>
@@ -836,7 +833,7 @@ export default function RoadmapMindMap({
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  <MessageSquare className="h-3.5 w-3.5 text-primary" />
                   Socratic AI Chat Prompt
                 </span>
                 <button
@@ -897,10 +894,9 @@ export default function RoadmapMindMap({
 
             <Link
               href={`/roadmap/${selectedSession.id}`}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground shadow-sm hover:opacity-95 transition-opacity"
+              className="flex w-full items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-primary-foreground shadow-sm hover:opacity-95 transition-opacity"
             >
-              <span>{isSessionCompleted(selectedSession.id) ? "Review Session" : "Start Session"}</span>
-              <ArrowRight className="h-4 w-4" />
+              {isSessionCompleted(selectedSession.id) ? "Review Session" : "Start Session"}
             </Link>
           </div>
         </aside>
@@ -913,7 +909,7 @@ export default function RoadmapMindMap({
           onClick={() => setIsInspectorOpen(true)}
           className="absolute right-4 bottom-4 z-20 flex items-center gap-1.5 rounded-2xl border border-border bg-card/95 px-3 py-2 text-xs font-semibold text-foreground shadow-lg backdrop-blur-md hover:border-primary/40 transition-all cursor-pointer"
         >
-          <Sparkles className="h-3.5 w-3.5 text-primary" />
+          <Layers className="h-3.5 w-3.5 text-primary" />
           <span>Open Session Inspector</span>
         </button>
       )}

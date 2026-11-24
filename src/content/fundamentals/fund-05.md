@@ -181,7 +181,7 @@ flowchart TD
      - If `Tool 2` fails permanently because the warehouse already shipped the box (**Pivot Transaction**), the Saga runs **Backward Compensation** (`Tool 1_undo`) to cancel the refund credit and alerts a human agent.
      - Once the Pivot step succeeds, `Tool 3` (updating Salesforce) uses **Forward Recovery** (retry via Pub/Sub until it succeeds).
 
-### What Breaks in Production at 2 AM (Real Failure Modes)
+### Failure Modes in Production
 
 #### Failure Mode 1: The Multi-Layer Retry Storm ("Metastable Failure State")
 - **How It Happens at 2 AM:** A transient 10-second network blip causes Vertex AI latency to spike from `1.5s` to `6.0s`.

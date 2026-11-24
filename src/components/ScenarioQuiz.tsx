@@ -11,7 +11,6 @@ import {
   ChevronUp,
   RotateCcw,
   ShieldAlert,
-  Sparkles,
   XCircle,
 } from "lucide-react";
 import { useProgress } from "./ProgressProvider";
@@ -124,7 +123,7 @@ export default function ScenarioQuiz({
   };
 
   return (
-    <section className="rounded-2xl sm:rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-xs space-y-5">
+    <section className="rounded-2xl sm:rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-sm space-y-5">
       {/* Header Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
         <div className="flex items-start gap-2.5">
@@ -230,7 +229,7 @@ export default function ScenarioQuiz({
       <div className="space-y-4">
         {/* Scenario Box */}
         <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-1.5">
-          <div className="flex items-center gap-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+          <div className="flex items-center gap-1.5 font-mono text-xs font-semibold text-amber-600 dark:text-amber-400">
             <AlertTriangle className="h-3.5 w-3.5" />
             <span>Production Scenario</span>
           </div>
@@ -312,8 +311,8 @@ export default function ScenarioQuiz({
                           {opt.trapLabel}
                         </span>
                         {isSelected && (
-                          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                            Your Choice
+                          <span className="font-mono text-[11px] text-muted-foreground">
+                            Your choice
                           </span>
                         )}
                       </div>
@@ -354,10 +353,9 @@ export default function ScenarioQuiz({
               </button>
             </div>
 
-            <div className="rounded-2xl border-l-4 border-primary bg-primary/5 p-4 space-y-1">
-              <div className="flex items-center gap-1.5 font-mono text-[11px] font-bold uppercase tracking-wider text-primary">
-                <Sparkles className="h-3.5 w-3.5" />
-                <span>Interview Golden Rule</span>
+            <div className="rounded-xl border border-primary/25 bg-primary/5 p-4 space-y-1">
+              <div className="text-xs font-bold text-primary">
+                Interview golden rule
               </div>
               <p className="text-sm leading-relaxed text-foreground">
                 <InlineFormatted text={current.takeaway} />
@@ -371,8 +369,8 @@ export default function ScenarioQuiz({
       {allAnswered && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4">
           <div className="space-y-0.5">
-            <div className="font-mono text-xs font-bold uppercase tracking-wider text-primary">
-              Quiz Complete · {stats.correct}/{stats.total} Correct
+            <div className="font-mono text-xs font-bold text-primary">
+              Quiz complete: {stats.correct}/{stats.total} correct
             </div>
             <p className="text-xs text-muted-foreground">
               {stats.correct === stats.total

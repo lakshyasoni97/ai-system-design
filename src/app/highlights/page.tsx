@@ -11,7 +11,6 @@ import {
   Trash2,
   Download,
   Check,
-  ArrowRight,
   MessageSquare,
   MessageSquarePlus,
   StickyNote,
@@ -19,7 +18,6 @@ import {
   BookOpen,
   Edit3,
   Copy,
-  Sparkles,
 } from "lucide-react";
 import {
   HighlightColor,
@@ -128,7 +126,7 @@ export default function HighlightsPage() {
         map[s.id] = {
           id: s.id,
           type: "session",
-          title: `Session ${String(s.number).padStart(2, "0")}: ${s.title}`,
+          title: `Session ${s.number}: ${s.title}`,
           href: `/roadmap/${s.id}`,
           order: 100 + s.number,
         };
@@ -277,7 +275,7 @@ export default function HighlightsPage() {
   // Export highlights + notebooks to formatted Markdown Study Sheet
   const handleExportMarkdown = () => {
     let md = `# AI System Design — Master Study Sheet, Comments & Architect Notebooks\n\n`;
-    md += `Exported on: ${new Date().toLocaleDateString()} • Highlights: ${highlights.length} (${totalCommentsCount} with comments) • Notebooks: ${activeNotebooks.length}\n\n`;
+    md += `Exported on: ${new Date().toLocaleDateString()} | Highlights: ${highlights.length} (${totalCommentsCount} with comments) | Notebooks: ${activeNotebooks.length}\n\n`;
     md += `---\n\n`;
 
     const allSourceIds = new Set<string>();
@@ -343,7 +341,7 @@ export default function HighlightsPage() {
   return (
     <div className="space-y-8">
       {/* 1. Header Banner */}
-      <div className="rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-xs">
+      <div className="rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-5">
           <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
@@ -373,7 +371,7 @@ export default function HighlightsPage() {
               type="button"
               onClick={handleExportMarkdown}
               disabled={highlights.length === 0 && activeNotebooks.length === 0}
-              className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 font-mono text-xs font-semibold text-foreground hover:border-primary/40 hover:text-foreground transition-all disabled:opacity-50 cursor-pointer shadow-xs"
+              className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 font-mono text-xs font-semibold text-foreground hover:border-primary/40 hover:text-foreground transition-all disabled:opacity-50 cursor-pointer shadow-sm"
             >
               {copiedExport ? (
                 <>
@@ -405,7 +403,7 @@ export default function HighlightsPage() {
                 }}
                 className={`flex flex-col justify-between rounded-2xl border p-4 text-left transition-all cursor-pointer ${
                   isSelected
-                    ? "border-primary bg-primary/10 shadow-xs"
+                    ? "border-primary bg-primary/10 shadow-sm"
                     : "border-border bg-card hover:border-primary/40 hover:bg-muted/30"
                 }`}
               >
@@ -432,7 +430,7 @@ export default function HighlightsPage() {
       </div>
 
       {/* 3. View Switcher, Search & Filter Bar */}
-      <div className="space-y-3 rounded-2xl border border-border bg-card p-4 shadow-xs">
+      <div className="space-y-3 rounded-2xl border border-border bg-card p-4 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
           {/* 3 View Modes */}
           <div className="inline-flex flex-wrap items-center rounded-xl border border-border bg-muted/40 p-1 gap-1">
@@ -441,7 +439,7 @@ export default function HighlightsPage() {
               onClick={() => setViewMode("cards")}
               className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-mono text-xs transition-all cursor-pointer ${
                 viewMode === "cards"
-                  ? "bg-card text-foreground font-semibold shadow-2xs"
+                  ? "bg-card text-foreground font-semibold shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -453,7 +451,7 @@ export default function HighlightsPage() {
               onClick={() => setViewMode("study-guide")}
               className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-mono text-xs transition-all cursor-pointer ${
                 viewMode === "study-guide"
-                  ? "bg-card text-foreground font-semibold shadow-2xs"
+                  ? "bg-card text-foreground font-semibold shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -465,7 +463,7 @@ export default function HighlightsPage() {
               onClick={() => setViewMode("notebooks")}
               className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-mono text-xs transition-all cursor-pointer ${
                 viewMode === "notebooks"
-                  ? "bg-card text-foreground font-semibold shadow-2xs"
+                  ? "bg-card text-foreground font-semibold shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -573,7 +571,6 @@ export default function HighlightsPage() {
                     className="inline-flex items-center gap-1.5 rounded-xl border border-primary/40 bg-primary/10 px-4 py-2 font-mono text-xs font-semibold text-primary hover:bg-primary/20 transition-colors"
                   >
                     <span>Try Highlighting on Fundamentals Topic 1</span>
-                    <ArrowRight className="h-3.5 w-3.5" />
                   </Link>
                 </div>
               )}
@@ -588,7 +585,7 @@ export default function HighlightsPage() {
                 return (
                   <div
                     key={hl.id}
-                    className="flex flex-col justify-between rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-xs hover:border-primary/40 transition-all space-y-4"
+                    className="flex flex-col justify-between rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-sm hover:border-primary/40 transition-all space-y-4"
                   >
                     <div className="space-y-3.5">
                       {/* Card Top: Semantic badge + Date + Copy */}
@@ -636,9 +633,9 @@ export default function HighlightsPage() {
                       {isEditing ? (
                         <div className="rounded-2xl border border-primary/40 bg-muted/20 p-3.5 space-y-2.5">
                           <div className="flex items-center justify-between">
-                            <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-primary flex items-center gap-1">
-                              <Sparkles className="h-3 w-3" />
-                              Architect Comment Editor
+                            <span className="font-mono text-[11px] font-semibold text-primary flex items-center gap-1">
+                              <MessageSquare className="h-3 w-3" />
+                              Architect comment editor
                             </span>
                           </div>
                           <div className="flex flex-wrap items-center gap-1">
@@ -711,9 +708,9 @@ export default function HighlightsPage() {
                           className="group/comment relative rounded-2xl border border-primary/25 bg-primary/[0.05] dark:bg-primary/[0.08] p-4 space-y-1.5 cursor-pointer hover:border-primary/50 transition-all"
                         >
                           <div className="flex items-center justify-between">
-                            <span className="inline-flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-primary">
+                            <span className="inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold text-primary">
                               <MessageSquare className="h-3 w-3" />
-                              Architect Comment
+                              Architect comment
                             </span>
                             <span className="inline-flex items-center gap-1 rounded-md border border-border bg-card/80 px-2 py-0.5 font-mono text-[10px] text-muted-foreground opacity-0 group-hover/comment:opacity-100 transition-opacity">
                               <Edit3 className="h-2.5 w-2.5" />
@@ -728,8 +725,7 @@ export default function HighlightsPage() {
 
                       {/* Supporting Context Quote Anchor */}
                       <blockquote
-                        className="rounded-2xl bg-muted/35 p-3.5 text-xs sm:text-[13px] text-foreground/85 italic font-serif leading-relaxed border-l-3"
-                        style={{ borderLeftColor: meta.hex }}
+                        className="rounded-lg border border-border/70 bg-muted/35 p-3.5 text-xs sm:text-[13px] text-foreground/85 leading-relaxed"
                       >
                         &ldquo;{hl.text}&rdquo;
                       </blockquote>
@@ -814,12 +810,12 @@ export default function HighlightsPage() {
             groupedStudyGuide.map((group) => (
               <div
                 key={group.sourceId}
-                className="rounded-3xl border border-border bg-card p-6 sm:p-7 shadow-xs space-y-5"
+                className="rounded-3xl border border-border bg-card p-6 sm:p-7 shadow-sm space-y-5"
               >
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
                   <div>
-                    <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-primary">
-                      Topic Synthesis & Annotations
+                    <span className="font-mono text-[11px] font-semibold text-primary">
+                      Topic synthesis & annotations
                     </span>
                     <h2 className="text-lg sm:text-xl font-bold text-foreground">
                       {group.sourceTitle}
@@ -827,10 +823,9 @@ export default function HighlightsPage() {
                   </div>
                   <Link
                     href={group.href}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-secondary/60 px-3.5 py-1.5 font-mono text-xs font-semibold text-foreground hover:border-primary/40 transition-colors"
+                    className="inline-flex items-center rounded-xl border border-border bg-secondary/60 px-3.5 py-1.5 font-mono text-xs font-semibold text-foreground hover:border-primary/40 transition-colors"
                   >
-                    <span>Open Topic Article</span>
-                    <ArrowRight className="h-3.5 w-3.5 text-primary" />
+                    Open Topic Article
                   </Link>
                 </div>
 
@@ -838,9 +833,9 @@ export default function HighlightsPage() {
                 {group.scratchpad && (
                   <div className="rounded-2xl border border-amber-500/30 bg-amber-500/[0.04] dark:bg-amber-500/[0.06] p-5 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="inline-flex items-center gap-1.5 font-mono text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                      <span className="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-amber-600 dark:text-amber-400">
                         <StickyNote className="h-3.5 w-3.5" />
-                        Personal Architect Notebook
+                        Personal architect notebook
                       </span>
                       <button
                         type="button"
@@ -865,8 +860,8 @@ export default function HighlightsPage() {
                 {/* Highlight & Comment items in this topic */}
                 {group.items.length > 0 && (
                   <div className="space-y-3">
-                    <div className="font-mono text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Anchored Highlights & Comments ({group.items.length})
+                    <div className="text-xs font-semibold text-muted-foreground">
+                      Anchored highlights & comments ({group.items.length})
                     </div>
                     <div className="grid gap-3 md:grid-cols-2">
                       {group.items.map((hl) => {
@@ -891,8 +886,8 @@ export default function HighlightsPage() {
 
                               {hl.note?.trim() && (
                                 <div className="rounded-xl border border-primary/25 bg-primary/[0.05] p-3 space-y-1">
-                                  <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-primary block">
-                                    💬 Architect Comment
+                                  <span className="font-mono text-[11px] font-semibold text-primary block">
+                                    Architect comment
                                   </span>
                                   <p className="text-xs sm:text-[13px] font-medium text-foreground leading-relaxed">
                                     {hl.note}
@@ -901,8 +896,7 @@ export default function HighlightsPage() {
                               )}
 
                               <blockquote
-                                className="rounded-xl bg-card/80 pl-3 pr-2.5 py-2 text-xs italic text-muted-foreground font-serif border-l-3"
-                                style={{ borderLeftColor: meta.hex }}
+                                className="rounded-lg border border-border/70 bg-card/80 px-3 py-2 text-xs text-muted-foreground"
                               >
                                 &ldquo;{hl.text}&rdquo;
                               </blockquote>
@@ -933,11 +927,11 @@ export default function HighlightsPage() {
       {viewMode === "notebooks" && (
         <div className="space-y-6">
           {/* Quick Selector to Open / Create Notebook for any Session or Fundamental */}
-          <div className="rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-sm space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-amber-500">
-                  Interactive Notebook Workspace
+                <span className="font-mono text-[11px] font-semibold text-amber-500">
+                  Interactive notebook workspace
                 </span>
                 <h3 className="text-base font-bold text-foreground">
                   Write or Edit Topic Notebook
@@ -959,11 +953,11 @@ export default function HighlightsPage() {
                       </option>
                     ))}
                   </optgroup>
-                  <optgroup label="Curriculum Sessions (1-20)">
+                  <optgroup label="Curriculum Sessions">
                     {curriculumData.modules.flatMap((m) =>
                       m.sessions.map((s) => (
                         <option key={s.id} value={s.id}>
-                          S{String(s.number).padStart(2, "0")}: {s.title}{" "}
+                          S{s.number}: {s.title}{" "}
                           {scratchpadNotes[s.id]?.trim() ? "✓" : ""}
                         </option>
                       ))
@@ -974,10 +968,9 @@ export default function HighlightsPage() {
                 {sourceCatalog[selectedNotebookSourceId] && (
                   <Link
                     href={sourceCatalog[selectedNotebookSourceId].href}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 font-mono text-xs font-semibold text-primary hover:bg-primary/20 transition-colors"
+                    className="inline-flex items-center rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 font-mono text-xs font-semibold text-primary hover:bg-primary/20 transition-colors"
                   >
-                    <span>Go to Topic</span>
-                    <ArrowRight className="h-3.5 w-3.5" />
+                    Go to Topic
                   </Link>
                 )}
               </div>
@@ -996,14 +989,14 @@ export default function HighlightsPage() {
           {/* All Saved Notebooks Grid */}
           {activeNotebooks.length > 0 && (
             <div className="space-y-3">
-              <h3 className="font-mono text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
-                All Saved Topic Notebooks ({activeNotebooks.length})
+              <h3 className="text-xs font-semibold text-muted-foreground px-1">
+                All saved topic notebooks ({activeNotebooks.length})
               </h3>
               <div className="grid gap-4 md:grid-cols-2">
                 {activeNotebooks.map((nb) => (
                   <div
                     key={nb.id}
-                    className="flex flex-col justify-between rounded-3xl border border-border bg-card p-5 shadow-xs hover:border-amber-500/40 transition-all space-y-4"
+                    className="flex flex-col justify-between rounded-3xl border border-border bg-card p-5 shadow-sm hover:border-amber-500/40 transition-all space-y-4"
                   >
                     <div className="space-y-3">
                       <div className="flex items-center justify-between gap-2 border-b border-border pb-3">

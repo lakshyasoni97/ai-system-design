@@ -3,26 +3,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  ArrowRight,
   Layers,
-  ShieldCheck,
-  Calculator,
-  Compass,
   Flame,
   Copy,
   Check,
-  Clock,
-  Sparkles,
-  GitFork,
-  BookOpen,
-  Target,
-  Library,
-  ListChecks,
-  CalendarDays,
   CheckCircle2,
   Circle,
-  FileText,
-  HelpCircle,
 } from "lucide-react";
 import curriculumData from "@/data/curriculum.json";
 import fundamentalsData from "@/data/fundamentals.json";
@@ -146,7 +132,7 @@ export default function DashboardPage() {
               weekMilestone: w.milestone,
               type: "session",
               typeLabel: "Curriculum Session",
-              title: `Session ${String(s.number).padStart(2, "0")}: ${s.title}`,
+              title: `Session ${s.number}: ${s.title}`,
               subtitle: s.projectTieIn,
               href: `/roadmap/${s.id}`,
               readTime: s.estimatedReadTime || "15 min",
@@ -228,36 +214,21 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="space-y-8 pb-16">
-      {/* 1. HERO: Greeting & 10-Week Sequence Next Action */}
-      <section className="rounded-2xl sm:rounded-3xl border border-border bg-card p-4 sm:p-6 md:p-8 shadow-xs">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+    <div className="space-y-10 pb-16">
+      {/* 1. HERO: Greeting & Next Action */}
+      <section className="space-y-6">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                <Compass className="h-3.5 w-3.5" />
-                <span>AI System Design Study Portal · 10-Week Mastery</span>
-              </div>
-              {flashcardStats.due > 0 && (
-                <Link
-                  href="/flashcards"
-                  className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-colors"
-                >
-                  <Sparkles className="h-3.5 w-3.5" />
-                  <span>{flashcardStats.due} Cards Due for Review Today</span>
-                </Link>
-              )}
-            </div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
               Welcome back, {curriculumData.candidate.name.split(" ")[0]}
             </h1>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              Master distributed systems, production RAG, multi-agent systems, LLM serving, and 18 canonical case studies for AI-native startups and product companies.
+              Master distributed systems, production RAG, multi-agent systems, LLM serving, and {problemsData.length} canonical case studies for AI-native startups and product companies.
             </p>
           </div>
 
-          {/* Overall Readiness KPI Card */}
-          <div className="flex flex-col gap-2 rounded-2xl border border-border bg-secondary/50 p-4 sm:min-w-[260px]">
+          {/* Inline Progress Summary */}
+          <div className="flex flex-col gap-2 sm:min-w-[260px]">
             <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
               <span className="font-semibold text-foreground">10-Week Progress</span>
               <span className="font-mono font-semibold text-foreground">
@@ -270,58 +241,55 @@ export default function DashboardPage() {
                 style={{ width: `${overallCompletionPct}%` }}
               />
             </div>
-            <div className="grid grid-cols-3 gap-1 pt-1 border-t border-border/50 text-[11px] font-mono text-muted-foreground text-center">
-              <div>
-                <span className="font-bold text-foreground">{completedFundamentalsCount}/8</span>
-                <div className="text-[10px] text-muted-foreground">Fund.</div>
-              </div>
-              <div>
-                <span className="font-bold text-foreground">{completedSessionsCount}/31</span>
-                <div className="text-[10px] text-muted-foreground">Sessions</div>
-              </div>
-              <div>
-                <span className="font-bold text-foreground">{completedProblemsCount}/18</span>
-                <div className="text-[10px] text-muted-foreground">Cases</div>
-              </div>
+            <div className="flex items-center justify-between gap-4 pt-1 text-xs font-mono text-muted-foreground">
+              <span>
+                <strong className="text-foreground">{completedFundamentalsCount}/{fundamentalsData.topics.length}</strong> Fund.
+              </span>
+              <span>
+                <strong className="text-foreground">{completedSessionsCount}/{allSessions.length}</strong> Sessions
+              </span>
+              <span>
+                <strong className="text-foreground">{completedProblemsCount}/{problemsData.length}</strong> Cases
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Dynamic Next Step Recommendation Banner */}
-        <div className="mt-6 rounded-2xl border border-primary/40 bg-primary/5 p-4 sm:p-5 transition-all hover:border-primary/60">
+        {/* Dynamic Next Step Recommendation */}
+        <div className="rounded-xl border border-primary/40 bg-card p-5 transition-colors hover:border-primary/60">
           <div className="flex flex-col gap-4">
             {/* Top Bar: Mode Switcher & Week Identifier */}
-            <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-primary/15 pb-3">
+            <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border pb-3">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-0.5 font-mono text-xs font-semibold text-primary-foreground">
                   <Flame className="h-3.5 w-3.5" />
-                  NEXT UP
+                  Next up
                 </span>
                 <span className="rounded bg-primary/10 px-2 py-0.5 font-mono text-xs font-semibold text-primary">
-                  Week {activeNextItem.week} · {activeNextItem.phaseTitle}
+                  Week {activeNextItem.week}: {activeNextItem.phaseTitle}
                 </span>
-                <span className="rounded border border-border bg-card px-2 py-0.5 font-mono text-[11px] font-medium text-muted-foreground">
+                <span className="rounded border border-border bg-secondary/40 px-2 py-0.5 font-mono text-[11px] font-medium text-muted-foreground">
                   {activeNextItem.typeLabel}
                 </span>
                 {activeNextItem.status === "written" ? (
-                  <span className="rounded bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 font-mono text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                    DEEP-DIVE READY
+                  <span className="rounded bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 font-mono text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                    Ready
                   </span>
                 ) : (
-                  <span className="rounded bg-muted border border-border px-2 py-0.5 font-mono text-[10px] font-medium text-muted-foreground">
-                    SKELETON PROMPT
+                  <span className="rounded bg-muted border border-border px-2 py-0.5 font-mono text-[11px] font-medium text-muted-foreground">
+                    Outline
                   </span>
                 )}
               </div>
 
               {/* Toggle: 10-Week Sequence vs Next Ready Guide */}
-              <div className="inline-flex items-center rounded-xl border border-border bg-card p-1 text-xs">
+              <div className="inline-flex items-center rounded-lg border border-border bg-secondary/40 p-1 text-xs">
                 <button
                   type="button"
                   onClick={() => setRecommendationMode("ROADMAP")}
-                  className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer ${
+                  className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer ${
                     recommendationMode === "ROADMAP"
-                      ? "bg-primary text-primary-foreground shadow-2xs"
+                      ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -330,9 +298,9 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={() => setRecommendationMode("READY")}
-                  className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer ${
+                  className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer ${
                     recommendationMode === "READY"
-                      ? "bg-primary text-primary-foreground shadow-2xs"
+                      ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
@@ -359,10 +327,20 @@ export default function DashboardPage() {
 
               {/* Action Buttons */}
               <div className="flex flex-wrap items-center gap-2.5 shrink-0 self-start md:self-auto">
+                {flashcardStats.due > 0 && (
+                  <Link
+                    href="/flashcards"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-colors"
+                  >
+                    <Layers className="h-3.5 w-3.5" />
+                    <span>Review {flashcardStats.due} due cards</span>
+                  </Link>
+                )}
+
                 <button
                   type="button"
                   onClick={handleCopyPrompt}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 font-mono text-xs font-medium text-foreground hover:bg-muted transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 font-mono text-xs font-medium text-foreground hover:bg-muted transition-colors cursor-pointer"
                   title="Copy Socratic AI Study Prompt"
                 >
                   {copiedPrompt ? (
@@ -380,32 +358,28 @@ export default function DashboardPage() {
 
                 <Link
                   href={activeNextItem.href}
-                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-xs hover:opacity-95 transition-opacity"
+                  className="inline-flex items-center rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-sm hover:opacity-95 transition-opacity"
                 >
-                  <span>
-                    {activeNextItem.type === "problem"
-                      ? "Open Problem"
-                      : activeNextItem.type === "fundamental"
-                      ? "Study Topic"
-                      : "Open Session"}
-                  </span>
-                  <ArrowRight className="h-4 w-4" />
+                  {activeNextItem.type === "problem"
+                    ? "Open Problem"
+                    : activeNextItem.type === "fundamental"
+                    ? "Study Topic"
+                    : "Open Session"}
                 </Link>
               </div>
             </div>
 
             {/* Bottom: Week Tasks Strip */}
-            <div className="pt-2 border-t border-primary/10">
-              <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+            <div className="pt-3 border-t border-border">
+              <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
                 <span className="font-mono font-semibold text-foreground">
                   Week {activeNextItem.week} Checklist ({currentWeekDoneCount}/{currentWeekItems.length} Done)
                 </span>
                 <Link
                   href="/plan"
-                  className="text-primary font-semibold hover:underline inline-flex items-center gap-1"
+                  className="text-primary font-semibold hover:underline"
                 >
-                  <span>View 10-Week Plan</span>
-                  <ArrowRight className="h-3 w-3" />
+                  View 10-Week Plan
                 </Link>
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -417,7 +391,7 @@ export default function DashboardPage() {
                       href={item.href}
                       className={`inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-xs transition-colors ${
                         isCurrent
-                          ? "border-primary bg-primary/20 text-primary font-semibold ring-1 ring-primary/40"
+                          ? "border-primary bg-primary/15 text-primary font-semibold"
                           : item.isCompleted
                           ? "border-border/60 bg-secondary/60 text-muted-foreground hover:text-foreground"
                           : "border-border bg-card text-foreground hover:border-primary/40"
@@ -441,7 +415,7 @@ export default function DashboardPage() {
       </section>
 
       {/* 2. THE BIG PICTURE JOURNEY MAP */}
-      <section className="rounded-2xl sm:rounded-3xl border border-border bg-card p-4 sm:p-6 md:p-8 shadow-xs">
+      <section className="border-t border-border pt-8">
         <JourneyMap />
       </section>
     </div>

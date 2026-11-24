@@ -144,7 +144,7 @@ export function ClozeCodePill({
       type="button"
       onClick={() => toggleCloze(id)}
       title="Active Recall Mode: Click to reveal target metric/formula"
-      className="inline-flex select-none items-center gap-1 rounded-md border border-dashed border-accent/60 bg-accent/10 px-2 py-0.5 font-mono text-[0.8125rem] text-accent font-semibold transition-all hover:bg-accent/20 cursor-pointer animate-pulse"
+      className="inline-flex select-none items-center gap-1 rounded-md border border-dashed border-accent/60 bg-accent/10 px-2 py-0.5 font-mono text-[0.8125rem] text-accent font-semibold transition-all hover:bg-accent/20 cursor-pointer"
       {...props}
     >
       <span className="opacity-75">[ ? ]</span>
@@ -165,9 +165,9 @@ export function RecallBlockquote({ children }: { children: React.ReactNode }) {
   // If in recall mode, allow testing oneself before revealing
   if (isRecallMode && !revealed) {
     return (
-      <blockquote className="my-5 sm:my-6 rounded-2xl border-l-4 border-accent/60 bg-accent/5 p-4 sm:p-5 text-base leading-relaxed shadow-2xs">
+      <blockquote className="my-5 sm:my-6 rounded-xl border border-accent/25 bg-accent/5 p-4 sm:p-5 text-base leading-relaxed">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-accent font-semibold font-mono text-xs uppercase tracking-wider">
+          <div className="flex items-center gap-2 text-accent font-semibold font-mono text-xs">
             <MessageSquareQuote className="h-4 w-4" />
             <span>Spoken Interview Defense / Key Rule Masked</span>
           </div>
@@ -176,7 +176,7 @@ export function RecallBlockquote({ children }: { children: React.ReactNode }) {
             onClick={() => setRevealed(true)}
             className="inline-flex items-center justify-center rounded-xl border border-accent/40 bg-accent/15 px-3 py-1.5 font-mono text-xs font-semibold text-accent hover:bg-accent/25 transition-colors cursor-pointer w-fit"
           >
-            Say it aloud, then click to reveal →
+            Say it aloud, then click to reveal
           </button>
         </div>
       </blockquote>
@@ -184,7 +184,7 @@ export function RecallBlockquote({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <blockquote className="relative my-5 sm:my-6 rounded-2xl border-l-4 border-primary bg-primary/5 p-4 sm:p-5 text-base leading-relaxed text-foreground shadow-2xs [&_strong]:text-primary [&_strong]:font-bold">
+    <blockquote className="relative my-5 sm:my-6 rounded-xl border border-primary/25 bg-primary/5 p-4 sm:p-5 text-base leading-relaxed text-foreground [&_strong]:text-primary [&_strong]:font-bold">
       {isRecallMode && (
         <button
           type="button"
@@ -207,14 +207,14 @@ export function ActiveRecallToolbar() {
     useActiveRecall();
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-3 shadow-2xs">
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-3 shadow-sm">
       <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={() => setIsRecallMode((prev) => !prev)}
           className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 font-mono text-xs font-semibold transition-all cursor-pointer ${
             isRecallMode
-              ? "border-accent/60 bg-accent/15 text-accent shadow-xs"
+              ? "border-accent/60 bg-accent/15 text-accent shadow-sm"
               : "border-border bg-secondary text-muted-foreground hover:text-foreground"
           }`}
         >

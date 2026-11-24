@@ -155,7 +155,7 @@ flowchart TD
 3. **Priority Lanes (Isolating Interactive Traffic from Bulk Backfills):**
    - Never push a `500,000-document` historical re-embedding backfill into the same queue that processes live user file uploads! Always provision separate queues (`ai-ingest-realtime-p0` vs. `ai-ingest-backfill-p2`) with dedicated worker minimums and separate token-bucket quotas.
 
-### What Breaks in Production at 2 AM (Real Failure Modes)
+### Failure Modes in Production
 
 #### Failure Mode 1: The Ack Deadline / Visibility Timeout Runaway Duplicate Storm
 - **How It Happens at 2 AM:** Your Pub/Sub subscription has `ack_deadline_seconds = 600` (10 minutes). At `02:00 AM`, a customer uploads a dense 90-minute town-hall video that takes **16 minutes** for `ffmpeg` and Gemini Multimodal to process on **Worker Pod A**.

@@ -45,7 +45,7 @@ export default function MarkdownArticle({
           sourceTitle={sourceTitle}
           href={href}
         >
-          <article className="rounded-2xl sm:rounded-3xl border border-border bg-card p-4 sm:p-6 md:p-8 shadow-xs">
+          <article className="rounded-2xl sm:rounded-3xl border border-border bg-card p-4 sm:p-6 md:p-8 shadow-sm">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{

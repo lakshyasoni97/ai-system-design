@@ -10,7 +10,6 @@ import {
   Columns,
   Copy,
   Check,
-  Sparkles,
   Bold,
   Code,
   List,
@@ -160,7 +159,7 @@ export default function StudyScratchpad({
   return (
     <div
       id="session-scratchpad"
-      className={`rounded-3xl border border-border bg-card shadow-xs scroll-mt-24 overflow-hidden transition-all ${
+      className={`rounded-3xl border border-border bg-card shadow-sm scroll-mt-24 overflow-hidden transition-all ${
         compact ? "p-4" : "p-6 sm:p-7"
       }`}
     >
@@ -200,7 +199,7 @@ export default function StudyScratchpad({
               onClick={() => setMode("preview")}
               className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-mono text-xs transition-all cursor-pointer ${
                 mode === "preview"
-                  ? "bg-card text-foreground font-semibold shadow-2xs"
+                  ? "bg-card text-foreground font-semibold shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
               title="Read formatted note"
@@ -213,7 +212,7 @@ export default function StudyScratchpad({
               onClick={() => setMode("edit")}
               className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-mono text-xs transition-all cursor-pointer ${
                 mode === "edit"
-                  ? "bg-card text-foreground font-semibold shadow-2xs"
+                  ? "bg-card text-foreground font-semibold shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
               title="Edit markdown note"
@@ -227,7 +226,7 @@ export default function StudyScratchpad({
                 onClick={() => setMode("split")}
                 className={`hidden sm:inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-mono text-xs transition-all cursor-pointer ${
                   mode === "split"
-                    ? "bg-card text-foreground font-semibold shadow-2xs"
+                    ? "bg-card text-foreground font-semibold shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
                 title="Side-by-side editor and live preview"
@@ -300,8 +299,7 @@ export default function StudyScratchpad({
       {(mode === "edit" || mode === "split" || !note.trim()) && (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border/70 bg-muted/30 px-3 py-2">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mr-1">
-              <Sparkles className="h-3 w-3 text-amber-500" />
+            <span className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold text-muted-foreground mr-1">
               Templates:
             </span>
             {NOTE_TEMPLATES.map((tpl) => {
@@ -401,7 +399,7 @@ export default function StudyScratchpad({
                   onClick={() => setMode("preview")}
                   className="text-primary font-semibold hover:underline cursor-pointer"
                 >
-                  Done Editing (⌘+Enter) →
+                  Done Editing (⌘+Enter)
                 </button>
               )}
             </div>
@@ -419,12 +417,12 @@ export default function StudyScratchpad({
                 title={mode === "preview" ? "Click anywhere to edit note" : undefined}
                 className={`group relative rounded-2xl border border-amber-500/25 bg-amber-500/[0.04] dark:bg-amber-500/[0.06] p-5 transition-all ${
                   mode === "preview"
-                    ? "cursor-pointer hover:border-amber-500/50 hover:shadow-xs"
+                    ? "cursor-pointer hover:border-amber-500/50 hover:shadow-sm"
                     : "h-full"
                 }`}
               >
                 {mode === "preview" && (
-                  <span className="absolute right-3.5 top-3.5 inline-flex items-center gap-1 rounded-lg border border-border bg-card/90 px-2.5 py-1 font-mono text-[10px] font-semibold text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shadow-2xs">
+                  <span className="absolute right-3.5 top-3.5 inline-flex items-center gap-1 rounded-lg border border-border bg-card/90 px-2.5 py-1 font-mono text-[10px] font-semibold text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
                     <Edit3 className="h-3 w-3 text-amber-500" />
                     Click to Edit
                   </span>
@@ -445,7 +443,7 @@ export default function StudyScratchpad({
                         </h3>
                       ),
                       h3: ({ children }) => (
-                        <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 mt-3 mb-1">
+                        <h4 className="text-xs sm:text-sm font-bold text-amber-600 dark:text-amber-400 mt-3 mb-1">
                           {children}
                         </h4>
                       ),
@@ -469,7 +467,7 @@ export default function StudyScratchpad({
                         <strong className="font-semibold text-foreground">{children}</strong>
                       ),
                       blockquote: ({ children }) => (
-                        <blockquote className="my-2.5 rounded-xl border-l-3 border-amber-500 bg-card/80 px-3.5 py-2 text-xs sm:text-sm italic text-foreground/90">
+                        <blockquote className="my-2.5 rounded-lg border border-border bg-muted/40 px-3.5 py-2 text-xs sm:text-sm text-foreground/90">
                           {children}
                         </blockquote>
                       ),

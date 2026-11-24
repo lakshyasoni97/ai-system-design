@@ -20,7 +20,7 @@ Five minutes in, the interviewer asks: *"How many GPUs? How much RAM does your v
 ### The Socratic Ladder: Discovering Estimation
 
 **🤔 Question 1: You don't know the real traffic. Is it hopeless to guess the size of the system?**
-No. You know *some* things: 50,000 employees, maybe a third use it daily, each asks a handful of questions. Multiply those and you get **requests per day**. Divide by the number of seconds in a day (`86,400`, call it `~100,000`) and you get **requests per second**.
+You don't need exact numbers—you already know *some* things: 50,000 employees, maybe a third use it daily, each asks a handful of questions. Multiply those and you get **requests per day**. Divide by the number of seconds in a day (`86,400`, call it `~100,000`) and you get **requests per second**.
 → `17,000 users × 6 questions = ~100,000 requests/day ÷ 100,000 seconds ≈ 1 request/second on average`.
 
 **🤔 Question 2: One request per second sounds tiny. Is the system tiny?**
@@ -32,7 +32,7 @@ Don't count requests—count **work**. Each call generates, say, 300 words-piece
 → Measure the system in its **real unit of work** (tokens/sec, bytes, vectors), not in "requests."
 
 **🤔 Question 4: What else could run out besides GPU speed?**
-Memory. Each in-progress conversation holds its "working notes" (the KV cache) in GPU memory. And your vector database must hold every document embedding in RAM. A system can have plenty of compute and still crash because it runs out of memory.
+Usually memory: each in-progress conversation holds its "working notes" (the KV cache) in GPU memory. And your vector database must hold every document embedding in RAM. A system can have plenty of compute and still crash because it runs out of memory.
 → For each component, ask: **what runs out first—compute, memory, disk, network, or money?**
 
 **🤔 Question 5: Your answer is "about 4 GPUs and 115 GB of RAM." How do you know you didn't make a 1,000× arithmetic mistake?**
@@ -207,7 +207,7 @@ flowchart TD
    - Single Redis shard: `~100,000` simple ops/sec. Single Postgres primary: `~5,000–20,000` simple indexed QPS. One Kafka partition: `~10 MB/s`. One async FastAPI pod doing I/O-bound work: `~hundreds to low thousands` req/s.
    - If your math says you need `40` Redis shards for `2,000 QPS`, you dropped or added a zero somewhere.
 
-### What Breaks in Production at 2 AM (Real Failure Modes)
+### Failure Modes in Production
 
 #### Failure Mode 1: Sized for Compute, Died on KV Cache Memory
 - **How It Happens at 2 AM:**
