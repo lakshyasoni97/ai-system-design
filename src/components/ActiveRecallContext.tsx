@@ -115,7 +115,7 @@ export function ClozeCodePill({
   if (!isRecallMode) {
     return (
       <code
-        className="rounded-md border border-border bg-secondary px-1.5 py-0.5 font-mono text-[0.875rem] text-primary font-medium"
+        className="rounded bg-muted/70 px-1.5 py-0.5 font-mono text-[0.85em] text-foreground/90"
         {...props}
       >
         {children}
@@ -202,9 +202,57 @@ export function RecallBlockquote({ children }: { children: React.ReactNode }) {
 /**
  * Top toolbar for toggling Recall Mode on study articles
  */
-export function ActiveRecallToolbar() {
+export function ActiveRecallToolbar({ compact = false }: { compact?: boolean }) {
   const { isRecallMode, setIsRecallMode, revealedCount, totalClozes, revealAll, resetClozes } =
     useActiveRecall();
+
+  if (compact) {
+    return (
+      <div className="flex flex-wrap items-center gap-1.5">
+        <button
+          type="button"
+          onClick={() => setIsRecallMode((prev) => !prev)}
+          title={
+            isRecallMode
+              ? "Turn OFF Active Recall mode"
+              : "Mask metrics and key quotes for active recall practice"
+          }
+          className={`inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 font-mono text-xs font-semibold transition-all cursor-pointer ${
+            isRecallMode
+              ? "border-accent/60 bg-accent/15 text-accent shadow-sm"
+              : "border-border bg-muted/40 text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          {isRecallMode ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+          <span>{isRecallMode ? "Recall: ON" : "Recall Mode"}</span>
+        </button>
+
+        {isRecallMode && (
+          <div className="flex items-center gap-1 font-mono text-[11px]">
+            <span className="rounded-lg border border-border bg-muted/40 px-2 py-1 text-muted-foreground">
+              <span className="text-foreground font-semibold">{revealedCount}</span>/{totalClozes}
+            </span>
+            <button
+              type="button"
+              onClick={revealAll}
+              className="rounded-lg border border-border bg-muted/40 px-2 py-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            >
+              Reveal
+            </button>
+            <button
+              type="button"
+              onClick={resetClozes}
+              className="rounded-lg border border-border bg-muted/40 p-1.5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              title="Reset cloze masks"
+              aria-label="Reset cloze masks"
+            >
+              <RotateCcw className="h-3 w-3" />
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-3 shadow-sm">

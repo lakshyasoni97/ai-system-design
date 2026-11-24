@@ -28,6 +28,7 @@ interface StudyScratchpadProps {
   sourceTitle: string;
   placeholder?: string;
   compact?: boolean;
+  collapsibleWhenEmpty?: boolean;
 }
 
 const NOTE_TEMPLATES = [
@@ -77,9 +78,11 @@ export default function StudyScratchpad({
   sourceTitle,
   placeholder = "Jot down personal metrics, interview analogies, or architectural trade-offs to remember...",
   compact = false,
+  collapsibleWhenEmpty = false,
 }: StudyScratchpadProps) {
   const { scratchpadNotes, updateScratchpad } = useProgress();
   const note = scratchpadNotes[sourceId] || "";
+  const [expanded, setExpanded] = useState(false);
 
   // Mode: "preview" when note exists, "edit" when empty or actively editing, "split" for side-by-side
   const [mode, setMode] = useState<"preview" | "edit" | "split">(() =>
@@ -155,6 +158,40 @@ export default function StudyScratchpad({
   };
 
   const wordCount = note.trim() ? note.trim().split(/\s+/).length : 0;
+
+  if (collapsibleWhenEmpty && !note.trim() && !expanded) {
+    return (
+      <div
+        id="session-scratchpad"
+        className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card px-5 py-3.5 shadow-sm scroll-mt-24"
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-500 shrink-0">
+            <StickyNote className="h-4 w-4" />
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">
+              Personal Architect Notebook
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Capture interview defense notes, trade-offs, or capacity numbers for {sourceTitle}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setExpanded(true);
+            setMode("edit");
+          }}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-muted/40 px-3 py-1.5 font-mono text-xs font-semibold text-foreground hover:border-primary/40 hover:bg-muted transition-colors cursor-pointer"
+        >
+          <Edit3 className="h-3.5 w-3.5 text-amber-500" />
+          <span>+ Add Notes</span>
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div

@@ -36,6 +36,7 @@ interface HighlightableArticleProps {
   sourceId: string;
   sourceTitle: string;
   href: string;
+  refreshKey?: string;
   children: React.ReactNode;
 }
 
@@ -101,6 +102,7 @@ export default function HighlightableArticle({
   sourceId,
   sourceTitle,
   href,
+  refreshKey,
   children,
 }: HighlightableArticleProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -636,8 +638,11 @@ export default function HighlightableArticle({
   }, [pageHighlights, showInlineCallouts, openHighlightPopover]);
 
   useEffect(() => {
-    applyHighlightsToDom();
-  }, [applyHighlightsToDom]);
+    const t = setTimeout(() => {
+      applyHighlightsToDom();
+    }, 30);
+    return () => clearTimeout(t);
+  }, [applyHighlightsToDom, refreshKey]);
 
   // Deep-link scroll and spotlight pulse
   const triggerSpotlight = (highlightId: string) => {
@@ -729,15 +734,14 @@ export default function HighlightableArticle({
 
   return (
     <div className="relative space-y-4">
-      {/* 0. Top-of-Article Annotations & Comments Control Strip */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card/90 px-4 py-2.5 shadow-sm">
-        <div className="flex flex-wrap items-center gap-2.5">
-          <span className="inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-foreground">
-            <Highlighter className="h-3.5 w-3.5 text-primary" />
-            <span>Page Annotations</span>
-          </span>
-
-          {pageHighlights.length > 0 ? (
+      {/* 0. Top-of-Article Annotations & Comments Control Strip (only shown when page has highlights) */}
+      {pageHighlights.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card/90 px-4 py-2 shadow-sm">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-foreground">
+              <Highlighter className="h-3.5 w-3.5 text-primary" />
+              <span>Annotations</span>
+            </span>
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="rounded-full bg-primary/15 px-2.5 py-0.5 font-mono text-[11px] font-semibold text-primary">
                 {pageHighlights.length} {pageHighlights.length === 1 ? "highlight" : "highlights"}
@@ -749,35 +753,29 @@ export default function HighlightableArticle({
                 </span>
               )}
             </div>
-          ) : (
-            <span className="text-xs text-muted-foreground">
-              Select any text in the article below to highlight or attach an interview comment.
-            </span>
-          )}
-        </div>
+          </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {pageCommentsCount > 0 && (
-            <button
-              type="button"
-              onClick={() => setShowInlineCallouts((v) => !v)}
-              className={`inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1 font-mono text-[11px] transition-all cursor-pointer ${
-                showInlineCallouts
-                  ? "border-primary/40 bg-primary/10 text-primary font-semibold"
-                  : "border-border bg-muted/40 text-muted-foreground hover:text-foreground"
-              }`}
-              title="Toggle inline comment cards directly beneath annotated paragraphs"
-            >
-              {showInlineCallouts ? (
-                <Eye className="h-3.5 w-3.5" />
-              ) : (
-                <EyeOff className="h-3.5 w-3.5" />
-              )}
-              <span>Inline Notes</span>
-            </button>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {pageCommentsCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowInlineCallouts((v) => !v)}
+                className={`inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1 font-mono text-[11px] transition-all cursor-pointer ${
+                  showInlineCallouts
+                    ? "border-primary/40 bg-primary/10 text-primary font-semibold"
+                    : "border-border bg-muted/40 text-muted-foreground hover:text-foreground"
+                }`}
+                title="Toggle inline comment cards directly beneath annotated paragraphs"
+              >
+                {showInlineCallouts ? (
+                  <Eye className="h-3.5 w-3.5" />
+                ) : (
+                  <EyeOff className="h-3.5 w-3.5" />
+                )}
+                <span>Inline Notes</span>
+              </button>
+            )}
 
-          {pageHighlights.length > 0 && (
             <div className="inline-flex items-center rounded-xl border border-border bg-muted/30 p-0.5">
               <button
                 type="button"
@@ -801,24 +799,24 @@ export default function HighlightableArticle({
                 <ChevronRight className="h-3.5 w-3.5" />
               </button>
             </div>
-          )}
 
-          <button
-            type="button"
-            onClick={() => {
-              setSideDrawerTab(pageHighlights.length > 0 ? "comments" : "notebook");
-              setSideDrawerOpen(true);
-            }}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-1 font-mono text-[11px] font-semibold text-foreground hover:border-primary/40 hover:bg-muted/40 transition-all cursor-pointer"
-          >
-            <PanelRightOpen className="h-3.5 w-3.5 text-primary" />
-            <span>Notes Drawer</span>
-            {(pageHighlights.length > 0 || hasScratchpad) && (
-              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-            )}
-          </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSideDrawerTab("comments");
+                setSideDrawerOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-1 font-mono text-[11px] font-semibold text-foreground hover:border-primary/40 hover:bg-muted/40 transition-all cursor-pointer"
+            >
+              <PanelRightOpen className="h-3.5 w-3.5 text-primary" />
+              <span>Notes Drawer</span>
+              {(pageHighlights.length > 0 || hasScratchpad) && (
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+              )}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Article Content Container */}
       <div

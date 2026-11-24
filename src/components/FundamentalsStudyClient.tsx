@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useMemo } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, CheckCircle2, Circle, Clock, Cpu } from "lucide-react";
-import MarkdownArticle from "./MarkdownArticle";
+import MarkdownArticle, { TocQuickJump } from "./MarkdownArticle";
 import ReadingList, { ReadingItem } from "./ReadingList";
 import StudyScratchpad from "./StudyScratchpad";
 import ScenarioQuiz, { QuizQuestion } from "./ScenarioQuiz";
@@ -43,11 +43,61 @@ export default function FundamentalsStudyClient({
   next: Topic | null;
 }) {
   const { isDone: checkDone, toggle } = useFundamentalsDone();
+  const { scratchpadNotes, getHighlightsForSource, quizResults } = useProgress();
   const isDone = checkDone(topic.id);
+
+  const topicHighlights = getHighlightsForSource(topic.id);
+  const personalNote = scratchpadNotes[topic.id] || "";
+  const quizAnsweredCount = useMemo(
+    () => quizzes.filter((q) => Boolean(quizResults[q.id])).length,
+    [quizzes, quizResults]
+  );
+  const quizCorrectCount = useMemo(
+    () => quizzes.filter((q) => quizResults[q.id]?.isCorrect).length,
+    [quizzes, quizResults]
+  );
 
   const handleToggle = () => {
     toggle(topic.id);
   };
+
+  const quickJumps: TocQuickJump[] = useMemo(() => {
+    const jumps: TocQuickJump[] = [
+      {
+        id: "page-highlights-drawer",
+        label: "Highlights & Comments",
+        badge:
+          topicHighlights.length > 0
+            ? String(topicHighlights.length)
+            : undefined,
+        tone: "emerald",
+      },
+      {
+        id: "session-scratchpad",
+        label: "Architect Notebook",
+        dot: Boolean(personalNote.trim()),
+        tone: "amber",
+      },
+    ];
+    if (quizzes.length > 0) {
+      jumps.push({
+        id: "topic-quiz",
+        label: "Scenario Quiz",
+        badge:
+          quizAnsweredCount > 0
+            ? `${quizCorrectCount}/${quizzes.length}`
+            : undefined,
+        tone: "amber",
+      });
+    }
+    return jumps;
+  }, [
+    topicHighlights.length,
+    personalNote,
+    quizzes.length,
+    quizAnsweredCount,
+    quizCorrectCount,
+  ]);
 
   return (
     <div className="space-y-6">
@@ -92,52 +142,59 @@ export default function FundamentalsStudyClient({
         sourceId={topic.id}
         sourceTitle={`Topic ${topic.number}: ${topic.title}`}
         href={`/fundamentals/${topic.id}`}
-      />
-      {quizzes.length > 0 && (
-        <div id="topic-quiz" className="scroll-mt-24">
-          <ScenarioQuiz
-            questions={quizzes}
-            sourceTitle={topic.title}
-            sourceId={topic.id}
-            isTopicCompleted={isDone}
-            onMarkTopicCompleted={handleToggle}
-          />
-        </div>
-      )}
-      <ReadingList items={reading} />
-      <StudyScratchpad
-        sourceId={topic.id}
-        sourceTitle={`Topic ${topic.number}: ${topic.title}`}
-        placeholder="Jot down core distributed systems invariants, CAP/PACELC trade-offs, or AI tie-ins for this topic..."
-      />
+        showToc
+        tocQuickJumps={quickJumps}
+        footerContent={
+          <div className="space-y-6 pt-2">
+            {quizzes.length > 0 && (
+              <div id="topic-quiz" className="scroll-mt-24">
+                <ScenarioQuiz
+                  questions={quizzes}
+                  sourceTitle={topic.title}
+                  sourceId={topic.id}
+                  isTopicCompleted={isDone}
+                  onMarkTopicCompleted={handleToggle}
+                />
+              </div>
+            )}
+            <ReadingList items={reading} />
+            <StudyScratchpad
+              sourceId={topic.id}
+              sourceTitle={`Topic ${topic.number}: ${topic.title}`}
+              placeholder="Jot down core distributed systems invariants, CAP/PACELC trade-offs, or AI tie-ins for this topic..."
+              collapsibleWhenEmpty
+            />
 
-      <div className="flex items-center justify-between gap-3">
-        {prev ? (
-          <Link
-            href={`/fundamentals/${prev.id}`}
-            className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground hover:border-primary/40"
-          >
-            <ArrowLeft className="h-4 w-4" /> {prev.title}
-          </Link>
-        ) : (
-          <span />
-        )}
-        {next ? (
-          <Link
-            href={`/fundamentals/${next.id}`}
-            className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground hover:border-primary/40"
-          >
-            {next.title} <ArrowRight className="h-4 w-4" />
-          </Link>
-        ) : (
-          <Link
-            href="/roadmap/session-01"
-            className="inline-flex items-center gap-2 rounded-xl border border-primary/40 bg-primary/10 px-4 py-2.5 text-sm font-semibold text-primary"
-          >
-            Start Session 1 <ArrowRight className="h-4 w-4" />
-          </Link>
-        )}
-      </div>
+            <div className="flex items-center justify-between gap-3">
+              {prev ? (
+                <Link
+                  href={`/fundamentals/${prev.id}`}
+                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground hover:border-primary/40"
+                >
+                  <ArrowLeft className="h-4 w-4" /> {prev.title}
+                </Link>
+              ) : (
+                <span />
+              )}
+              {next ? (
+                <Link
+                  href={`/fundamentals/${next.id}`}
+                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground hover:border-primary/40"
+                >
+                  {next.title} <ArrowRight className="h-4 w-4" />
+                </Link>
+              ) : (
+                <Link
+                  href="/roadmap/session-01"
+                  className="inline-flex items-center gap-2 rounded-xl border border-primary/40 bg-primary/10 px-4 py-2.5 text-sm font-semibold text-primary"
+                >
+                  Start Session 1 <ArrowRight className="h-4 w-4" />
+                </Link>
+              )}
+            </div>
+          </div>
+        }
+      />
     </div>
   );
 }
