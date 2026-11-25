@@ -19,6 +19,7 @@ import {
   Scale,
   Calculator,
   Trash2,
+  ChevronDown,
 } from "lucide-react";
 import { useProgress } from "./ProgressProvider";
 import CodeBlock from "./CodeBlock";
@@ -91,7 +92,30 @@ export default function StudyScratchpad({
   const [copied, setCopied] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const templatesMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!templatesOpen) return;
+    const handleOutside = (e: MouseEvent) => {
+      if (
+        templatesMenuRef.current &&
+        !templatesMenuRef.current.contains(e.target as Node)
+      ) {
+        setTemplatesOpen(false);
+      }
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setTemplatesOpen(false);
+    };
+    window.addEventListener("mousedown", handleOutside);
+    window.addEventListener("keydown", handleEscape);
+    return () => {
+      window.removeEventListener("mousedown", handleOutside);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [templatesOpen]);
 
   // Sync initial mode once hydrated if note loads from storage
   const hasInitializedMode = useRef(false);
@@ -222,9 +246,11 @@ export default function StudyScratchpad({
                 </span>
               ) : null}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Markdown-enabled synthesis & personal interview defense notes for {sourceTitle}
-            </p>
+            {!compact && (
+              <p className="text-xs text-muted-foreground">
+                Markdown-enabled synthesis & personal interview defense notes for {sourceTitle}
+              </p>
+            )}
           </div>
         </div>
 
@@ -332,32 +358,56 @@ export default function StudyScratchpad({
         </div>
       </div>
 
-      {/* Quick Structure Templates Bar (shown in Edit/Split mode or when note is empty) */}
+      {/* Compact Toolbar: Templates Dropdown + Formatting Icons */}
       {(mode === "edit" || mode === "split" || !note.trim()) && (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border/70 bg-muted/30 px-3 py-2">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold text-muted-foreground mr-1">
-              Templates:
-            </span>
-            {NOTE_TEMPLATES.map((tpl) => {
-              const Icon = tpl.icon;
-              return (
-                <button
-                  key={tpl.id}
-                  type="button"
-                  onClick={() => applyTemplate(tpl.snippet)}
-                  className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 font-mono text-[11px] font-medium transition-all cursor-pointer ${tpl.color}`}
-                >
-                  <Icon className="h-3 w-3" />
-                  <span>+ {tpl.label}</span>
-                </button>
-              );
-            })}
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/70 bg-muted/25 px-2.5 py-1.5">
+          <div className="relative" ref={templatesMenuRef}>
+            <button
+              type="button"
+              onClick={() => setTemplatesOpen((v) => !v)}
+              aria-expanded={templatesOpen}
+              aria-haspopup="menu"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1 font-mono text-[11px] font-medium text-foreground hover:border-primary/40 transition-colors cursor-pointer"
+            >
+              <span>Templates</span>
+              <ChevronDown
+                className={`h-3 w-3 text-muted-foreground transition-transform ${
+                  templatesOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            {templatesOpen && (
+              <div
+                role="menu"
+                aria-label="Note structure templates"
+                className="absolute left-0 top-full z-30 mt-1.5 w-56 rounded-xl border border-border bg-card p-1.5 shadow-xl"
+              >
+                {NOTE_TEMPLATES.map((tpl) => {
+                  const Icon = tpl.icon;
+                  return (
+                    <button
+                      key={tpl.id}
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        applyTemplate(tpl.snippet);
+                        setTemplatesOpen(false);
+                      }}
+                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left font-mono text-xs text-foreground hover:bg-muted transition-colors cursor-pointer"
+                    >
+                      <Icon className="h-3.5 w-3.5 shrink-0 text-primary" />
+                      <span>{tpl.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Formatting mini-toolbar */}
           {(mode === "edit" || mode === "split") && (
-            <div className="flex items-center gap-0.5 border-l border-border pl-2">
+            <div className="flex items-center gap-0.5">
               <button
                 type="button"
                 onClick={() => insertFormatting("**", "**", "bold point")}
@@ -426,7 +476,7 @@ export default function StudyScratchpad({
                 }
               }}
               placeholder={placeholder}
-              className="w-full rounded-2xl border border-border bg-muted/25 p-4 font-mono text-xs sm:text-sm leading-relaxed text-foreground placeholder-muted-foreground focus:border-primary focus:bg-card focus:outline-none transition-colors resize-y"
+              className="w-full rounded-2xl border border-border bg-muted/25 p-4 font-mono text-xs sm:text-sm leading-relaxed text-foreground placeholder-muted-foreground focus:border-primary focus:bg-card focus-visible:ring-1 focus-visible:ring-primary transition-colors resize-y"
             />
             <div className="flex items-center justify-between px-1 font-mono text-[11px] text-muted-foreground">
               <span>Supports Markdown (`**bold**`, `- lists`, `` `code` ``, `&gt; callouts`)</span>

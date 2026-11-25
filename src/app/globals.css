@@ -361,6 +361,23 @@ mark.text-highlight-rose {
   outline-offset: 4px;
 }
 
+/* Progressive disclosure for row/card actions (hover, keyboard focus, touch) */
+.reveal-actions {
+  opacity: 0;
+  transition: opacity 150ms ease-out;
+}
+
+.reveal-host:hover .reveal-actions,
+.reveal-host:focus-within .reveal-actions {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .reveal-actions {
+    opacity: 1;
+  }
+}
+
 /* ==========================================================================
    Code Editor Syntax Highlighting (VS Code / One Dark Pro palette)
    ========================================================================== */

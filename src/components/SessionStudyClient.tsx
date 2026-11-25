@@ -82,23 +82,21 @@ export default function SessionStudyClient({
   };
 
   const quickJumps: TocQuickJump[] = useMemo(() => {
-    const jumps: TocQuickJump[] = [
-      {
+    const jumps: TocQuickJump[] = [];
+    if (sessionHighlights.length > 0) {
+      jumps.push({
         id: "page-highlights-drawer",
         label: "Highlights & Comments",
-        badge:
-          sessionHighlights.length > 0
-            ? String(sessionHighlights.length)
-            : undefined,
+        badge: String(sessionHighlights.length),
         tone: "emerald",
-      },
-      {
-        id: "session-scratchpad",
-        label: "Architect Notebook",
-        dot: Boolean(personalNote.trim()),
-        tone: "amber",
-      },
-    ];
+      });
+    }
+    jumps.push({
+      id: "session-scratchpad",
+      label: "Architect Notebook",
+      dot: Boolean(personalNote.trim()),
+      tone: "amber",
+    });
     if (sessionQuizzes.length > 0) {
       jumps.push({
         id: "session-quiz",

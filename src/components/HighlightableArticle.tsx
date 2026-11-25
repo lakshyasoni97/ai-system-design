@@ -119,13 +119,15 @@ export default function HighlightableArticle({
   const pageCommentsCount = pageHighlights.filter((h) => Boolean(h.note?.trim())).length;
   const hasScratchpad = Boolean(scratchpadNotes[sourceId]?.trim());
 
-  // Display mode for inline contextual comments right inside the article
-  const [showInlineCallouts, setShowInlineCallouts] = useState(true);
+  // Display mode for inline contextual comments right inside the article (opt-in so reading stays calm)
+  const [showInlineCallouts, setShowInlineCallouts] = useState(false);
   const [stepIndex, setStepIndex] = useState<number>(0);
 
   // Slide-over side drawer for reading + taking notes simultaneously
   const [sideDrawerOpen, setSideDrawerOpen] = useState(false);
   const [sideDrawerTab, setSideDrawerTab] = useState<"comments" | "notebook">("comments");
+  const [sideDrawerEditingId, setSideDrawerEditingId] = useState<string | null>(null);
+  const [sideDrawerEditingText, setSideDrawerEditingText] = useState("");
 
   // Floating toolbar for new text selection
   const [selectionBox, setSelectionBox] = useState<{
@@ -154,11 +156,20 @@ export default function HighlightableArticle({
   const [popoverCopied, setPopoverCopied] = useState(false);
   const [popoverSavedToast, setPopoverSavedToast] = useState(false);
 
-  // Bottom in-page highlights drawer state (defaults to open so notes aren't hidden!)
-  const [inPageDrawerOpen, setInPageDrawerOpen] = useState(true);
+  // Bottom in-page highlights drawer state (collapsed by default to avoid duplicating the slide-over drawer)
+  const [inPageDrawerOpen, setInPageDrawerOpen] = useState(false);
   const [drawerFilter, setDrawerFilter] = useState<"all" | "comments">("all");
   const [inlineEditingCardId, setInlineEditingCardId] = useState<string | null>(null);
   const [inlineEditingCardText, setInlineEditingCardText] = useState("");
+
+  useEffect(() => {
+    if (!sideDrawerOpen) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSideDrawerOpen(false);
+    };
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [sideDrawerOpen]);
 
   // Find nearest preceding h2 or h3 heading to given DOM node
   const findPrecedingHeading = (node: Node | null): { id: string; title: string } => {
@@ -734,25 +745,20 @@ export default function HighlightableArticle({
 
   return (
     <div className="relative space-y-4">
-      {/* 0. Top-of-Article Annotations & Comments Control Strip (only shown when page has highlights) */}
+      {/* 0. Top-of-Article Annotations Control Strip (only shown when page has highlights) */}
       {pageHighlights.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card/90 px-4 py-2 shadow-sm">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-foreground">
-              <Highlighter className="h-3.5 w-3.5 text-primary" />
-              <span>Annotations</span>
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border bg-card/90 px-4 py-2 shadow-sm">
+          <div className="flex items-center gap-2 font-mono text-xs text-muted-foreground">
+            <Highlighter className="h-3.5 w-3.5 text-primary shrink-0" />
+            <span>
+              {pageHighlights.length}{" "}
+              {pageHighlights.length === 1 ? "highlight" : "highlights"}
+              {pageCommentsCount > 0
+                ? ` · ${pageCommentsCount} ${
+                    pageCommentsCount === 1 ? "comment" : "comments"
+                  }`
+                : ""}
             </span>
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="rounded-full bg-primary/15 px-2.5 py-0.5 font-mono text-[11px] font-semibold text-primary">
-                {pageHighlights.length} {pageHighlights.length === 1 ? "highlight" : "highlights"}
-              </span>
-              {pageCommentsCount > 0 && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-0.5 font-mono text-[11px] font-semibold text-amber-600 dark:text-amber-400">
-                  <MessageSquare className="h-3 w-3" />
-                  {pageCommentsCount} {pageCommentsCount === 1 ? "comment" : "comments"}
-                </span>
-              )}
-            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -760,10 +766,11 @@ export default function HighlightableArticle({
               <button
                 type="button"
                 onClick={() => setShowInlineCallouts((v) => !v)}
-                className={`inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1 font-mono text-[11px] transition-all cursor-pointer ${
+                aria-pressed={showInlineCallouts}
+                className={`inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1 font-mono text-[11px] transition-colors cursor-pointer ${
                   showInlineCallouts
                     ? "border-primary/40 bg-primary/10 text-primary font-semibold"
-                    : "border-border bg-muted/40 text-muted-foreground hover:text-foreground"
+                    : "border-border bg-muted/30 text-muted-foreground hover:text-foreground"
                 }`}
                 title="Toggle inline comment cards directly beneath annotated paragraphs"
               >
@@ -772,7 +779,7 @@ export default function HighlightableArticle({
                 ) : (
                   <EyeOff className="h-3.5 w-3.5" />
                 )}
-                <span>Inline Notes</span>
+                <span>Inline notes</span>
               </button>
             )}
 
@@ -806,11 +813,11 @@ export default function HighlightableArticle({
                 setSideDrawerTab("comments");
                 setSideDrawerOpen(true);
               }}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-1 font-mono text-[11px] font-semibold text-foreground hover:border-primary/40 hover:bg-muted/40 transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-2.5 py-1 font-mono text-[11px] font-medium text-foreground hover:border-primary/40 hover:bg-muted/40 transition-colors cursor-pointer"
             >
               <PanelRightOpen className="h-3.5 w-3.5 text-primary" />
-              <span>Notes Drawer</span>
-              {(pageHighlights.length > 0 || hasScratchpad) && (
+              <span>Drawer</span>
+              {hasScratchpad && (
                 <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
               )}
             </button>
@@ -1175,33 +1182,36 @@ export default function HighlightableArticle({
         </div>
       )}
 
-      {/* 3. Bottom In-Page Highlights & Comments Panel */}
+      {/* 3. Bottom In-Page Highlights & Comments Panel (slim collapsed bar by default) */}
       {pageHighlights.length > 0 && (
         <div
           id="page-highlights-drawer"
-          className="mt-8 rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-sm scroll-mt-24"
+          className="mt-8 rounded-2xl border border-border bg-card px-5 py-3.5 shadow-sm scroll-mt-24"
         >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <button
               type="button"
               onClick={() => setInPageDrawerOpen((v) => !v)}
+              aria-expanded={inPageDrawerOpen}
               className="flex items-center gap-2.5 text-left cursor-pointer"
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-primary/30 bg-primary/10 text-primary">
-                <MessageSquare className="h-4 w-4" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-primary/30 bg-primary/10 text-primary shrink-0">
+                <Highlighter className="h-4 w-4" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-sm sm:text-base text-foreground">
-                    Page Highlights & Architect Comments
+                  <span className="text-sm font-semibold text-foreground">
+                    Page Highlights &amp; Comments
                   </span>
-                  <span className="rounded-full bg-primary/15 px-2 py-0.5 font-mono text-xs font-semibold text-primary">
-                    {pageHighlights.length}
+                  <span className="font-mono text-xs text-muted-foreground">
+                    ({pageHighlights.length})
                   </span>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Click any card to spotlight its exact sentence in the article or edit your comment inline
-                </p>
+                {inPageDrawerOpen && (
+                  <p className="text-xs text-muted-foreground">
+                    Click a section to spotlight in article or edit comments inline
+                  </p>
+                )}
               </div>
             </button>
 
@@ -1228,7 +1238,7 @@ export default function HighlightableArticle({
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    With Comments ({pageCommentsCount})
+                    Commented ({pageCommentsCount})
                   </button>
                 </div>
               )}
@@ -1236,9 +1246,9 @@ export default function HighlightableArticle({
               <button
                 type="button"
                 onClick={() => setInPageDrawerOpen((v) => !v)}
-                className="inline-flex items-center gap-1 rounded-xl border border-border bg-card px-2.5 py-1.5 font-mono text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                className="inline-flex items-center gap-1 rounded-xl border border-border bg-muted/40 px-2.5 py-1.5 font-mono text-xs text-foreground hover:border-primary/40 hover:bg-muted transition-colors cursor-pointer"
               >
-                <span>{inPageDrawerOpen ? "Collapse" : "Expand"}</span>
+                <span>{inPageDrawerOpen ? "Collapse" : "Show"}</span>
                 {inPageDrawerOpen ? (
                   <ChevronUp className="h-3.5 w-3.5" />
                 ) : (
@@ -1249,7 +1259,7 @@ export default function HighlightableArticle({
           </div>
 
           {inPageDrawerOpen && (
-            <div className="mt-5 grid gap-4 pt-4 border-t border-border sm:grid-cols-2">
+            <div className="mt-4 divide-y divide-border/60 border-t border-border pt-1">
               {filteredDrawerHighlights.map((hl) => {
                 const meta = COLOR_METAS[hl.color];
                 const isEditingCard = inlineEditingCardId === hl.id;
@@ -1257,30 +1267,75 @@ export default function HighlightableArticle({
                 return (
                   <div
                     key={hl.id}
-                    className="flex flex-col justify-between rounded-2xl border border-border bg-card p-4 text-xs space-y-3 hover:border-primary/40 transition-all shadow-sm"
+                    className="reveal-host flex gap-3 py-3.5 px-1 transition-colors"
                   >
-                    <div className="space-y-2.5">
-                      {/* Header badge + section */}
+                    <div
+                      className={`w-[3px] shrink-0 rounded-full ${meta.dot}`}
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0 flex-1 space-y-1.5">
                       <div className="flex items-center justify-between gap-2">
-                        <span
-                          className={`inline-flex items-center gap-1.5 rounded-lg border px-2 py-0.5 font-mono text-[10px] font-semibold ${meta.bg} ${meta.border} ${meta.text}`}
+                        <button
+                          type="button"
+                          onClick={() => triggerSpotlight(hl.id)}
+                          className="group/link inline-flex min-w-0 items-center gap-1.5 text-left font-mono text-[11px] font-medium text-muted-foreground hover:text-primary transition-colors cursor-pointer"
                         >
-                          <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
-                          {meta.label}
-                        </span>
-                        <span className="font-mono text-[10px] text-muted-foreground truncate max-w-[160px]">
-                          {hl.sectionTitle}
-                        </span>
+                          <span className="truncate">
+                            § {hl.sectionTitle} · {meta.shortLabel}
+                          </span>
+                          <ExternalLink className="h-3 w-3 shrink-0 opacity-0 group-hover/link:opacity-100 transition-opacity" />
+                        </button>
+
+                        <div className="reveal-actions flex shrink-0 items-center gap-1">
+                          {(Object.keys(COLOR_METAS) as HighlightColor[]).map((cKey) => (
+                            <button
+                              key={cKey}
+                              type="button"
+                              onClick={() => updateHighlight(hl.id, { color: cKey })}
+                              title={`Switch tag to ${COLOR_METAS[cKey].label}`}
+                              aria-label={`Change tag to ${COLOR_METAS[cKey].label}`}
+                              className={`h-3 w-3 rounded-full transition-transform cursor-pointer ${
+                                COLOR_METAS[cKey].dot
+                              } ${
+                                hl.color === cKey
+                                  ? "ring-2 ring-primary ring-offset-1 scale-110"
+                                  : "opacity-35 hover:opacity-100"
+                              }`}
+                            />
+                          ))}
+                          <div className="mx-1 h-3 w-px bg-border" />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setInlineEditingCardId(hl.id);
+                              setInlineEditingCardText(hl.note || "");
+                            }}
+                            className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+                            title={hl.note?.trim() ? "Edit comment" : "Add comment"}
+                            aria-label={hl.note?.trim() ? "Edit comment" : "Add comment"}
+                          >
+                            {hl.note?.trim() ? (
+                              <Edit3 className="h-3.5 w-3.5" />
+                            ) : (
+                              <MessageSquarePlus className="h-3.5 w-3.5" />
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeHighlight(hl.id)}
+                            className="rounded-md p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors cursor-pointer"
+                            title="Delete highlight"
+                            aria-label="Delete highlight"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </div>
 
-                      {/* Quoted anchor text */}
-                      <blockquote
-                        className="line-clamp-3 rounded-lg border border-border/70 bg-muted/35 px-3 py-2 text-xs text-foreground/85 leading-relaxed"
-                      >
+                      <p className="line-clamp-3 text-xs sm:text-[13px] text-foreground/85 leading-relaxed">
                         &ldquo;{hl.text}&rdquo;
-                      </blockquote>
+                      </p>
 
-                      {/* Architect Comment (Hero Callout or Inline Editor) */}
                       {isEditingCard ? (
                         <div className="space-y-2 pt-1">
                           <textarea
@@ -1298,7 +1353,7 @@ export default function HighlightableArticle({
                               }
                             }}
                             placeholder="Write your architect comment or defense note..."
-                            className="w-full rounded-xl border border-border bg-muted/30 p-2.5 font-mono text-xs text-foreground focus:border-primary focus:bg-card focus:outline-none"
+                            className="w-full rounded-lg border border-border bg-muted/30 p-2 font-mono text-xs text-foreground focus:border-primary focus:bg-card focus-visible:ring-1 focus-visible:ring-primary"
                           />
                           <div className="flex items-center justify-end gap-1.5">
                             <button
@@ -1318,7 +1373,7 @@ export default function HighlightableArticle({
                               }}
                               className="rounded-lg bg-primary px-2.5 py-1 font-mono text-[11px] font-semibold text-primary-foreground hover:opacity-90 cursor-pointer"
                             >
-                              Save Comment
+                              Save
                             </button>
                           </div>
                         </div>
@@ -1329,71 +1384,11 @@ export default function HighlightableArticle({
                             setInlineEditingCardText(hl.note || "");
                           }}
                           title="Click to edit comment"
-                          className="group/note rounded-xl border border-border bg-secondary/35 p-3 space-y-1 cursor-pointer hover:border-primary/40 transition-colors"
+                          className="border-l-2 border-primary/40 pl-3 text-xs sm:text-[13px] text-foreground leading-relaxed whitespace-pre-wrap cursor-pointer hover:border-primary transition-colors"
                         >
-                          <div className="flex items-center justify-between">
-                            <span className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold text-primary">
-                              <MessageSquare className="h-2.5 w-2.5" />
-                              Architect comment
-                            </span>
-                            <span className="font-mono text-[10px] text-muted-foreground opacity-0 group-hover/note:opacity-100 transition-opacity">
-                              Edit
-                            </span>
-                          </div>
-                          <p className="text-xs sm:text-[13px] font-medium text-foreground leading-relaxed">
-                            {hl.note}
-                          </p>
+                          {hl.note}
                         </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setInlineEditingCardId(hl.id);
-                            setInlineEditingCardText("");
-                          }}
-                          className="flex w-full items-center gap-1.5 rounded-xl border border-dashed border-border px-3 py-2 font-mono text-[11px] text-muted-foreground hover:border-primary/40 hover:text-foreground transition-colors cursor-pointer"
-                        >
-                          <MessageSquarePlus className="h-3.5 w-3.5 text-primary" />
-                          <span>+ Add comment or interview takeaway...</span>
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-between pt-2 border-t border-border/60">
-                      <button
-                        type="button"
-                        onClick={() => triggerSpotlight(hl.id)}
-                        className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold text-primary hover:underline cursor-pointer"
-                      >
-                        <span>Spotlight in article</span>
-                        <ExternalLink className="h-3 w-3" />
-                      </button>
-
-                      <div className="flex items-center gap-1.5">
-                        {(Object.keys(COLOR_METAS) as HighlightColor[]).map((cKey) => (
-                          <button
-                            key={cKey}
-                            type="button"
-                            onClick={() => updateHighlight(hl.id, { color: cKey })}
-                            title={`Switch tag to ${COLOR_METAS[cKey].label}`}
-                            className={`h-3 w-3 rounded-full transition-all cursor-pointer ${
-                              COLOR_METAS[cKey].dot
-                            } ${
-                              hl.color === cKey
-                                ? "ring-2 ring-primary ring-offset-1"
-                                : "opacity-35 hover:opacity-100"
-                            }`}
-                          />
-                        ))}
-                        <button
-                          type="button"
-                          onClick={() => removeHighlight(hl.id)}
-                          className="ml-1 text-muted-foreground hover:text-destructive cursor-pointer"
-                          title="Delete highlight"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
+                      ) : null}
                     </div>
                   </div>
                 );
@@ -1498,69 +1493,138 @@ export default function HighlightableArticle({
                   </p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="divide-y divide-border/60">
                   {pageHighlights.map((hl) => {
                     const meta = COLOR_METAS[hl.color];
+                    const isEditingDrawer = sideDrawerEditingId === hl.id;
                     return (
                       <div
                         key={hl.id}
-                        className="rounded-2xl border border-border bg-muted/15 p-4 space-y-2.5 hover:border-primary/40 transition-all"
+                        className="reveal-host flex gap-3 py-3.5 transition-colors"
                       >
-                        <div className="flex items-center justify-between gap-2">
-                          <span
-                            className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 font-mono text-[10px] font-semibold ${meta.bg} ${meta.border} ${meta.text}`}
-                          >
-                            <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
-                            {meta.label}
-                          </span>
-                          <span className="font-mono text-[10px] text-muted-foreground truncate max-w-[180px]">
-                            {hl.sectionTitle}
-                          </span>
-                        </div>
+                        <div
+                          className={`w-[3px] shrink-0 rounded-full ${meta.dot}`}
+                          aria-hidden="true"
+                        />
+                        <div className="min-w-0 flex-1 space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSideDrawerOpen(false);
+                                setTimeout(() => triggerSpotlight(hl.id), 150);
+                              }}
+                              className="group/link inline-flex min-w-0 items-center gap-1.5 text-left font-mono text-[11px] font-medium text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                            >
+                              <span className="truncate">
+                                § {hl.sectionTitle} · {meta.shortLabel}
+                              </span>
+                              <ExternalLink className="h-3 w-3 shrink-0 opacity-0 group-hover/link:opacity-100 transition-opacity" />
+                            </button>
 
-                        <blockquote
-                          className="rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-xs text-foreground/85 leading-relaxed"
-                        >
-                          &ldquo;{hl.text}&rdquo;
-                        </blockquote>
+                            <div className="reveal-actions flex shrink-0 items-center gap-1">
+                              {(Object.keys(COLOR_METAS) as HighlightColor[]).map((cKey) => (
+                                <button
+                                  key={cKey}
+                                  type="button"
+                                  onClick={() => updateHighlight(hl.id, { color: cKey })}
+                                  title={`Tag as ${COLOR_METAS[cKey].label}`}
+                                  aria-label={`Change tag to ${COLOR_METAS[cKey].label}`}
+                                  className={`h-3 w-3 rounded-full transition-transform cursor-pointer ${
+                                    COLOR_METAS[cKey].dot
+                                  } ${
+                                    hl.color === cKey
+                                      ? "ring-2 ring-primary ring-offset-1 scale-110"
+                                      : "opacity-35 hover:opacity-100"
+                                  }`}
+                                />
+                              ))}
+                              <div className="mx-1 h-3 w-px bg-border" />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSideDrawerEditingId(hl.id);
+                                  setSideDrawerEditingText(hl.note || "");
+                                }}
+                                className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+                                title={hl.note?.trim() ? "Edit comment" : "Add comment"}
+                                aria-label={hl.note?.trim() ? "Edit comment" : "Add comment"}
+                              >
+                                {hl.note?.trim() ? (
+                                  <Edit3 className="h-3.5 w-3.5" />
+                                ) : (
+                                  <MessageSquarePlus className="h-3.5 w-3.5" />
+                                )}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => removeHighlight(hl.id)}
+                                className="rounded-md p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors cursor-pointer"
+                                title="Delete highlight"
+                                aria-label="Delete highlight"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </div>
 
-                        <div className="space-y-1">
-                          <label className="font-mono text-[11px] font-semibold text-primary flex items-center gap-1">
-                            <MessageSquare className="h-2.5 w-2.5" />
-                            Architect comment
-                          </label>
-                          <textarea
-                            rows={2}
-                            defaultValue={hl.note || ""}
-                            onBlur={(e) =>
-                              updateHighlight(hl.id, { note: e.target.value.trim() })
-                            }
-                            placeholder="Click to add a personal comment or interview defense..."
-                            className="w-full rounded-xl border border-border bg-card p-2.5 font-mono text-xs text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none"
-                          />
-                        </div>
+                          <p className="line-clamp-3 text-xs text-foreground/85 leading-relaxed">
+                            &ldquo;{hl.text}&rdquo;
+                          </p>
 
-                        <div className="flex items-center justify-between pt-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSideDrawerOpen(false);
-                              setTimeout(() => triggerSpotlight(hl.id), 150);
-                            }}
-                            className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold text-primary hover:underline cursor-pointer"
-                          >
-                            <span>Jump to sentence</span>
-                            <ExternalLink className="h-3 w-3" />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => removeHighlight(hl.id)}
-                            className="text-muted-foreground hover:text-destructive cursor-pointer"
-                            title="Delete highlight"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                          {isEditingDrawer ? (
+                            <div className="space-y-2 pt-1">
+                              <textarea
+                                autoFocus
+                                rows={2}
+                                value={sideDrawerEditingText}
+                                onChange={(e) => setSideDrawerEditingText(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                                    e.preventDefault();
+                                    updateHighlight(hl.id, {
+                                      note: sideDrawerEditingText.trim(),
+                                    });
+                                    setSideDrawerEditingId(null);
+                                  }
+                                }}
+                                placeholder="Add a comment or interview defense..."
+                                className="w-full rounded-lg border border-border bg-card p-2 font-mono text-xs text-foreground placeholder-muted-foreground focus:border-primary focus-visible:ring-1 focus-visible:ring-primary"
+                              />
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => setSideDrawerEditingId(null)}
+                                  className="rounded-lg px-2 py-1 font-mono text-[11px] text-muted-foreground hover:bg-muted cursor-pointer"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    updateHighlight(hl.id, {
+                                      note: sideDrawerEditingText.trim(),
+                                    });
+                                    setSideDrawerEditingId(null);
+                                  }}
+                                  className="rounded-lg bg-primary px-2.5 py-1 font-mono text-[11px] font-semibold text-primary-foreground hover:opacity-90 cursor-pointer"
+                                >
+                                  Save
+                                </button>
+                              </div>
+                            </div>
+                          ) : hl.note?.trim() ? (
+                            <div
+                              onClick={() => {
+                                setSideDrawerEditingId(hl.id);
+                                setSideDrawerEditingText(hl.note || "");
+                              }}
+                              title="Click to edit comment"
+                              className="border-l-2 border-primary/40 pl-2.5 text-xs text-foreground leading-relaxed whitespace-pre-wrap cursor-pointer hover:border-primary transition-colors"
+                            >
+                              {hl.note}
+                            </div>
+                          ) : null}
                         </div>
                       </div>
                     );

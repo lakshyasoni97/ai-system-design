@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -14,10 +14,11 @@ import {
   MessageSquare,
   MessageSquarePlus,
   StickyNote,
-  LayoutGrid,
-  BookOpen,
   Edit3,
   Copy,
+  X,
+  ChevronRight,
+  Layers,
 } from "lucide-react";
 import {
   HighlightColor,
@@ -32,6 +33,7 @@ const COLOR_METAS: Record<
   HighlightColor,
   {
     label: string;
+    shortLabel: string;
     bg: string;
     border: string;
     text: string;
@@ -41,6 +43,7 @@ const COLOR_METAS: Record<
 > = {
   amber: {
     label: "Key Concept",
+    shortLabel: "Concept",
     bg: "bg-amber-500/15",
     border: "border-amber-500/40",
     text: "text-amber-600 dark:text-amber-400",
@@ -49,6 +52,7 @@ const COLOR_METAS: Record<
   },
   emerald: {
     label: "Formula / SLO",
+    shortLabel: "Formula",
     bg: "bg-emerald-500/15",
     border: "border-emerald-500/40",
     text: "text-emerald-600 dark:text-emerald-400",
@@ -57,6 +61,7 @@ const COLOR_METAS: Record<
   },
   indigo: {
     label: "Interview Defense",
+    shortLabel: "Defense",
     bg: "bg-indigo-500/15",
     border: "border-indigo-500/40",
     text: "text-indigo-600 dark:text-indigo-400",
@@ -65,6 +70,7 @@ const COLOR_METAS: Record<
   },
   rose: {
     label: "Trap / Failure Mode",
+    shortLabel: "Trap",
     bg: "bg-rose-500/15",
     border: "border-rose-500/40",
     text: "text-rose-600 dark:text-rose-400",
@@ -88,6 +94,13 @@ interface SourceCatalogItem {
   order: number;
 }
 
+function stripMarkdownPreview(md: string): string {
+  return md
+    .replace(/[#>*_`~\[\]()]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export default function HighlightsPage() {
   const {
     highlights,
@@ -96,7 +109,8 @@ export default function HighlightsPage() {
     removeHighlight,
   } = useProgress();
 
-  const [viewMode, setViewMode] = useState<"cards" | "study-guide" | "notebooks">("cards");
+  const [activeTab, setActiveTab] = useState<"highlights" | "notebooks">("highlights");
+  const [groupByTopic, setGroupByTopic] = useState(true);
   const [query, setQuery] = useState("");
   const [selectedColor, setSelectedColor] = useState<string>("all");
   const [selectedSourceType, setSelectedSourceType] = useState<string>("all");
@@ -105,9 +119,16 @@ export default function HighlightsPage() {
 
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [tempNoteText, setTempNoteText] = useState("");
+  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [copiedExport, setCopiedExport] = useState(false);
   const [selectedNotebookSourceId, setSelectedNotebookSourceId] = useState<string>("session-01");
+  const [hasPickedNotebook, setHasPickedNotebook] = useState(false);
+
+  const totalSessions = useMemo(
+    () => curriculumData.modules.reduce((acc, m) => acc + m.sessions.length, 0),
+    []
+  );
 
   // Build catalog of all sessions & fundamentals for resolving scratchpad titles/links
   const sourceCatalog = useMemo<Record<string, SourceCatalogItem>>(() => {
@@ -156,9 +177,12 @@ export default function HighlightsPage() {
             : `/roadmap/${sourceId}`,
           order: 500,
         };
+        const trimmed = text.trim();
         return {
           ...meta,
-          text: text.trim(),
+          text: trimmed,
+          wordCount: trimmed.split(/\s+/).length,
+          preview: stripMarkdownPreview(trimmed),
         };
       })
       .filter((nb) => {
@@ -173,6 +197,17 @@ export default function HighlightsPage() {
       })
       .sort((a, b) => a.order - b.order);
   }, [scratchpadNotes, sourceCatalog, selectedSourceType, query]);
+
+  // Select the first saved notebook automatically on first open if default has no note
+  useEffect(() => {
+    if (
+      !hasPickedNotebook &&
+      activeNotebooks.length > 0 &&
+      !scratchpadNotes[selectedNotebookSourceId]?.trim()
+    ) {
+      setSelectedNotebookSourceId(activeNotebooks[0].id);
+    }
+  }, [activeNotebooks, hasPickedNotebook, scratchpadNotes, selectedNotebookSourceId]);
 
   // Filtered highlights
   const filtered = useMemo(() => {
@@ -199,8 +234,8 @@ export default function HighlightsPage() {
       });
   }, [highlights, selectedColor, selectedSourceType, onlyWithComments, query, sortBy]);
 
-  // Grouped by Session / Topic for Study Guide View
-  const groupedStudyGuide = useMemo(() => {
+  // Grouped by Session / Topic
+  const groupedHighlights = useMemo(() => {
     const groups = new Map<
       string,
       {
@@ -213,7 +248,6 @@ export default function HighlightsPage() {
       }
     >();
 
-    // Seed from filtered highlights
     filtered.forEach((hl) => {
       const cat = sourceCatalog[hl.sourceId];
       const existing = groups.get(hl.sourceId);
@@ -231,37 +265,20 @@ export default function HighlightsPage() {
       }
     });
 
-    // Also include active notebooks that match filter
-    if (selectedColor === "all") {
-      activeNotebooks.forEach((nb) => {
-        if (!groups.has(nb.id)) {
-          groups.set(nb.id, {
-            sourceId: nb.id,
-            sourceTitle: nb.title,
-            href: nb.href,
-            order: nb.order,
-            scratchpad: nb.text,
-            items: [],
-          });
-        }
-      });
-    }
-
     return Array.from(groups.values()).sort((a, b) => a.order - b.order);
-  }, [filtered, activeNotebooks, scratchpadNotes, sourceCatalog, selectedColor]);
+  }, [filtered, scratchpadNotes, sourceCatalog]);
 
   // Counts by category
   const counts = useMemo(() => {
-    const res: Record<HighlightColor, { total: number; commented: number }> = {
-      amber: { total: 0, commented: 0 },
-      emerald: { total: 0, commented: 0 },
-      indigo: { total: 0, commented: 0 },
-      rose: { total: 0, commented: 0 },
+    const res: Record<HighlightColor, number> = {
+      amber: 0,
+      emerald: 0,
+      indigo: 0,
+      rose: 0,
     };
     highlights.forEach((h) => {
-      if (res[h.color]) {
-        res[h.color].total++;
-        if (h.note?.trim()) res[h.color].commented++;
+      if (res[h.color] !== undefined) {
+        res[h.color]++;
       }
     });
     return res;
@@ -297,7 +314,7 @@ export default function HighlightsPage() {
       md += `## ${title}\n\n`;
 
       if (notebook) {
-        md += `### 📓 Personal Architect Notebook\n\n${notebook}\n\n`;
+        md += `### Personal Architect Notebook\n\n${notebook}\n\n`;
       }
 
       if (sourceItems.length > 0) {
@@ -306,7 +323,7 @@ export default function HighlightsPage() {
           md += `### [${tag.toUpperCase()}] ${item.sectionTitle}\n`;
           md += `> "${item.text}"\n\n`;
           if (item.note) {
-            md += `**💬 Architect Comment:** ${item.note}\n\n`;
+            md += `**Architect Comment:** ${item.note}\n\n`;
           }
           md += `*Reference: ${item.href}*\n\n`;
         });
@@ -338,642 +355,604 @@ export default function HighlightsPage() {
     }
   };
 
-  return (
-    <div className="space-y-8">
-      {/* 1. Header Banner */}
-      <div className="rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-5">
-          <div className="space-y-1.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 font-mono text-xs font-semibold text-primary">
-                <Highlighter className="h-3.5 w-3.5" />
-                <span>{highlights.length} Knowledge Anchors</span>
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 font-mono text-xs font-semibold text-amber-600 dark:text-amber-400">
-                <MessageSquare className="h-3.5 w-3.5" />
-                <span>{totalCommentsCount} Architect Comments</span>
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 font-mono text-xs font-semibold text-indigo-600 dark:text-indigo-400">
-                <StickyNote className="h-3.5 w-3.5" />
-                <span>{activeNotebooks.length} Session Notebooks</span>
+  const toggleExpandQuote = (id: string) => {
+    setExpandedIds((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const renderHighlightRow = (hl: TextHighlight, showSourcePrefix: boolean) => {
+    const meta = COLOR_METAS[hl.color];
+    const isEditing = editingNoteId === hl.id;
+    const hasNote = Boolean(hl.note?.trim());
+    const isLong = hl.text.length > 240;
+    const isExpanded = Boolean(expandedIds[hl.id]);
+
+    return (
+      <div
+        key={hl.id}
+        className="reveal-host flex gap-3.5 px-5 py-4 transition-colors hover:bg-muted/20"
+      >
+        <div
+          className={`w-[3px] shrink-0 rounded-full ${meta.dot}`}
+          aria-hidden="true"
+        />
+
+        <div className="min-w-0 flex-1 space-y-2">
+          {/* Meta row + Progressive-disclosure Actions */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
+              <Link
+                href={`${hl.href}?highlight=${hl.id}`}
+                className="group/link inline-flex min-w-0 items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-primary transition-colors"
+                title="Jump to exact sentence in article"
+              >
+                <span className="truncate">
+                  {showSourcePrefix ? `${hl.sourceTitle} · ` : ""}§ {hl.sectionTitle}
+                </span>
+                <ExternalLink className="h-3 w-3 shrink-0 opacity-0 group-hover/link:opacity-100 transition-opacity" />
+              </Link>
+              <span className="shrink-0 font-mono text-[11px] text-muted-foreground/70">
+                · {meta.shortLabel} · {new Date(hl.createdAt).toLocaleDateString()}
               </span>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-              Comments, Notes & Knowledge Anchors
-            </h1>
-            <p className="max-w-2xl text-xs sm:text-sm text-muted-foreground leading-relaxed">
-              Your personal interview synthesis hub: review inline comments attached to exact sentences, browse structured session notebooks, or export a unified study guide.
-            </p>
-          </div>
 
-          <div className="flex items-center gap-2.5">
-            <button
-              type="button"
-              onClick={handleExportMarkdown}
-              disabled={highlights.length === 0 && activeNotebooks.length === 0}
-              className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 font-mono text-xs font-semibold text-foreground hover:border-primary/40 hover:text-foreground transition-all disabled:opacity-50 cursor-pointer shadow-sm"
-            >
-              {copiedExport ? (
-                <>
-                  <Check className="h-4 w-4 text-primary" />
-                  <span className="text-primary">Downloaded Study Sheet</span>
-                </>
-              ) : (
-                <>
-                  <Download className="h-4 w-4 text-primary" />
-                  <span>Export Master Study Sheet (.md)</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
+            <div className="reveal-actions flex shrink-0 items-center gap-1">
+              {(Object.keys(COLOR_METAS) as HighlightColor[]).map((cKey) => (
+                <button
+                  key={cKey}
+                  type="button"
+                  onClick={() => updateHighlight(hl.id, { color: cKey })}
+                  title={`Tag as ${COLOR_METAS[cKey].label}`}
+                  aria-label={`Change tag to ${COLOR_METAS[cKey].label}`}
+                  className={`h-3 w-3 rounded-full transition-transform cursor-pointer ${
+                    COLOR_METAS[cKey].dot
+                  } ${
+                    hl.color === cKey
+                      ? "ring-2 ring-primary ring-offset-1 scale-110"
+                      : "opacity-35 hover:opacity-100"
+                  }`}
+                />
+              ))}
 
-        {/* 2. Semantic Category KPI Tiles */}
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {(Object.keys(COLOR_METAS) as HighlightColor[]).map((cKey) => {
-            const meta = COLOR_METAS[cKey];
-            const isSelected = selectedColor === cKey;
-            return (
+              <div className="mx-1 h-3 w-px bg-border" />
+
               <button
-                key={cKey}
                 type="button"
                 onClick={() => {
-                  setSelectedColor((prev) => (prev === cKey ? "all" : cKey));
-                  if (viewMode === "notebooks") setViewMode("cards");
+                  setEditingNoteId(hl.id);
+                  setTempNoteText(hl.note || "");
                 }}
-                className={`flex flex-col justify-between rounded-2xl border p-4 text-left transition-all cursor-pointer ${
-                  isSelected
-                    ? "border-primary bg-primary/10 shadow-sm"
-                    : "border-border bg-card hover:border-primary/40 hover:bg-muted/30"
-                }`}
+                className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+                title={hasNote ? "Edit comment" : "Add comment"}
+                aria-label={hasNote ? "Edit comment" : "Add comment"}
               >
-                <div className="flex items-center justify-between">
-                  <span
-                    className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 font-mono text-[10px] font-semibold ${meta.bg} ${meta.border} ${meta.text}`}
-                  >
-                    <span className={`h-2 w-2 rounded-full ${meta.dot}`} />
-                    {meta.label}
-                  </span>
-                </div>
-                <div className="mt-3 flex items-baseline justify-between">
-                  <span className="font-mono text-2xl font-bold text-foreground">
-                    {counts[cKey].total}
-                  </span>
-                  <span className="font-mono text-[11px] text-muted-foreground">
-                    {counts[cKey].commented} commented
-                  </span>
-                </div>
+                {hasNote ? (
+                  <Edit3 className="h-3.5 w-3.5" />
+                ) : (
+                  <MessageSquarePlus className="h-3.5 w-3.5" />
+                )}
               </button>
-            );
-          })}
+
+              <button
+                type="button"
+                onClick={() => handleCopyItem(hl)}
+                className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+                title="Copy quote and comment"
+                aria-label="Copy quote and comment"
+              >
+                {copiedId === hl.id ? (
+                  <Check className="h-3.5 w-3.5 text-primary" />
+                ) : (
+                  <Copy className="h-3.5 w-3.5" />
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => removeHighlight(hl.id)}
+                className="rounded-md p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors cursor-pointer"
+                title="Delete highlight"
+                aria-label="Delete highlight"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Quote */}
+          <div>
+            <p
+              className={`text-sm text-foreground/85 leading-relaxed ${
+                isLong && !isExpanded ? "line-clamp-3" : ""
+              }`}
+            >
+              &ldquo;{hl.text}&rdquo;
+            </p>
+            {isLong && (
+              <button
+                type="button"
+                onClick={() => toggleExpandQuote(hl.id)}
+                className="mt-1 font-mono text-[11px] font-medium text-primary hover:underline cursor-pointer"
+              >
+                {isExpanded ? "Show less" : "Show more"}
+              </button>
+            )}
+          </div>
+
+          {/* Inline Comment Editor or Comment Display */}
+          {isEditing ? (
+            <div className="rounded-xl border border-primary/35 bg-muted/20 p-3 space-y-2">
+              <div className="flex flex-wrap items-center gap-1">
+                {QUICK_COMMENT_PROMPTS.map((qp) => (
+                  <button
+                    key={qp.label}
+                    type="button"
+                    onClick={() =>
+                      setTempNoteText((prev) =>
+                        prev.trim() ? `${prev} ${qp.prefix}` : qp.prefix
+                      )
+                    }
+                    className="rounded-md border border-border bg-card px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground hover:border-primary/40 hover:text-foreground transition-colors cursor-pointer"
+                  >
+                    + {qp.label}
+                  </button>
+                ))}
+              </div>
+              <textarea
+                autoFocus
+                rows={3}
+                value={tempNoteText}
+                onChange={(e) => setTempNoteText(e.target.value)}
+                onKeyDown={(e) => {
+                  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                    e.preventDefault();
+                    updateHighlight(hl.id, { note: tempNoteText.trim() });
+                    setEditingNoteId(null);
+                  }
+                }}
+                placeholder="Write your takeaway, metric, or interview defense..."
+                className="w-full rounded-lg border border-border bg-card p-2.5 font-mono text-xs text-foreground focus:border-primary focus-visible:ring-1 focus-visible:ring-primary"
+              />
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-[10px] text-muted-foreground">
+                  ⌘+Enter to save
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingNoteId(null)}
+                    className="rounded-lg px-2.5 py-1 font-mono text-xs text-muted-foreground hover:bg-muted cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateHighlight(hl.id, { note: tempNoteText.trim() });
+                      setEditingNoteId(null);
+                    }}
+                    className="rounded-lg bg-primary px-3 py-1 font-mono text-xs font-semibold text-primary-foreground hover:opacity-90 cursor-pointer"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : hasNote ? (
+            <div
+              onClick={() => {
+                setEditingNoteId(hl.id);
+                setTempNoteText(hl.note || "");
+              }}
+              title="Click to edit comment"
+              className="border-l-2 border-primary/40 pl-3 text-sm text-foreground leading-relaxed whitespace-pre-wrap cursor-pointer hover:border-primary transition-colors"
+            >
+              {hl.note}
+            </div>
+          ) : null}
         </div>
       </div>
+    );
+  };
 
-      {/* 3. View Switcher, Search & Filter Bar */}
-      <div className="space-y-3 rounded-2xl border border-border bg-card p-4 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
-          {/* 3 View Modes */}
-          <div className="inline-flex flex-wrap items-center rounded-xl border border-border bg-muted/40 p-1 gap-1">
+  return (
+    <div className="space-y-6">
+      {/* 1. Compact Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-5">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            Notes &amp; Highlights
+          </h1>
+          <p className="font-mono text-xs text-muted-foreground">
+            {highlights.length} {highlights.length === 1 ? "highlight" : "highlights"} ·{" "}
+            {totalCommentsCount} {totalCommentsCount === 1 ? "comment" : "comments"} ·{" "}
+            {activeNotebooks.length} {activeNotebooks.length === 1 ? "notebook" : "notebooks"}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleExportMarkdown}
+          disabled={highlights.length === 0 && activeNotebooks.length === 0}
+          className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-3.5 py-2 font-mono text-xs font-semibold text-foreground hover:border-primary/40 transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
+        >
+          {copiedExport ? (
+            <>
+              <Check className="h-3.5 w-3.5 text-primary" />
+              <span className="text-primary">Exported .md</span>
+            </>
+          ) : (
+            <>
+              <Download className="h-3.5 w-3.5 text-primary" />
+              <span>Export .md</span>
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* 2. Unified Single Toolbar */}
+      <div className="space-y-3 rounded-2xl border border-border bg-card p-3.5 sm:p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {/* 2 Primary Tabs */}
+          <div
+            role="tablist"
+            aria-label="Notes and highlights sections"
+            className="inline-flex items-center rounded-xl border border-border bg-muted/40 p-1 gap-1"
+          >
             <button
               type="button"
-              onClick={() => setViewMode("cards")}
+              role="tab"
+              aria-selected={activeTab === "highlights"}
+              onClick={() => setActiveTab("highlights")}
               className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-mono text-xs transition-all cursor-pointer ${
-                viewMode === "cards"
+                activeTab === "highlights"
                   ? "bg-card text-foreground font-semibold shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <LayoutGrid className="h-3.5 w-3.5 text-primary" />
-              <span>Annotation Cards ({filtered.length})</span>
+              <Highlighter className="h-3.5 w-3.5 text-primary" />
+              <span>Highlights ({filtered.length})</span>
             </button>
             <button
               type="button"
-              onClick={() => setViewMode("study-guide")}
+              role="tab"
+              aria-selected={activeTab === "notebooks"}
+              onClick={() => setActiveTab("notebooks")}
               className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-mono text-xs transition-all cursor-pointer ${
-                viewMode === "study-guide"
-                  ? "bg-card text-foreground font-semibold shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <BookOpen className="h-3.5 w-3.5 text-indigo-500" />
-              <span>By Topic Study Guide ({groupedStudyGuide.length})</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("notebooks")}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 font-mono text-xs transition-all cursor-pointer ${
-                viewMode === "notebooks"
+                activeTab === "notebooks"
                   ? "bg-card text-foreground font-semibold shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
               <StickyNote className="h-3.5 w-3.5 text-amber-500" />
-              <span>Architect Notebooks ({activeNotebooks.length})</span>
+              <span>Notebooks ({activeNotebooks.length})</span>
             </button>
           </div>
 
-          {/* Quick toggle: Only with comments */}
-          {viewMode !== "notebooks" && (
-            <button
-              type="button"
-              onClick={() => setOnlyWithComments((v) => !v)}
-              className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 font-mono text-xs transition-all cursor-pointer ${
-                onlyWithComments
-                  ? "border-amber-500/50 bg-amber-500/15 text-amber-600 dark:text-amber-400 font-semibold"
-                  : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
-              }`}
-            >
-              <MessageSquare className="h-3.5 w-3.5" />
-              <span>With Comments Only ({totalCommentsCount})</span>
-            </button>
+          {/* Compact View Toggles */}
+          {activeTab === "highlights" && (
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setGroupByTopic((v) => !v)}
+                aria-pressed={groupByTopic}
+                className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 font-mono text-xs transition-colors cursor-pointer ${
+                  groupByTopic
+                    ? "border-primary/40 bg-primary/10 text-primary font-semibold"
+                    : "border-border bg-card text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Layers className="h-3.5 w-3.5" />
+                <span>Group by topic</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setOnlyWithComments((v) => !v)}
+                aria-pressed={onlyWithComments}
+                className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 font-mono text-xs transition-colors cursor-pointer ${
+                  onlyWithComments
+                    ? "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold"
+                    : "border-border bg-card text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <MessageSquare className="h-3.5 w-3.5" />
+                <span>Commented ({totalCommentsCount})</span>
+              </button>
+            </div>
           )}
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="relative flex-1 min-w-[260px]">
-            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        {/* Search + Tag Chips + Source / Sort */}
+        <div className="flex flex-wrap items-center gap-2.5 pt-1 border-t border-border/60">
+          <div className="relative flex-1 min-w-[220px]">
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search comments, quotes, notebooks, or section topics..."
-              className="w-full rounded-xl border border-border bg-muted/30 py-2 pl-9 pr-4 font-mono text-xs text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none"
+              placeholder={
+                activeTab === "highlights"
+                  ? "Search highlights, comments, or topics..."
+                  : "Filter notebooks..."
+              }
+              className="w-full rounded-xl border border-border bg-muted/30 py-1.5 pl-8 pr-8 font-mono text-xs text-foreground placeholder-muted-foreground focus:border-primary focus-visible:ring-1 focus-visible:ring-primary"
             />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                aria-label="Clear search"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Source Type Filter */}
+          {activeTab === "highlights" && (
+            <div className="flex flex-wrap items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setSelectedColor("all")}
+                className={`rounded-lg border px-2.5 py-1 font-mono text-[11px] transition-colors cursor-pointer ${
+                  selectedColor === "all"
+                    ? "border-primary/40 bg-primary/10 text-primary font-semibold"
+                    : "border-border bg-card text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                All ({highlights.length})
+              </button>
+              {(Object.keys(COLOR_METAS) as HighlightColor[]).map((cKey) => {
+                const meta = COLOR_METAS[cKey];
+                const isSelected = selectedColor === cKey;
+                return (
+                  <button
+                    key={cKey}
+                    type="button"
+                    onClick={() =>
+                      setSelectedColor((prev) => (prev === cKey ? "all" : cKey))
+                    }
+                    className={`inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 font-mono text-[11px] transition-colors cursor-pointer ${
+                      isSelected
+                        ? `${meta.bg} ${meta.border} ${meta.text} font-semibold`
+                        : "border-border bg-card text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <span className={`h-2 w-2 rounded-full ${meta.dot}`} />
+                    <span>{meta.shortLabel}</span>
+                    <span className="opacity-70">{counts[cKey]}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="flex items-center gap-2">
             <select
               value={selectedSourceType}
               onChange={(e) => setSelectedSourceType(e.target.value)}
-              aria-label="Filter annotations by source type"
-              className="rounded-xl border border-border bg-card px-3 py-2 font-mono text-xs text-foreground focus:border-primary focus:outline-none cursor-pointer"
+              aria-label="Filter by source type"
+              className="rounded-xl border border-border bg-card px-2.5 py-1.5 font-mono text-xs text-foreground focus:border-primary cursor-pointer"
             >
-              <option value="all">All Sources</option>
-              <option value="fundamental">Module 0: Fundamentals</option>
-              <option value="session">Curriculum Sessions (1-20)</option>
+              <option value="all">All sources</option>
+              <option value="fundamental">Fundamentals</option>
+              <option value="session">Sessions (1–{totalSessions})</option>
             </select>
 
-            {viewMode !== "notebooks" && (
-              <>
-                <select
-                  value={selectedColor}
-                  onChange={(e) => setSelectedColor(e.target.value)}
-                  aria-label="Filter highlights by color tag"
-                  className="rounded-xl border border-border bg-card px-3 py-2 font-mono text-xs text-foreground focus:border-primary focus:outline-none cursor-pointer"
-                >
-                  <option value="all">All Tags</option>
-                  <option value="amber">Key Concepts</option>
-                  <option value="emerald">Formulas / SLOs</option>
-                  <option value="indigo">Interview Defenses</option>
-                  <option value="rose">Traps / Failure Modes</option>
-                </select>
-
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as "newest" | "oldest")}
-                  aria-label="Sort highlights by date order"
-                  className="rounded-xl border border-border bg-card px-3 py-2 font-mono text-xs text-foreground focus:border-primary focus:outline-none cursor-pointer"
-                >
-                  <option value="newest">Newest First</option>
-                  <option value="oldest">Oldest First</option>
-                </select>
-              </>
+            {activeTab === "highlights" && (
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as "newest" | "oldest")}
+                aria-label="Sort highlights"
+                className="rounded-xl border border-border bg-card px-2.5 py-1.5 font-mono text-xs text-foreground focus:border-primary cursor-pointer"
+              >
+                <option value="newest">Newest</option>
+                <option value="oldest">Oldest</option>
+              </select>
             )}
           </div>
         </div>
       </div>
 
-      {/* 4A. VIEW MODE: ANNOTATION CARDS STREAM */}
-      {viewMode === "cards" && (
+      {/* 3A. HIGHLIGHTS TAB */}
+      {activeTab === "highlights" && (
         <>
           {filtered.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-border bg-card/60 p-12 text-center space-y-4">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <Highlighter className="h-6 w-6" />
+            <div className="rounded-2xl border border-dashed border-border bg-card/60 p-12 text-center space-y-3">
+              <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <Highlighter className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-foreground">
+                <h2 className="text-base font-bold text-foreground">
                   {highlights.length === 0
-                    ? "No highlights or comments created yet"
-                    : "No matching annotations found"}
-                </h3>
+                    ? "No highlights or comments yet"
+                    : "No matching highlights"}
+                </h2>
                 <p className="mt-1 max-w-md mx-auto text-xs text-muted-foreground leading-relaxed">
                   {highlights.length === 0
-                    ? "Select any text in any Session or Fundamentals topic to open the floating highlight toolbar, pick a semantic tag, and attach your interview comment."
-                    : "Try clearing your search query or switching your filter to 'All Tags'."}
+                    ? "Select any sentence inside a Session or Fundamentals topic to highlight it and attach an interview note."
+                    : "Try clearing your search query or switching your tag filter back to All."}
                 </p>
               </div>
               {highlights.length === 0 && (
-                <div className="pt-2">
+                <div className="pt-1">
                   <Link
                     href="/fundamentals/fund-01"
                     className="inline-flex items-center gap-1.5 rounded-xl border border-primary/40 bg-primary/10 px-4 py-2 font-mono text-xs font-semibold text-primary hover:bg-primary/20 transition-colors"
                   >
-                    <span>Try Highlighting on Fundamentals Topic 1</span>
+                    Try Highlighting on Topic 1
                   </Link>
                 </div>
               )}
             </div>
-          ) : (
-            <div className="grid gap-5 md:grid-cols-2">
-              {filtered.map((hl) => {
-                const meta = COLOR_METAS[hl.color];
-                const isEditing = editingNoteId === hl.id;
-                const hasNote = Boolean(hl.note?.trim());
-
-                return (
-                  <div
-                    key={hl.id}
-                    className="flex flex-col justify-between rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-sm hover:border-primary/40 transition-all space-y-4"
-                  >
-                    <div className="space-y-3.5">
-                      {/* Card Top: Semantic badge + Date + Copy */}
-                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 pb-3">
-                        <span
-                          className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-0.5 font-mono text-[11px] font-semibold ${meta.bg} ${meta.border} ${meta.text}`}
-                        >
-                          <span className={`h-2 w-2 rounded-full ${meta.dot}`} />
-                          {meta.label}
-                        </span>
-
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-[10px] text-muted-foreground">
-                            {new Date(hl.createdAt).toLocaleDateString()}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleCopyItem(hl)}
-                            className="rounded-lg border border-border bg-muted/30 p-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                            title="Copy quote and comment"
-                          >
-                            {copiedId === hl.id ? (
-                              <Check className="h-3 w-3 text-primary" />
-                            ) : (
-                              <Copy className="h-3 w-3" />
-                            )}
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Breadcrumb Context */}
-                      <div>
-                        <Link
-                          href={hl.href}
-                          className="font-mono text-[11px] font-semibold text-primary hover:underline block truncate"
-                        >
-                          {hl.sourceTitle}
-                        </Link>
-                        <div className="text-xs font-medium text-muted-foreground truncate mt-0.5">
-                          § {hl.sectionTitle}
-                        </div>
-                      </div>
-
-                      {/* HERO ELEMENT: Architect Comment / Note (if present or editing) */}
-                      {isEditing ? (
-                        <div className="rounded-2xl border border-primary/40 bg-muted/20 p-3.5 space-y-2.5">
-                          <div className="flex items-center justify-between">
-                            <span className="font-mono text-[11px] font-semibold text-primary flex items-center gap-1">
-                              <MessageSquare className="h-3 w-3" />
-                              Architect comment editor
-                            </span>
-                          </div>
-                          <div className="flex flex-wrap items-center gap-1">
-                            {QUICK_COMMENT_PROMPTS.map((qp) => (
-                              <button
-                                key={qp.label}
-                                type="button"
-                                onClick={() =>
-                                  setTempNoteText((prev) =>
-                                    prev.trim() ? `${prev} ${qp.prefix}` : qp.prefix
-                                  )
-                                }
-                                className="rounded-md border border-border bg-card px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground hover:border-primary/40 hover:text-foreground transition-colors cursor-pointer"
-                              >
-                                + {qp.label}
-                              </button>
-                            ))}
-                          </div>
-                          <textarea
-                            autoFocus
-                            rows={3}
-                            value={tempNoteText}
-                            onChange={(e) => setTempNoteText(e.target.value)}
-                            onKeyDown={(e) => {
-                              if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-                                e.preventDefault();
-                                updateHighlight(hl.id, {
-                                  note: tempNoteText.trim(),
-                                });
-                                setEditingNoteId(null);
-                              }
-                            }}
-                            placeholder="Write your personal takeaway, metric, or interview defense..."
-                            className="w-full rounded-xl border border-border bg-card p-2.5 font-mono text-xs text-foreground focus:border-primary focus:outline-none"
-                          />
-                          <div className="flex items-center justify-between">
-                            <span className="font-mono text-[10px] text-muted-foreground">
-                              ⌘+Enter to save
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => setEditingNoteId(null)}
-                                className="rounded-lg px-2.5 py-1 font-mono text-xs text-muted-foreground hover:bg-muted cursor-pointer"
-                              >
-                                Cancel
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  updateHighlight(hl.id, {
-                                    note: tempNoteText.trim(),
-                                  });
-                                  setEditingNoteId(null);
-                                }}
-                                className="rounded-xl bg-primary px-3 py-1 font-mono text-xs font-semibold text-primary-foreground hover:opacity-90 cursor-pointer"
-                              >
-                                Save Comment
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ) : hasNote ? (
-                        <div
-                          onClick={() => {
-                            setEditingNoteId(hl.id);
-                            setTempNoteText(hl.note || "");
-                          }}
-                          title="Click to edit your architect comment"
-                          className="group/comment relative rounded-2xl border border-primary/25 bg-primary/[0.05] dark:bg-primary/[0.08] p-4 space-y-1.5 cursor-pointer hover:border-primary/50 transition-all"
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold text-primary">
-                              <MessageSquare className="h-3 w-3" />
-                              Architect comment
-                            </span>
-                            <span className="inline-flex items-center gap-1 rounded-md border border-border bg-card/80 px-2 py-0.5 font-mono text-[10px] text-muted-foreground opacity-0 group-hover/comment:opacity-100 transition-opacity">
-                              <Edit3 className="h-2.5 w-2.5" />
-                              Edit
-                            </span>
-                          </div>
-                          <p className="text-xs sm:text-sm font-medium text-foreground leading-relaxed whitespace-pre-wrap">
-                            {hl.note}
-                          </p>
-                        </div>
-                      ) : null}
-
-                      {/* Supporting Context Quote Anchor */}
-                      <blockquote
-                        className="rounded-lg border border-border/70 bg-muted/35 p-3.5 text-xs sm:text-[13px] text-foreground/85 leading-relaxed"
-                      >
-                        &ldquo;{hl.text}&rdquo;
-                      </blockquote>
-
-                      {/* Add Comment Prompt when no comment exists yet */}
-                      {!hasNote && !isEditing && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingNoteId(hl.id);
-                            setTempNoteText("");
-                          }}
-                          className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border bg-muted/15 py-2 px-3 font-mono text-xs text-muted-foreground hover:border-primary/40 hover:text-foreground transition-colors cursor-pointer"
-                        >
-                          <MessageSquarePlus className="h-3.5 w-3.5 text-primary" />
-                          <span>+ Attach Architect Comment or Interview Defense</span>
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Card Footer: Tag Switcher, Delete, and Deep-Link */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border">
-                      <div className="flex items-center gap-1.5">
-                        {(Object.keys(COLOR_METAS) as HighlightColor[]).map((cKey) => (
-                          <button
-                            key={cKey}
-                            type="button"
-                            onClick={() => updateHighlight(hl.id, { color: cKey })}
-                            title={`Change tag to ${COLOR_METAS[cKey].label}`}
-                            className={`h-4 w-4 rounded-full transition-all cursor-pointer ${
-                              COLOR_METAS[cKey].dot
-                            } ${
-                              hl.color === cKey
-                                ? "ring-2 ring-primary ring-offset-1 scale-110"
-                                : "opacity-40 hover:opacity-100"
-                            }`}
-                          />
-                        ))}
-
-                        <div className="h-3 w-px bg-border mx-1" />
-
-                        <button
-                          type="button"
-                          onClick={() => removeHighlight(hl.id)}
-                          className="p-1 text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
-                          title="Delete this highlight"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-
+          ) : groupByTopic ? (
+            <div className="space-y-5">
+              {groupedHighlights.map((group) => (
+                <section
+                  key={group.sourceId}
+                  className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden"
+                >
+                  {/* Slim Topic Header */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 bg-muted/20 px-5 py-3">
+                    <div className="flex min-w-0 items-center gap-2.5">
                       <Link
-                        href={`${hl.href}?highlight=${hl.id}`}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 px-3 py-1.5 font-mono text-xs font-semibold text-primary hover:bg-primary/20 transition-all cursor-pointer"
+                        href={group.href}
+                        className="truncate text-sm font-bold text-foreground hover:text-primary transition-colors"
                       >
-                        <span>Jump to exact sentence</span>
-                        <ExternalLink className="h-3 w-3" />
+                        {group.sourceTitle}
                       </Link>
+                      <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
+                        {group.items.length}
+                      </span>
                     </div>
+
+                    {group.scratchpad && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedNotebookSourceId(group.sourceId);
+                          setHasPickedNotebook(true);
+                          setActiveTab("notebooks");
+                        }}
+                        className="inline-flex items-center gap-1 font-mono text-[11px] font-medium text-amber-600 dark:text-amber-400 hover:underline cursor-pointer"
+                      >
+                        <StickyNote className="h-3 w-3" />
+                        <span>Edit notebook</span>
+                      </button>
+                    )}
                   </div>
-                );
-              })}
+
+                  {/* Collapsible Notebook Preview (starts closed) */}
+                  {group.scratchpad && (
+                    <details className="border-b border-border/60 bg-amber-500/[0.03] px-5 py-2.5">
+                      <summary className="flex items-center gap-1.5 cursor-pointer list-none font-mono text-xs font-medium text-amber-600 dark:text-amber-400">
+                        <ChevronRight className="h-3.5 w-3.5 transition-transform [details[open]_&]:rotate-90" />
+                        <span>Notebook preview</span>
+                      </summary>
+                      <div className="mt-2.5 pb-1 prose-sm max-w-none text-xs sm:text-sm text-foreground/90 leading-relaxed space-y-1.5">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {group.scratchpad}
+                        </ReactMarkdown>
+                      </div>
+                    </details>
+                  )}
+
+                  {/* Divided Highlight Rows */}
+                  <div className="divide-y divide-border/60">
+                    {group.items.map((hl) => renderHighlightRow(hl, false))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden divide-y divide-border/60">
+              {filtered.map((hl) => renderHighlightRow(hl, true))}
             </div>
           )}
         </>
       )}
 
-      {/* 4B. VIEW MODE: STRUCTURED STUDY GUIDE BY TOPIC */}
-      {viewMode === "study-guide" && (
-        <div className="space-y-6">
-          {groupedStudyGuide.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-border bg-card/60 p-12 text-center space-y-2">
-              <BookOpen className="h-8 w-8 text-primary mx-auto" />
-              <h3 className="text-base font-bold text-foreground">
-                No study guide entries match your filter
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                Try clearing your search filter or adding highlights and notes inside any Session.
-              </p>
-            </div>
-          ) : (
-            groupedStudyGuide.map((group) => (
-              <div
-                key={group.sourceId}
-                className="rounded-3xl border border-border bg-card p-6 sm:p-7 shadow-sm space-y-5"
+      {/* 3B. NOTEBOOKS TAB (Master-Detail Split) */}
+      {activeTab === "notebooks" && (
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 items-start">
+          {/* Left Pane: Topic Picker + Saved Notebooks List */}
+          <aside className="lg:col-span-4 rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+            <div className="space-y-2.5 border-b border-border p-4 bg-muted/20">
+              <div className="flex items-center justify-between">
+                <h2 className="font-mono text-xs font-semibold text-foreground">
+                  Saved Notebooks ({activeNotebooks.length})
+                </h2>
+              </div>
+              <select
+                value={selectedNotebookSourceId}
+                onChange={(e) => {
+                  setSelectedNotebookSourceId(e.target.value);
+                  setHasPickedNotebook(true);
+                }}
+                aria-label="Open or create notebook for topic"
+                className="w-full rounded-xl border border-border bg-card px-2.5 py-1.5 font-mono text-xs text-foreground focus:border-primary cursor-pointer"
               >
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
-                  <div>
-                    <span className="font-mono text-[11px] font-semibold text-primary">
-                      Topic synthesis & annotations
-                    </span>
-                    <h2 className="text-lg sm:text-xl font-bold text-foreground">
-                      {group.sourceTitle}
-                    </h2>
-                  </div>
-                  <Link
-                    href={group.href}
-                    className="inline-flex items-center rounded-xl border border-border bg-secondary/60 px-3.5 py-1.5 font-mono text-xs font-semibold text-foreground hover:border-primary/40 transition-colors"
-                  >
-                    Open Topic Article
-                  </Link>
-                </div>
-
-                {/* Topic Notebook if present */}
-                {group.scratchpad && (
-                  <div className="rounded-2xl border border-amber-500/30 bg-amber-500/[0.04] dark:bg-amber-500/[0.06] p-5 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-amber-600 dark:text-amber-400">
-                        <StickyNote className="h-3.5 w-3.5" />
-                        Personal architect notebook
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedNotebookSourceId(group.sourceId);
-                          setViewMode("notebooks");
-                        }}
-                        className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1 font-mono text-[11px] text-muted-foreground hover:text-foreground cursor-pointer"
-                      >
-                        <Edit3 className="h-3 w-3 text-amber-500" />
-                        <span>Edit Notebook</span>
-                      </button>
-                    </div>
-                    <div className="prose-sm max-w-none text-xs sm:text-sm text-foreground/95 leading-relaxed space-y-2">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {group.scratchpad}
-                      </ReactMarkdown>
-                    </div>
-                  </div>
-                )}
-
-                {/* Highlight & Comment items in this topic */}
-                {group.items.length > 0 && (
-                  <div className="space-y-3">
-                    <div className="text-xs font-semibold text-muted-foreground">
-                      Anchored highlights & comments ({group.items.length})
-                    </div>
-                    <div className="grid gap-3 md:grid-cols-2">
-                      {group.items.map((hl) => {
-                        const meta = COLOR_METAS[hl.color];
-                        return (
-                          <div
-                            key={hl.id}
-                            className="flex flex-col justify-between rounded-2xl border border-border bg-muted/15 p-4 space-y-3"
-                          >
-                            <div className="space-y-2.5">
-                              <div className="flex items-center justify-between gap-2">
-                                <span
-                                  className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 font-mono text-[10px] font-semibold ${meta.bg} ${meta.border} ${meta.text}`}
-                                >
-                                  <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
-                                  {meta.label}
-                                </span>
-                                <span className="font-mono text-[10px] text-muted-foreground truncate max-w-[160px]">
-                                  § {hl.sectionTitle}
-                                </span>
-                              </div>
-
-                              {hl.note?.trim() && (
-                                <div className="rounded-xl border border-primary/25 bg-primary/[0.05] p-3 space-y-1">
-                                  <span className="font-mono text-[11px] font-semibold text-primary block">
-                                    Architect comment
-                                  </span>
-                                  <p className="text-xs sm:text-[13px] font-medium text-foreground leading-relaxed">
-                                    {hl.note}
-                                  </p>
-                                </div>
-                              )}
-
-                              <blockquote
-                                className="rounded-lg border border-border/70 bg-card/80 px-3 py-2 text-xs text-muted-foreground"
-                              >
-                                &ldquo;{hl.text}&rdquo;
-                              </blockquote>
-                            </div>
-
-                            <div className="flex items-center justify-end pt-2 border-t border-border/60">
-                              <Link
-                                href={`${hl.href}?highlight=${hl.id}`}
-                                className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold text-primary hover:underline"
-                              >
-                                <span>Spotlight in text</span>
-                                <ExternalLink className="h-3 w-3" />
-                              </Link>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* 4C. VIEW MODE: ARCHITECT NOTEBOOKS (SCRATCHPADS) */}
-      {viewMode === "notebooks" && (
-        <div className="space-y-6">
-          {/* Quick Selector to Open / Create Notebook for any Session or Fundamental */}
-          <div className="rounded-3xl border border-border bg-card p-5 sm:p-6 shadow-sm space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <span className="font-mono text-[11px] font-semibold text-amber-500">
-                  Interactive notebook workspace
-                </span>
-                <h3 className="text-base font-bold text-foreground">
-                  Write or Edit Topic Notebook
-                </h3>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <select
-                  value={selectedNotebookSourceId}
-                  onChange={(e) => setSelectedNotebookSourceId(e.target.value)}
-                  aria-label="Select session or fundamental topic notebook"
-                  className="rounded-xl border border-border bg-muted/40 px-3 py-2 font-mono text-xs font-semibold text-foreground focus:border-primary focus:outline-none cursor-pointer"
-                >
-                  <optgroup label="Module 0: Distributed Systems Fundamentals">
-                    {fundamentalsData.topics.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        Topic {t.number}: {t.title}{" "}
-                        {scratchpadNotes[t.id]?.trim() ? "✓" : ""}
+                <optgroup label="Module 0: Fundamentals">
+                  {fundamentalsData.topics.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      Topic {t.number}: {t.title}{" "}
+                      {scratchpadNotes[t.id]?.trim() ? "✓" : ""}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Curriculum Sessions">
+                  {curriculumData.modules.flatMap((m) =>
+                    m.sessions.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        S{s.number}: {s.title}{" "}
+                        {scratchpadNotes[s.id]?.trim() ? "✓" : ""}
                       </option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Curriculum Sessions">
-                    {curriculumData.modules.flatMap((m) =>
-                      m.sessions.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          S{s.number}: {s.title}{" "}
-                          {scratchpadNotes[s.id]?.trim() ? "✓" : ""}
-                        </option>
-                      ))
-                    )}
-                  </optgroup>
-                </select>
+                    ))
+                  )}
+                </optgroup>
+              </select>
+            </div>
 
-                {sourceCatalog[selectedNotebookSourceId] && (
-                  <Link
-                    href={sourceCatalog[selectedNotebookSourceId].href}
-                    className="inline-flex items-center rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 font-mono text-xs font-semibold text-primary hover:bg-primary/20 transition-colors"
-                  >
-                    Go to Topic
-                  </Link>
-                )}
+            {activeNotebooks.length === 0 ? (
+              <div className="p-6 text-center text-xs text-muted-foreground">
+                No saved notebooks match your filter. Pick any topic above to start writing.
               </div>
+            ) : (
+              <div className="max-h-[540px] overflow-y-auto divide-y divide-border/60">
+                {activeNotebooks.map((nb) => {
+                  const isActive = selectedNotebookSourceId === nb.id;
+                  return (
+                    <button
+                      key={nb.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedNotebookSourceId(nb.id);
+                        setHasPickedNotebook(true);
+                      }}
+                      className={`w-full text-left px-4 py-3 transition-colors cursor-pointer space-y-1 ${
+                        isActive
+                          ? "bg-primary/10 border-l-2 border-primary"
+                          : "hover:bg-muted/30 border-l-2 border-transparent"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span
+                          className={`truncate text-xs font-semibold ${
+                            isActive ? "text-primary" : "text-foreground"
+                          }`}
+                        >
+                          {nb.title}
+                        </span>
+                        <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
+                          {nb.wordCount}w
+                        </span>
+                      </div>
+                      <p className="truncate text-[11px] text-muted-foreground">
+                        {nb.preview}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </aside>
+
+          {/* Right Pane: Single Active Notebook Editor/Reader */}
+          <div className="lg:col-span-8 space-y-3 min-w-0">
+            <div className="flex items-center justify-between gap-3 px-1">
+              <h2 className="truncate text-sm font-bold text-foreground">
+                {sourceCatalog[selectedNotebookSourceId]?.title ||
+                  selectedNotebookSourceId}
+              </h2>
+              {sourceCatalog[selectedNotebookSourceId] && (
+                <Link
+                  href={`${sourceCatalog[selectedNotebookSourceId].href}#session-scratchpad`}
+                  className="inline-flex shrink-0 items-center gap-1 font-mono text-xs font-semibold text-primary hover:underline"
+                >
+                  <span>Open Topic</span>
+                  <ExternalLink className="h-3 w-3" />
+                </Link>
+              )}
             </div>
 
             <StudyScratchpad
@@ -985,66 +964,6 @@ export default function HighlightsPage() {
               }
             />
           </div>
-
-          {/* All Saved Notebooks Grid */}
-          {activeNotebooks.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-xs font-semibold text-muted-foreground px-1">
-                All saved topic notebooks ({activeNotebooks.length})
-              </h3>
-              <div className="grid gap-4 md:grid-cols-2">
-                {activeNotebooks.map((nb) => (
-                  <div
-                    key={nb.id}
-                    className="flex flex-col justify-between rounded-3xl border border-border bg-card p-5 shadow-sm hover:border-amber-500/40 transition-all space-y-4"
-                  >
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between gap-2 border-b border-border pb-3">
-                        <span className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 font-mono text-[10px] font-semibold text-amber-600 dark:text-amber-400">
-                          <StickyNote className="h-3 w-3" />
-                          Architect Notebook
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedNotebookSourceId(nb.id);
-                            window.scrollTo({ top: 260, behavior: "smooth" });
-                          }}
-                          className="inline-flex items-center gap-1 rounded-lg border border-border bg-muted/40 px-2 py-0.5 font-mono text-[10px] font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
-                        >
-                          <Edit3 className="h-2.5 w-2.5 text-amber-500" />
-                          Edit in Workspace
-                        </button>
-                      </div>
-
-                      <Link
-                        href={nb.href}
-                        className="text-sm font-bold text-foreground hover:text-primary transition-colors block"
-                      >
-                        {nb.title}
-                      </Link>
-
-                      <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.03] p-4 text-xs sm:text-sm text-foreground/90 leading-relaxed space-y-1.5">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                          {nb.text}
-                        </ReactMarkdown>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-end pt-2 border-t border-border/60">
-                      <Link
-                        href={`${nb.href}#session-scratchpad`}
-                        className="inline-flex items-center gap-1.5 font-mono text-xs font-semibold text-primary hover:underline"
-                      >
-                        <span>Open in Session</span>
-                        <ExternalLink className="h-3 w-3" />
-                      </Link>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>

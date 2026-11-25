@@ -62,23 +62,21 @@ export default function FundamentalsStudyClient({
   };
 
   const quickJumps: TocQuickJump[] = useMemo(() => {
-    const jumps: TocQuickJump[] = [
-      {
+    const jumps: TocQuickJump[] = [];
+    if (topicHighlights.length > 0) {
+      jumps.push({
         id: "page-highlights-drawer",
         label: "Highlights & Comments",
-        badge:
-          topicHighlights.length > 0
-            ? String(topicHighlights.length)
-            : undefined,
+        badge: String(topicHighlights.length),
         tone: "emerald",
-      },
-      {
-        id: "session-scratchpad",
-        label: "Architect Notebook",
-        dot: Boolean(personalNote.trim()),
-        tone: "amber",
-      },
-    ];
+      });
+    }
+    jumps.push({
+      id: "session-scratchpad",
+      label: "Architect Notebook",
+      dot: Boolean(personalNote.trim()),
+      tone: "amber",
+    });
     if (quizzes.length > 0) {
       jumps.push({
         id: "topic-quiz",
