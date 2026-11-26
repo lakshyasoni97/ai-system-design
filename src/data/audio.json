@@ -1,0 +1,50 @@
+{
+  "fund-01": {
+    "title": "Distributed Database Architecture for AI Systems",
+    "src": "/audio/fund-01.m4a",
+    "duration": "25:50",
+    "format": "Deep Dive · Audio Overview"
+  },
+  "fund-02": {
+    "title": "Sharding AI Vector Databases at Scale",
+    "src": "/audio/fund-02.m4a",
+    "duration": "6:30",
+    "format": "Short Deep Dive · Audio Overview"
+  },
+  "fund-03": {
+    "title": "Choosing Database Engines for AI Systems",
+    "src": "/audio/fund-03.m4a",
+    "duration": "6:43",
+    "format": "Short Deep Dive · Audio Overview"
+  },
+  "fund-04": {
+    "title": "Why Exactly-Once AI Processing Fails",
+    "src": "/audio/fund-04.m4a",
+    "duration": "6:09",
+    "format": "Short Deep Dive · Audio Overview"
+  },
+  "fund-05": {
+    "title": "Surviving LLM API Meltdowns",
+    "src": "/audio/fund-05.m4a",
+    "duration": "5:56",
+    "format": "Short Deep Dive · Audio Overview"
+  },
+  "fund-06": {
+    "title": "Multi-Tier Caching for Large Language Models",
+    "src": "/audio/fund-06.m4a",
+    "duration": "6:29",
+    "format": "Short Deep Dive · Audio Overview"
+  },
+  "fund-07": {
+    "title": "How to Calculate LLM Fleet Capacity",
+    "src": "/audio/fund-07.m4a",
+    "duration": "6:12",
+    "format": "Short Deep Dive · Audio Overview"
+  },
+  "fund-08": {
+    "title": "Why Green Dashboards Lie About AI",
+    "src": "/audio/fund-08.m4a",
+    "duration": "7:00",
+    "format": "Short Deep Dive · Audio Overview"
+  }
+}

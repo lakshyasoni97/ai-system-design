@@ -18,6 +18,8 @@ import FlashcardPlayer, { FlashcardItem } from "./FlashcardPlayer";
 import ReadingList from "./ReadingList";
 import StudyScratchpad from "./StudyScratchpad";
 import ScenarioQuiz, { QuizQuestion } from "./ScenarioQuiz";
+import AudioOverviewPlayer, { AudioOverviewMeta } from "./AudioOverviewPlayer";
+import audioData from "@/data/audio.json";
 import resourcesData from "@/data/resources.json";
 import { useProgress } from "./ProgressProvider";
 
@@ -70,6 +72,7 @@ export default function SessionStudyClient({
   const completed = isSessionCompleted(session.id);
   const personalNote = scratchpadNotes[session.id] || "";
   const sessionHighlights = getHighlightsForSource(session.id);
+  const sessionAudio = (audioData as Record<string, AudioOverviewMeta>)[session.id];
 
   const handleCopyPrompt = async () => {
     try {
@@ -204,6 +207,10 @@ export default function SessionStudyClient({
           </h1>
         </div>
       </div>
+
+      {sessionAudio && (
+        <AudioOverviewPlayer conceptId={session.id} audio={sessionAudio} />
+      )}
 
       {/* 2. Unified Study Reader + Sticky Right-Rail TOC */}
       <MarkdownArticle

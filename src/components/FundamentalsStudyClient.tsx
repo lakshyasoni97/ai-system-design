@@ -7,6 +7,8 @@ import MarkdownArticle, { TocQuickJump } from "./MarkdownArticle";
 import ReadingList, { ReadingItem } from "./ReadingList";
 import StudyScratchpad from "./StudyScratchpad";
 import ScenarioQuiz, { QuizQuestion } from "./ScenarioQuiz";
+import AudioOverviewPlayer, { AudioOverviewMeta } from "./AudioOverviewPlayer";
+import audioData from "@/data/audio.json";
 import { useProgress } from "./ProgressProvider";
 import fundamentalsData from "@/data/fundamentals.json";
 
@@ -45,6 +47,7 @@ export default function FundamentalsStudyClient({
   const { isDone: checkDone, toggle } = useFundamentalsDone();
   const { scratchpadNotes, getHighlightsForSource, quizResults } = useProgress();
   const isDone = checkDone(topic.id);
+  const topicAudio = (audioData as Record<string, AudioOverviewMeta>)[topic.id];
 
   const topicHighlights = getHighlightsForSource(topic.id);
   const personalNote = scratchpadNotes[topic.id] || "";
@@ -132,6 +135,8 @@ export default function FundamentalsStudyClient({
         </div>
         <h1 className="mt-4 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{topic.title}</h1>
       </div>
+
+      {topicAudio && <AudioOverviewPlayer conceptId={topic.id} audio={topicAudio} />}
 
       <MarkdownArticle
         content={content}

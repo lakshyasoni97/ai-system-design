@@ -2,10 +2,11 @@
 
 import React from "react";
 import Link from "next/link";
-import { BookOpen, CheckCircle2, Circle, Clock, ShieldAlert } from "lucide-react";
+import { BookOpen, CheckCircle2, Circle, Clock, Headphones, ShieldAlert } from "lucide-react";
 import fundamentals from "@/data/fundamentals.json";
 import resources from "@/data/resources.json";
 import quizzesData from "@/data/quizzes.json";
+import audioData from "@/data/audio.json";
 import ReadingList from "@/components/ReadingList";
 import { useFundamentalsDone } from "@/components/FundamentalsStudyClient";
 import { useProgress } from "@/components/ProgressProvider";
@@ -41,6 +42,12 @@ export default function FundamentalsIndexPage() {
           const correctCount = topicQuestions.filter(
             (q) => quizResults[q.id]?.isCorrect
           ).length;
+          const topicAudio = (
+            audioData as Record<
+              string,
+              { title: string; src: string; duration: string; format?: string }
+            >
+          )[t.id];
 
           return (
             <Link
@@ -63,9 +70,16 @@ export default function FundamentalsIndexPage() {
                 <span className="font-semibold text-foreground">AI tie-in:</span> {t.aiTieIn}
               </p>
               <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-1 font-mono text-[11px] text-muted-foreground">
-                  <Clock className="h-3 w-3" /> {t.readTime}
-                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1 font-mono text-[11px] text-muted-foreground">
+                    <Clock className="h-3 w-3" /> {t.readTime}
+                  </span>
+                  {topicAudio && (
+                    <span className="inline-flex items-center gap-1 rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 font-mono text-[11px] font-semibold text-primary">
+                      <Headphones className="h-3 w-3" /> Audio · {topicAudio.duration}
+                    </span>
+                  )}
+                </div>
                 {topicQuestions.length > 0 && (
                   <span
                     className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-mono text-[11px] font-semibold ${
