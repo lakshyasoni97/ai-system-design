@@ -1,0 +1,24 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Minimalist Buckwheat-style 3-node architecture stack -->
+    <path
+        android:fillColor="#FAF8F3"
+        android:pathData="M54,28 L76,40 L54,52 L32,40 Z" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FAF8F3"
+        android:strokeWidth="4.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M32,54 L54,66 L76,54" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FAF8F3"
+        android:strokeWidth="4.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M32,68 L54,80 L76,68" />
+</vector>
