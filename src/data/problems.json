@@ -8,7 +8,7 @@
       "solutions-architect",
       "ml-engineer"
     ],
-    "prompt": "Design a Q&A assistant over 5M internal documents (PDFs, slides, wikis) for 50,000 employees. Answers must cite sources and respect per-document access permissions.",
+    "prompt": "Design an enterprise Q&A assistant over 100M internal documents (PDFs, slides, scans, wikis) for 100,000 employees across strict RBAC boundaries. Answers must stream under 1.5s TTFT, cite exact sources, propagate deletes/permission revocations quickly, and never leak unauthorized content.",
     "clarifying": [
       "Document types, languages, and update frequency? How fresh must answers be?",
       "Permission model: ACLs per document, groups, or row-level? How quickly must revocations apply?",
@@ -17,30 +17,30 @@
       "Data residency / compliance constraints; can data go to a third-party LLM API?"
     ],
     "estimation": [
-      "50k employees, 30% DAU, 8 queries/day → 120k queries/day ≈ 1.4 QPS avg, ~5 QPS peak",
-      "5M docs × ~20 chunks = 100M chunks; 768-d FP32 ≈ 307 GB raw (~460 GB with HNSW overhead) → shard or quantize (INT8 ≈ 4× less)",
-      "Per query ~4–6k input tokens, ~400 output → compare flash vs pro tiers for cost; quota is the real limit, not compute"
+      "100k employees, ~35% DAU (35k) × 8 queries/day = 280k queries/day ≈ 3.2 QPS avg, ~15–25 QPS peak (plus ~1,000 pages/s backfill or ~150 pages/s daily 1% churn on ingestion).",
+      "100M docs × ~5 chunks/doc = 500M chunks (or 100M parent sections). At 768-d INT8 scalar quantization (~1 B/dim × 1.5 HNSW overhead), 500M vectors ≈ 575 GB RAM single-copy (~1.5 TB HA across 12 shards × 2 replicas with 30% compaction headroom), or ~180 GB RAM using Binary/PQ shortlist + NVMe FP16 rescoring.",
+      "Latency budget (<1.5s P95 TTFT): Auth + Redis revocation check (5ms) + Query Rewrite/Embed (120ms) + Parallel Filtered HNSW & BM25 + RRF (35ms) + L4 GPU Cross-Encoder top-50 -> top-6 (35ms) + Prefix-Cached LLM Prefill (~800ms) = ~1.0s P95 TTFT."
     ],
     "architecture": [
-      "Ingestion: connectors → object storage → parse/OCR → chunk → (optional LLM chunk context) → embed → index; event-driven via a queue, idempotent per doc version",
-      "Permissions: store ACL group ids as filterable metadata; resolve user → groups at query time; pre-filter in the vector DB",
-      "Query path: auth → query rewrite → hybrid retrieval (BM25 + dense) → RRF → cross-encoder rerank → context assembly → LLM with citation prompt → guardrails → stream",
-      "Freshness: change events trigger incremental re-index; tombstones on delete/permission change",
-      "Quality loop: golden set, RAG-triad evals offline, sampled online evals, feedback capture"
+      "Tiered Ingestion DAG: Connectors (SharePoint/Drive/Confluence CDC + daily reconciliation sweep) -> GCS Claim-Check -> Pub/Sub (DLQ at 3 retries) -> Page Complexity Router (native PDF stream vs Docling GPU OCR vs Hybrid 150-DPI VLM) -> SimHash/pHash dedup + PII scrub -> Structure-aware Parent-Child chunking with Contextual Headers -> Stage-write version v_new -> Atomic Postgres Manifest swap + old-chunk tombstones.",
+      "Zero-Trust RBAC & Revocation: Store allow_groups + deny_groups as Roaring Bitmap payloads on both Vector and BM25 indexes; verify OIDC JWT server-side, resolve IdP/Zanzibar groups (60s TTL), overlay strongly-consistent Redis revocation/quarantine set (<50ms emergency hide), and key all caches by HMAC(tenant_id, acl_scope).",
+      "Adaptive Two-Stage Query Path: Intent router + coreference rewrite -> parallel Single-Stage Filtered HNSW + Filtered BM25 -> RRF (k=60) -> sequence-length-sorted FP16 Cross-Encoder rerank (65ms fail-open circuit breaker) -> Parent hydration -> U-curve context assembly (<source id> tags, static prefix at token 0) -> schema-constrained cited synthesis or calibrated abstention.",
+      "Zero-Downtime Migrations: Re-embedding or re-chunking runs via dual-write to shadow index v2 on Spot L4 GPUs + 5% async dark-read recall check + atomic alias flip + 48h rollback soak.",
+      "Offline + Online Quality Loop: 300-query span-based Golden Set gating CI on Recall@50, nDCG@6, and RAG Triad Faithfulness (>=0.95), paired with 2% async production LLM-judge sampling, implicit thumbs/rephrase telemetry, and 5-minute synthetic RBAC canary red-team probes."
     ],
-    "mermaid": "flowchart LR\n  Src[Doc sources] --> Q[Ingest queue]\n  Q --> P[Parse + chunk]\n  P --> E[Embed]\n  E --> V[(Vector index + ACL metadata)]\n  P --> B[(BM25 index)]\n  U[User] --> API[API + AuthZ]\n  API --> R[Hybrid retrieve + rerank]\n  R --> V\n  R --> B\n  R --> L[LLM + guardrails]\n  L --> U",
+    "mermaid": "flowchart LR\n  Src[\"Connectors + CDC\"] --> Q[[\"Ingest Pub/Sub + DLQ\"]]\n  Q --> PR[\"Tiered Parse + SimHash + Contextual Chunk\"]\n  PR --> MAN[(\"Postgres Manifest + Tombstones\")]\n  PR --> V[(\"Sharded INT8 HNSW + ACL Bitmaps\")]\n  PR --> B[(\"BM25 Index + ACL Filter\")]\n  U[\"Employee + JWT\"] --> GW[\"AuthZ + Redis Revocation + Scoped Cache\"]\n  GW --> RW[\"Rewrite / Decompose\"]\n  RW --> V & B\n  V & B --> CE[\"RRF + GPU Cross-Encoder Rerank\"]\n  CE --> CB[\"U-Curve Context Builder + Prefix Cache\"]\n  CB --> LLM[\"LLM + Citation Verifier\"] --> U",
     "deepDives": [
       {
-        "q": "How do you guarantee a junior analyst never sees partner-only content?",
-        "a": "Pre-filter by ACL metadata inside the ANN query (not post-filter, which leaks via score/side-channels and hurts recall). Resolve group membership server-side from the identity provider, never trust client claims. Reindex or update metadata on permission change and keep a short cache TTL for group lookups. Add an audit log and a test suite of permission red-team queries. Also ensure caches (semantic cache, response cache) are keyed by access scope."
+        "q": "How do you guarantee a junior analyst never sees Partner-only content—even via caches or permission-sync lag?",
+        "a": "Enforce (tenant_id AND allow_groups AND NOT deny_groups) inside both Single-Stage Filtered HNSW and BM25 using a capability-locked client minted from server-verified JWT claims—never post-filter or prompt-filter. Key semantic/retrieval caches by HMAC(tenant_id, sorted_allow, sorted_deny). Close SharePoint/Drive webhook sync lag with a strongly-consistent Redis revocation/quarantine overlay (<50ms) and optional live source BatchCheckPermissions on top-10 vault hits, verified continuously by 5-minute canary red-team probes."
       },
       {
-        "q": "Answers are wrong though retrieval 'looks fine'. How do you debug?",
-        "a": "Separate retrieval from generation. Measure context recall/precision against a labelled set; inspect chunking (tables, slide images), query rewriting, and top-k/rerank settings. If context contains the answer but the model ignores it, adjust prompt, ordering (lost-in-the-middle), or use a stronger model. Add faithfulness checks and abstain when evidence is weak."
+        "q": "Answers are wrong on 20% of queries even though 'search seems to return chunks'. How do you debug systematically?",
+        "a": "Split at Context Recall first: if the gold answer span is missing from the top-6 chunks sent to the LLM, check Stage-1 Recall@50 vs Stage-2 nDCG@6 (catches 512-token Cross-Encoder truncation, missing contextual headers on pronoun-heavy clauses, decapitated Markdown tables, or un-decomposed comparison queries). If the gold span IS in top-6 yet the answer is wrong, it is a Context/Generation bug: fix U-shaped ordering (Lost in the Middle), add effective_date recency rules for stale policy conflicts, and lock citations + explicit 'insufficient_evidence' abstention in the output schema."
       },
       {
-        "q": "How do you handle 100M chunks?",
-        "a": "Quantize (scalar/PQ) to cut RAM, shard by tenant or hash with scatter-gather top-k, keep replicas for tail latency, use disk-based ANN for cold data, and route queries with metadata filters/partitions to reduce search space."
+        "q": "How do you size, shard, and migrate 500M chunks without downtime?",
+        "a": "Use INT8 scalar quantization in HNSW RAM + exact FP16 vectors on local NVMe SSD for 4x oversample-rescoring (cutting RAM 4x with <1% recall loss), or Binary/DiskANN for cold historical partitions. Shard by business unit/tenant where possible (avoiding 20-shard scatter-gather P99 amplification) and scale QPS via read replicas, reserving 30% RAM headroom for HNSW segment compaction. For embedding upgrades, never mix v1 and v2 spaces: dual-write to a shadow collection, bulk backfill on Spot L4 GPUs (~$85 for 500M chunks), dark-read 5% traffic, and flip the collection alias atomically."
       }
     ],
     "tradeoffs": [
@@ -56,9 +56,13 @@
     ],
     "resumeTie": "Deloitte Internal Asset Discovery (slide-to-image RAG on ChromaDB): explain what you shipped, then scale it with this design.",
     "relatedSessions": [
+      "session-22",
+      "session-23",
+      "session-24",
       "session-05",
       "session-06",
-      "session-07",
+      "session-25",
+      "session-26",
       "session-08",
       "session-17"
     ],
@@ -71,12 +75,7 @@
     "week": 3,
     "mustDo": true,
     "status": "written",
-    "upgradeNotes": [
-      "Rescope to 100M+ documents: ingestion throughput, index sizing, sharding",
-      "Add ACL-aware retrieval and permission-sync lag",
-      "Add freshness / delete propagation and re-embedding migration",
-      "Add eval plan: retrieval metrics + RAG triad + online signals"
-    ]
+    "upgradeNotes": []
   },
   {
     "id": "support-agent",

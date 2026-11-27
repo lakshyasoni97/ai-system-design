@@ -118,5 +118,125 @@
     "projectTag": "Deloitte Multi-Agent",
     "question": "How did you design the Automated Evaluation (LLMOps) pipeline for your RAG and Multi-Agent systems to catch regressions before production?",
     "answer": "1. **Golden Dataset Stratification:** Curated 500+ real anonymized queries across 4 buckets: Happy Path (50%), Multi-Hop Reasoning (25%), Adversarial/Out-of-Scope (15%), and Edge Formatting (10%).\n2. **The RAG Triad + Agent Trajectory Evals:** Measure **Context Relevance**, **Groundedness (Hallucination check)**, **Answer Relevance**, and **Tool Selection Precision/Recall** (`expected_tool_calls == actual_tool_calls`).\n3. **Debiasing LLM-as-a-Judge:** Use pairwise position swapping (run A-vs-B and B-vs-A to eliminate position bias), integer 1–5 rubrics with chain-of-thought critique first, and block CI/CD PR merges if Groundedness drops below **0.94**."
+  },
+  {
+    "id": "fc-016",
+    "sessionId": "session-21",
+    "module": "Module 4",
+    "projectTag": "Deloitte Multi-Agent",
+    "question": "Why is LLM Prefill compute-bound while Decode is memory-bandwidth-bound, and how does each map to TTFT vs. TPOT optimizations?",
+    "answer": "1. **Prefill (Compute-Bound -> Drives TTFT):** All `N` prompt tokens are known upfront, so the GPU executes parallel matrix-matrix multiplications (`GEMM`), saturating Tensor Core FLOPs. Optimize `TTFT` via **Prefix Caching**, **Chunked Prefill**, and **Reranking to smaller prompts**.\n2. **Decode (Memory-Bandwidth-Bound -> Drives TPOT):** Generates `1` token per step sequentially, streaming all active model weights (e.g., `70 GB` in FP8) + KV cache from HBM for just `~batch_size` FLOPs/byte (far below an H100's `~295 FLOPs/byte` ridge point). Optimize `TPOT` via **FP8/INT4 quantization**, **Continuous Batching**, **GQA**, and **Speculative Decoding**."
+  },
+  {
+    "id": "fc-017",
+    "sessionId": "session-21",
+    "module": "Module 4",
+    "projectTag": "Network18 Financial News",
+    "question": "What are the two traps interviewers test on Mixture-of-Experts (MoE) serving and `temperature = 0` determinism?",
+    "answer": "1. **MoE Total vs. Active Params:** Single-stream speed scales with *active* parameters (`e.g., 13B/37B`), **but GPU HBM capacity scales with TOTAL parameters (`47B/671B`)** because all experts must sit in VRAM—and once `batch >= 32–64`, tokens scatter across nearly *every* expert per step!\n2. **Non-Determinism at `temperature = 0`:** Floating-point addition `(a+b)+c != a+(b+c)` is non-associative. Continuous batching changes Tensor Core tile reduction order across batch sizes, flipping borderline logits. Enforce syntax via **Constrained Decoding** and test semantic/execution equivalence in CI."
+  },
+  {
+    "id": "fc-018",
+    "sessionId": "session-22",
+    "module": "Module 2",
+    "projectTag": "Deloitte Slide RAG",
+    "question": "How do you parse 100M mixed enterprise documents (PDFs, scans, tables, slides) accurately without spending $500k on Vision LLMs?",
+    "answer": "1. **Page Complexity Router (<2ms):** Inspect extracted character count, raster image area ratio, and vector drawing ops per page.\n2. **Three Lanes:**\n   - *Lane 1 (~70% clean digital prose):* Native `pdfium` stream (`<3ms`, `~$0`).\n   - *Lane 2 (~20% scans & bordered tables):* GPU Layout + OCR (`Docling`/`PaddleOCR`, `~$0.03/1k pages`).\n   - *Lane 3 (~10% charts, diagrams & slides):* Render at `150 DPI` + pass deterministic XML text to `Gemini Flash Vision` Batch API (`50%` off) to prevent number hallucinations.\n3. **Pre-Embed Dedup:** Page `SHA-256` delta + `SimHash`/`MinHash LSH` + visual `pHash` skips `35–68%` unchanged/boilerplate pages."
+  },
+  {
+    "id": "fc-019",
+    "sessionId": "session-22",
+    "module": "Module 2",
+    "projectTag": "Deloitte Slide RAG",
+    "question": "How do you prevent 'zombie chunks' when a 20-page document is edited down to 14 pages, and how do you handle poison PDFs?",
+    "answer": "1. **Blue-Green Document Manifest:** Track `documents(doc_id, active_version, chunk_ids[], acl_groups)` in Postgres. Write edited chunks under `doc_id:v2:0..13` first, atomically swap `active_version = 2`, then explicitly delete `v1`'s `chunk_ids`—eliminating both torn mid-crash documents and orphaned chunks `14..19`.\n2. **Instant Delete Tombstones:** Write deleted `doc_id`s to a Redis deny-set checked at query time (`<50ms` hide) while async compaction purges HNSW points.\n3. **Poison-File Isolation:** GCS Claim-Check + `concurrency = 1` memory-capped subprocesses + Pub/Sub `max_delivery_attempts = 3` -> **Dead Letter Queue (DLQ)**."
+  },
+  {
+    "id": "fc-020",
+    "sessionId": "session-23",
+    "module": "Module 2",
+    "projectTag": "Network18 Financial News",
+    "question": "How do Parent-Child chunking, Contextual Headers, and Header-Preserving Table Splitting solve classic RAG chunking failures?",
+    "answer": "1. **Parent-Child (`Small-to-Big`):** Embed sharp `150–220 token` child chunks in HNSW for high cosine precision, deduplicate hits by `parent_id`, and fetch the full `1,000-token` parent section from cheap SSD storage for LLM synthesis.\n2. **Contextual Headers / Retrieval:** Prepend `[Doc Title | Section Path | Date]` (plus optional prefix-cached LLM situating snippet) *before* Dense + BM25 indexing so pronoun-heavy sentences (`'Its cap is $2M'`) never lose their entity.\n3. **Table Integrity:** Keep small tables whole; split huge tables every ~25 rows **cloning the caption + Markdown column header row onto every slice**."
+  },
+  {
+    "id": "fc-021",
+    "sessionId": "session-23",
+    "module": "Module 2",
+    "projectTag": "Deloitte Slide RAG",
+    "question": "How do you design an unbiased offline experiment to pick `chunk_size`, and how do you migrate 100M chunks without downtime?",
+    "answer": "1. **Fix Total Token Budget, NOT `top_k`:** Compare `16 × 256` vs `8 × 512` vs `4 × 1024` (`= 4,096` prompt tokens each) against **character-span ground truth** (`doc_id, start_char..end_char`, since `chunk_id`s change across configs!).\n2. **Watch Silent Truncation:** Measure chunk lengths using the *exact* embedding tokenizer so `512`-limit encoders don't silently drop the bottom half of code/Hindi chunks.\n3. **Zero-Downtime Re-Chunking:** Backfill `chunks_v2` from cached parsed Markdown in GCS while dual-writing live edits to `v1` and `v2`, pass span-recall gate, and atomically flip the collection alias."
+  },
+  {
+    "id": "fc-022",
+    "sessionId": "session-24",
+    "module": "Module 2",
+    "projectTag": "Deloitte Slide RAG",
+    "question": "How does Matryoshka Representation Learning (MRL) work, and what two-step pattern slashes Vector RAM 12x with <1% recall loss?",
+    "answer": "1. **Nested Prefix Loss:** MRL applies InfoNCE contrastive loss simultaneously across nested prefixes (`64, 128, 256, 512, 1536` dims) during training, packing coarse semantics into early coordinates like a progressive JPEG.\n2. **Mandatory L2 Renormalization:** Always renormalize `v[:256] / ||v[:256]||_2` after slicing so inner-product rankings stay valid!\n3. **Oversample & Rescore:** Keep `256-d INT8` (or `512-d Binary`) vectors in HNSW RAM (`12–32x` smaller) to pull `top-200` in `3ms`, then read full `1536-d FP16` vectors from NVMe SSD (`<0.5ms`) for just those `200` candidates."
+  },
+  {
+    "id": "fc-023",
+    "sessionId": "session-24",
+    "module": "Module 2",
+    "projectTag": "Network18 Financial News",
+    "question": "Walk through migrating 100M vectors to a new embedding model with zero downtime—and what trap ruins domain embedding fine-tuning?",
+    "answer": "1. **Zero-Downtime Shadow Runbook:** Never mix `v1` and `v2` vectors in one index! Create `chunks_v2` (`model_id=v2`), enable live **dual-writes**, bulk backfill on **4 Spot L4 GPUs** (`~12 hrs, <$20` using conditional `version >= current` upserts so slow backfill batches never overwrite newer live edits!), dark-read 5% queries, and atomically flip alias + query encoder together.\n2. **Fine-Tuning False-Negative Trap:** In real corpora, top-10 dense neighbors often contain valid unlabeled duplicate answers; filter out any mined negative scoring `>= 0.95 × teacher_score(q, pos)` before InfoNCE training."
+  },
+  {
+    "id": "fc-024",
+    "sessionId": "session-05",
+    "module": "Module 2",
+    "projectTag": "Deloitte Slide RAG",
+    "question": "Explain HNSW (`M`, `efConstruction`, `efSearch`), why deletes spike RAM, and when to switch from RAM HNSW to DiskANN.",
+    "answer": "1. **3 HNSW Knobs:** `M` = edges/node (build-time, adds RAM); `efConstruction` = build-time search width (`0` extra RAM, cleaner graph); **`efSearch` = runtime query beam width** (tune live to boost recall with `0` extra RAM and `0` rebuild!).\n2. **Why Deletes Spike RAM:** HNSW uses soft tombstone bits to preserve graph connectivity until segment compaction builds a new graph *alongside* the old one—always keep **25–30% RAM headroom** and drop time partitions instead of point-deleting.\n3. **DiskANN (`Vamana`):** Keeps tiny `64–96B` PQ codes in RAM and `4KB` vector+neighbor blocks on NVMe SSD (`~5–10ms` via parallel `io_uring`), cutting `100M+` cold/archive RAM bills `8–10x`."
+  },
+  {
+    "id": "fc-025",
+    "sessionId": "session-06",
+    "module": "Module 2",
+    "projectTag": "Network18 Financial News",
+    "question": "How do you keep a 50-candidate GPU Cross-Encoder reranker fast, cheap, and resilient under a 600 QPS traffic spike?",
+    "answer": "1. **Sequence-Length Bucketing:** Sort the 50 `[query, chunk]` pairs by token length into 2 micro-batches (`short` + `long`) so 80-token chunks aren't zero-padded to 512—cutting GPU FLOPs ~50% (`~30ms` on L4 FP16).\n2. **Score-Margin Early Exit:** Skip GPU reranking on ~30% of easy queries when Rank #1 tops *both* BM25 and Dense with a wide RRF margin.\n3. **Rerank Children Before Hydrating Parents:** Avoid `512`-token Cross-Encoder truncation on `1,200`-token parents.\n4. **65ms Fail-Open Circuit Breaker:** On GPU queue overload, immediately serve `RRF top-6` (`0` outage, `0` SLA breach)."
+  },
+  {
+    "id": "fc-026",
+    "sessionId": "session-25",
+    "module": "Module 2",
+    "projectTag": "Network18 Financial News",
+    "question": "When does `HyDE` hurt recall, when does `GraphRAG` justify its 10–20x ingest cost, and why doesn't a 1M context window kill RAG?",
+    "answer": "1. **HyDE Trap:** Helps on conceptual/code style gaps, **actively wrecks recall on proprietary names, tickers & post-cutoff facts** because hallucinated details pull the vector into the wrong neighborhood—always fuse with raw query + BM25!\n2. **GraphRAG Fit:** Worth its `10–20x` LLM indexing tax *only* for **global corpus themes** (*'top risks across 5k postmortems'* via Leiden community summaries) or multi-hop entity graphs; mind ACL leaks inside shared community summaries!\n3. **1M Window vs RAG:** 100M docs = 500B tokens (`500,000x` > 1M), and uncached 500K prefill costs ~150x more (`~$1/query`) with 5–12s `TTFT`."
+  },
+  {
+    "id": "fc-027",
+    "sessionId": "session-25",
+    "module": "Module 2",
+    "projectTag": "Network18 Financial News",
+    "question": "Give the exact diagnostic tree when stakeholders complain 'RAG answers are wrong', plus the 4 guardrails for 3-hop Agentic RAG.",
+    "answer": "1. **Retrieval vs. Generation Split (`Context Recall`):**\n   - *Fact NOT in top-6:* Check parsed Markdown (`S22`) -> `Recall@100` (`S23/S24/Rewrite/Decompose`) -> `nDCG@6` reranker promotion (`S06`).\n   - *Fact IS in top-6:* Check Lost-in-the-Middle ordering (`S26`), stale policy date conflicts (`effective_date` boost), or weak citation prompt.\n2. **3-Hop Agentic Guardrails:** (a) Upfront Flash intent router (`<10%` enter multi-hop), (b) immediate SSE status streaming, (c) cosine query-dedup (`cos > 0.92` blocked) to stop loops, and (d) hard `max_hops = 3` + `1.6s` wall-clock cap."
+  },
+  {
+    "id": "fc-028",
+    "sessionId": "session-26",
+    "module": "Module 2",
+    "projectTag": "Deloitte Multi-Agent",
+    "question": "How should you structure a 16K-token prompt from top to bottom to maximize Prefix Caching, defeat 'Lost in the Middle', and avoid HTTP 400?",
+    "answer": "1. **Slot 0 (Token 0 — 100% Static):** System instructions + **deterministically sorted** tool schemas (zero timestamps/UUIDs -> `75–90%` KV Prefix Cache hit!).\n2. **Slot 1:** Structured `pinned_facts` + **async background Rolling Summary** (`0ms` live TTFT cost).\n3. **Slot 2:** Deduplicated `<source id>` chunks in **U-shaped order (`[#1, #3, #5, #6, #4, #2]`)** placing top evidence at primacy & recency peaks.\n4. **Slot 3–5:** Field-projected tool outputs (`<=1.5K` cap) + recent verbatim turns + tail timestamp/query + explicit `2,000-token` `max_tokens` output reserve."
+  },
+  {
+    "id": "fc-029",
+    "sessionId": "session-26",
+    "module": "Module 2",
+    "projectTag": "Deloitte Multi-Agent",
+    "question": "How does Constrained Decoding guarantee 100% valid JSON, why must `reasoning` precede `decision`, and how do you stop fake citations?",
+    "answer": "1. **FSM/CFG Logit Masking:** Compiles JSON Schema into a grammar automaton setting illegal token logits to `-inf` at each decode step (`100%` valid syntax)—paired with Python Pydantic validators + 1 error-feedback retry for *business semantics* (`refund <= paid_amount`).\n2. **Schema Key Order:** Put `evidence_quotes` and `reasoning` *before* `decision` so left-to-right decoding thinks before committing.\n3. **Zero-Hallucination Citations:** Lock `cited_ids` to `Enum[injected_source_ids]`, provide an explicit `'insufficient_evidence'` enum state, and verify numbers verbatim against cited text."
+  },
+  {
+    "id": "fc-030",
+    "sessionId": "session-08",
+    "module": "Module 2",
+    "projectTag": "Deloitte Slide RAG",
+    "question": "How do you design Multi-Tenancy across 5,000 customers (SMBs to Regulated Banks) and close permission-revocation sync lag?",
+    "answer": "1. **Tiered Multi-Tenancy:**\n   - *SMBs (`<100k` vecs):* Shared shards + `tenant_id` payload subgraph indexing + per-tenant QPS buckets (`~$0.30/mo`, avoids 5,000-HNSW-graph RAM blowup).\n   - *Whales/Banks:* Dedicated cluster/VPC + **CMEK KMS keys** (instant crypto-shredding).\n2. **Zero-Leak Enforcement:** Apply `(tenant_id AND allow_groups AND NOT deny_groups)` identically to **both** Vector and BM25 via capability-locked clients, and key caches by `HMAC(tenant_id, acl_scope)`.\n3. **Instant Revocation:** Overlay a strongly-consistent **Redis revocation/quarantine set** (`<50ms`), metadata-only `set_payload` (`$0` re-embed), and Zanzibar/`SpiceDB` folder-policy indirection."
   }
 ]

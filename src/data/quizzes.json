@@ -1731,5 +1731,880 @@
     ],
     "correctOptionId": "A",
     "takeaway": "Private data + untrusted content + external egress = Lethal Trifecta. Break a leg in code (egress allowlists, least-privilege tokens, HITL) because prompts are never a security boundary."
+  },
+  {
+    "id": "qz-s21-1",
+    "sourceId": "session-21",
+    "module": "Module 4",
+    "category": "2 AM Failure",
+    "projectTag": "Deloitte Multi-Agent",
+    "scenario": "Your self-hosted Llama-3-70B FP8 cluster (`2 × H100` replicas) serves interactive support chats at `28ms` P50 TPOT. When a new 'Analyze Full Audit Log' feature launches (`60,000` input tokens, `150` output tokens), live chat users experience jarring `2.1-second` mid-sentence freezes even though average GPU memory is at `62%`.",
+    "question": "Which hardware bottleneck caused the mid-sentence freeze, and what is the lowest-cost immediate mitigation?",
+    "options": [
+      {
+        "id": "A",
+        "text": "Decode HBM bandwidth saturated on the 150 output tokens; enable 4-bit AWQ weight quantization.",
+        "trapLabel": "Trap: Misdiagnoses Prefill Stall as Decode",
+        "explanation": "Generating 150 tokens didn't cause a single 2.1s pause—the monolithic 60K-token compute-bound prefill monopolized all Tensor Cores across one giant iteration."
+      },
+      {
+        "id": "B",
+        "text": "Monolithic compute-bound prefill blocked co-scheduled decode steps; enable **Chunked Prefill** (`max_num_batched_tokens = 2048`) and isolate bulk 60K jobs into a separate pool or disaggregated prefill tier.",
+        "trapLabel": "Optimal Trade-Off",
+        "explanation": "Chunked prefill slices the 60K prompt into ~30 small 2K-token compute steps interleaved with active decode tokens, keeping inter-token pauses under ~40ms."
+      },
+      {
+        "id": "C",
+        "text": "Enable Speculative Decoding with an 8B draft model on the same GPUs.",
+        "trapLabel": "Trap: Speculative Decoding Only Accelerates Decode",
+        "explanation": "Draft-and-verify only targets memory-bound output token generation and adds extra compute pressure during heavy prefill contention."
+      },
+      {
+        "id": "D",
+        "text": "Set `temperature = 0` so Tensor Cores skip softmax normalization.",
+        "trapLabel": "Trap: Negligible Impact on Attention GEMMs",
+        "explanation": "Sampling happens once per generated token after all 80 layers of attention/FFN GEMMs finish."
+      }
+    ],
+    "correctOptionId": "B",
+    "takeaway": "Long unchunked prefills monopolize Tensor Cores and stall co-located decode streams; enable Chunked Prefill (or disaggregated prefill/decode) to protect P99 ITL."
+  },
+  {
+    "id": "qz-s21-2",
+    "sourceId": "session-21",
+    "module": "Module 4",
+    "category": "Capacity Math",
+    "scenario": "You are evaluating replacing a `14B` dense model (`28 GB` FP16 weights) with an `8x14B` Mixture-of-Experts model (`~96B` total params, `22B` active params per token) on `2 × A100-80GB` (`160 GB` total HBM) serving `48` concurrent 8K-context users.",
+    "question": "Why does the MoE cluster run out of KV-cache HBM and deliver weaker-than-expected batch speedup at `batch = 48`?",
+    "options": [
+      {
+        "id": "A",
+        "text": "MoE duplicates the KV cache `8×` (once per expert) for every token.",
+        "trapLabel": "Trap: Confuses FFN Experts with Attention KV",
+        "explanation": "MoE replaces feed-forward (FFN) layers, not attention K/V projections; KV cache size depends on `n_layers × n_kv_heads × head_dim`."
+      },
+      {
+        "id": "B",
+        "text": "MoE cannot use FP8 or INT4 quantization.",
+        "trapLabel": "Trap: Factually Incorrect",
+        "explanation": "Modern MoE engines (vLLM, SGLang, TensorRT-LLM) routinely serve expert weights in FP8/INT4."
+      },
+      {
+        "id": "C",
+        "text": "**All `96B` total parameters (`~192 GB` FP16!) must reside in HBM** (requiring FP8 just to fit!), and at `batch = 48` routed tokens activate almost *every* expert on each step, streaming nearly all weights from HBM anyway.",
+        "trapLabel": "Optimal Trade-Off",
+        "explanation": "VRAM footprint scales with total parameters, leaving tight KV headroom unless quantized to FP8, and medium-batch routing touches ~100% of experts per decode iteration."
+      },
+      {
+        "id": "D",
+        "text": "MoE executes all 8 experts sequentially on CPU and copies activations over PCIe.",
+        "trapLabel": "Trap: Assumes Broken Offload Config",
+        "explanation": "Production GPU serving keeps experts in HBM across Tensor/Expert Parallelism, not CPU RAM."
+      }
+    ],
+    "correctOptionId": "C",
+    "takeaway": "MoE single-stream latency tracks active parameters, while VRAM capacity—and medium-batch HBM bandwidth—tracks total parameters."
+  },
+  {
+    "id": "qz-s21-3",
+    "sourceId": "session-21",
+    "module": "Module 4",
+    "category": "Trade-Off",
+    "projectTag": "Network18 Financial News",
+    "scenario": "Your pipeline expands from English financial articles (`avg 800 words ≈ 1,060 tokens`) to Hindi & Tamil regional feeds plus pretty-printed tool JSON. At the exact same `40 QPS` article rate, regional Vertex AI `TPM` quota (`2M TPM`) suddenly hits `429` errors and output latency triples.",
+    "question": "What caused the 3x quota & latency jump at unchanged QPS, and what fixes it cleanly?",
+    "options": [
+      {
+        "id": "A",
+        "text": "Tokenizer fertility penalty (`2.2–3.2×` more BPE subwords per sentence in Indic scripts + JSON whitespace); select a `200K+`-vocab multilingual model, minify tool JSON (`separators=(',',':')`), and budget `TPM` using measured `tokens/char` per script.",
+        "trapLabel": "Optimal Trade-Off",
+        "explanation": "Every extra subword token increases input TPM, prefill compute, AND sequential decode iterations (`3×` tokens = `3×` decode steps at constant TPOT)."
+      },
+      {
+        "id": "B",
+        "text": "UTF-8 strings use more TCP packets over HTTPS, slowing down Load Balancer TLS handshakes.",
+        "trapLabel": "Trap: Network Bytes Are Microseconds vs Decode Steps",
+        "explanation": "A few extra kilobytes of UTF-8 text takes `<0.2ms` on VPC networks; BPE subword count inside the transformer is the real multiplier."
+      },
+      {
+        "id": "C",
+        "text": "Translate every regional article to English with a separate LLM call before running extraction.",
+        "trapLabel": "Trap: Doubles Sequential LLM Calls & Loses Local Entities",
+        "explanation": "Adding an upstream LLM translation pass still pays the Indic input token fertility cost AND adds 1–2s of extra latency plus entity transliteration errors."
+      },
+      {
+        "id": "D",
+        "text": "Switch rate limiting from TPM to RPM on your gateway.",
+        "trapLabel": "Trap: Upstream Provider Still Enforces TPM",
+        "explanation": "Changing your local limiter metric doesn't increase the cloud provider's physical TPM quota."
+      }
+    ],
+    "correctOptionId": "A",
+    "takeaway": "Non-Latin scripts and verbose JSON multiply BPE token counts 2–3x—burning TPM and multiplying sequential decode steps unless you pick low-fertility tokenizers and compact payloads."
+  },
+  {
+    "id": "qz-s22-1",
+    "sourceId": "session-22",
+    "module": "Module 2",
+    "category": "Capacity Math",
+    "projectTag": "Deloitte Slide RAG",
+    "scenario": "You need to ingest a `50M`-document enterprise backlog (`500M` pages: `70%` born-digital text PDFs, `20%` scanned contracts/tables, `10%` visual chart/slide pages). Sending all `500M` pages to a Vision LLM at `$0.30 / 1k pages` would cost `$150,000`.",
+    "question": "Which architecture hits >94% table/chart fidelity while slashing backfill spend by ~10x?",
+    "options": [
+      {
+        "id": "A",
+        "text": "Run free `pypdf` text extraction on all `500M` pages and skip OCR/Vision entirely.",
+        "trapLabel": "Trap: 0% Recall on 150M Scanned & Chart Pages",
+        "explanation": "30% of the corpus (scans + visual slides) will index as blank strings or scrambled shape fragments."
+      },
+      {
+        "id": "B",
+        "text": "Put a `<2ms` **Page Complexity Router** + `SHA-256`/`pHash` dedup in front of 3 lanes: native `pdfium` CPU (`70%`), GPU `Docling` Layout+OCR (`20%`), and `50%`-discounted Batch API Hybrid VLM (`10%` visual pages grounded with XML text).",
+        "trapLabel": "Optimal Trade-Off",
+        "explanation": "Dedup drops ~35%+ boilerplate pages, CPU handles clean prose for pennies, Spot L4 GPUs handle standard scans/tables, and VLM tokens are spent strictly on the ~6–10% visual pages that need them."
+      },
+      {
+        "id": "C",
+        "text": "Render all `500M` pages at `600 DPI` uncompressed TIFF so a cheaper tiny VLM can read them.",
+        "trapLabel": "Trap: Storage & Worker OOM Explosion",
+        "explanation": "600-DPI bitmaps bloat GCS bandwidth 16x and crash worker RAM without eliminating the 500M-call VLM bottleneck."
+      },
+      {
+        "id": "D",
+        "text": "Index only document titles and filenames now, and run OCR synchronously when a user searches.",
+        "trapLabel": "Trap: Impossible Query-Time Latency",
+        "explanation": "You cannot search inside unindexed document bodies or run OCR across millions of candidates in <1.5s."
+      }
+    ],
+    "correctOptionId": "B",
+    "takeaway": "Route pages by visual complexity (`pdfium -> Layout OCR -> Batch Hybrid VLM`) after page/perceptual dedup to get VLM quality at a fraction of all-VLM cost."
+  },
+  {
+    "id": "qz-s22-2",
+    "sourceId": "session-22",
+    "module": "Module 2",
+    "category": "2 AM Failure",
+    "scenario": "Sales updates `Enterprise_Rate_Card.pdf`, trimming `8` discontinued product pages so chunk count shrinks from `30` (`doc9:c0..c29`) down to `22` (`doc9:c0..c21`). Your ingestion worker runs `vector_db.upsert(new_22_chunks)` in place. Next morning, customers still get quoted discontinued prices from `doc9:c26`!",
+    "question": "What caused this bug, and what manifest design prevents both 'zombie chunks' and half-indexed crash states?",
+    "options": [
+      {
+        "id": "A",
+        "text": "Upserting `c0..c21` left `c22..c29` orphaned; track `(doc_id, active_version, chunk_ids[])` in Postgres, stage-write `doc9:v2:c0..c21`, atomically flip `active_version = 2`, then explicitly delete `v1`'s `chunk_ids`.",
+        "trapLabel": "Optimal Trade-Off",
+        "explanation": "Versioned chunk IDs + manifest pointer swap ensure atomic visibility on crashes and exact deletion of every obsolete chunk when documents shrink."
+      },
+      {
+        "id": "B",
+        "text": "Delete the entire 100M-vector collection every night at midnight and re-embed all files from scratch.",
+        "trapLabel": "Trap: Massive Daily Re-Embed Cost & Downtime",
+        "explanation": "Full nightly rebuilds waste thousands of GPU dollars for 1% daily document churn."
+      },
+      {
+        "id": "C",
+        "text": "Pad every edited document with 8 blank empty-string chunks (`c22..c29`) so old IDs get overwritten.",
+        "trapLabel": "Trap: Breaks If Document Ever Shrinks From 100 to 10 Chunks",
+        "explanation": "Without knowing the previous version's max chunk count from a manifest, you don't even know how many dummy chunks to write—and blank vectors pollute HNSW."
+      },
+      {
+        "id": "D",
+        "text": "Lower HNSW `efSearch` from `128` to `16` so older chunks are less likely to be visited.",
+        "trapLabel": "Trap: Degrades Recall Without Removing Stale Data",
+        "explanation": "`efSearch` has zero awareness of document versions and hurts valid search results."
+      }
+    ],
+    "correctOptionId": "A",
+    "takeaway": "Never overwrite unversioned `doc_id:idx` chunks blindly—stage versioned chunks, flip `active_version` in a manifest DB, and purge the prior version's `chunk_ids`."
+  },
+  {
+    "id": "qz-s22-3",
+    "sourceId": "session-22",
+    "module": "Module 2",
+    "category": "2 AM Failure",
+    "scenario": "At 02:30 AM, `3` corrupt/giant CAD PDFs enter your `Pub/Sub` ingestion topic. Every worker that pulls one hits `OOMKilled (Exit 137)` after `45s`, never sends an `ACK`, and Pub/Sub immediately redelivers those `3` messages to healthy pods—crashing all `50` pods in a loop while `200,000` normal files sit blocked!",
+    "question": "Which combination stops poison documents from taking down the ingestion fleet?",
+    "options": [
+      {
+        "id": "A",
+        "text": "Auto-ACK every Pub/Sub message immediately *before* downloading or parsing the PDF.",
+        "trapLabel": "Trap: Silent Permanent Data Loss on Pod Preemption",
+        "explanation": "Pre-acking means any normal pod restart or deploy silently drops valid customer documents forever (`at-most-once` loss)."
+      },
+      {
+        "id": "B",
+        "text": "Increase Pub/Sub `ackDeadlineSeconds` to `600s` with infinite retries.",
+        "trapLabel": "Trap: Slows Crash Loop Without Stopping It",
+        "explanation": "Infinite retries still rotate the 3 OOM-inducing files across all pods forever."
+      },
+      {
+        "id": "C",
+        "text": "Isolate page rendering in a **memory/DPI-capped subprocess (`150 DPI`, `30s/page` timeout)** at `concurrency = 1`, and configure Pub/Sub **`max_delivery_attempts = 3` -> Dead Letter Queue (DLQ)** with alerting.",
+        "trapLabel": "Optimal Trade-Off",
+        "explanation": "Subprocess memory limits keep the parent worker alive to catch/quarantine toxic pages, and the DLQ evicts any repeatable crasher after 3 tries so the 200k backlog drains cleanly."
+      },
+      {
+        "id": "D",
+        "text": "Base64-encode the raw PDF inside the Pub/Sub message so workers don't call GCS.",
+        "trapLabel": "Trap: Violates 10MB Limit & Worsens RAM Pressure",
+        "explanation": "Holding giant base64 strings in queue consumers accelerates OOM crashes."
+      }
+    ],
+    "correctOptionId": "C",
+    "takeaway": "Defeat poison-pill documents with Claim-Check streaming, bounded subprocess memory/DPI/timeouts, and `max_delivery_attempts = 3` wired to a DLQ."
+  },
+  {
+    "id": "qz-s23-1",
+    "sourceId": "session-23",
+    "module": "Module 2",
+    "category": "Architecture",
+    "projectTag": "Network18 Financial News",
+    "scenario": "Your Sales RAG indexes `10-K` filings using `RecursiveCharacterTextSplitter(chunk_size=500)`. When asked `'What was FY25 APAC Cloud operating margin?'`, retrieval finds row 28 of a `60-row` segment table (`'| APAC Cloud | 18.4 | 21.2 | 24.7 |'`), but the LLM guesses the wrong column year because row 1 (`'| Segment | FY23% | FY24% | FY25% |'`) stayed back in an earlier chunk!",
+    "question": "What chunking change fixes both decapitated tables and pronoun-heavy legal clauses?",
+    "options": [
+      {
+        "id": "A",
+        "text": "Increase `chunk_overlap` from `50` to `100` tokens on the recursive splitter.",
+        "trapLabel": "Trap: Row 1 Is Still 1,500 Tokens Away From Row 28",
+        "explanation": "Local sliding overlap only copies the immediately preceding few rows, never the top table header 27 rows above."
+      },
+      {
+        "id": "B",
+        "text": "Dispatch tables via a **Structure-Aware Chunker** that keeps small tables atomic, splits oversized tables in row batches **cloning caption + header row onto every slice**, and prepends `[Doc Title | Section Path]` contextual headers.",
+        "trapLabel": "Optimal Trade-Off",
+        "explanation": "Repeating column headers + units + document breadcrumb on every table slice makes each retrieved chunk 100% self-contained for both embedding and synthesis."
+      },
+      {
+        "id": "C",
+        "text": "Strip all Markdown pipe `|` characters and flatten tables into space-separated words.",
+        "trapLabel": "Trap: Destroys 2D Row-Column Alignment Completely",
+        "explanation": "Flattening grid structure makes multi-year financial tables even harder for the LLM to align."
+      },
+      {
+        "id": "D",
+        "text": "Switch to sentence-embedding Semantic Chunking across table rows.",
+        "trapLabel": "Trap: Still Drops Column Headers After First Cut",
+        "explanation": "Cutting between rows based on cosine similarity still leaves chunks 2..N without the top header row."
+      }
+    ],
+    "correctOptionId": "B",
+    "takeaway": "Never let general text splitters slice inside tables—parse table AST blocks and clone caption + column header rows onto every row-batch chunk."
+  },
+  {
+    "id": "qz-s23-2",
+    "sourceId": "session-23",
+    "module": "Module 2",
+    "category": "2 AM Failure",
+    "scenario": "You implement Parent-Child retrieval (`180-token` children in HNSW pointing to `1,400-token` parent sections in Postgres). You retrieve `top_k = 10` children and map `[get_parent(c.parent_id) for c in top_children]` into the prompt. Suddenly input token bills jump `3×` and answers miss secondary documents!",
+    "question": "What bug crept into your Parent-Child pipeline, and how do you fix it?",
+    "options": [
+      {
+        "id": "A",
+        "text": "Parent chunks should be stored inside HNSW RAM instead of Postgres.",
+        "trapLabel": "Trap: Wastes 6x Vector RAM Without Fixing Prompt Duplication",
+        "explanation": "Keeping unembedded parent text on SSD/Postgres is right; the bug is duplicate parent expansion at query time."
+      },
+      {
+        "id": "B",
+        "text": "Multiple top children matched different sentences inside the **same `parent_id`**, stuffing `6–8` identical copies of one `1,400-token` parent into the prompt! Over-fetch children (`top_k = 40`), **deduplicate by `parent_id` (`score = max(child_scores)`)**, and pass the top `5` unique parents.",
+        "trapLabel": "Optimal Trade-Off",
+        "explanation": "Collapsing children by `parent_id` eliminates duplicate tokens and ensures diverse top sections fill the prompt budget."
+      },
+      {
+        "id": "C",
+        "text": "Make child chunks larger than parent chunks (`1,500-token` child -> `200-token` parent).",
+        "trapLabel": "Trap: Inverts Small-to-Big Physics",
+        "explanation": "Large embeddings blur search specificity while tiny synthesis snippets starve the LLM of context."
+      },
+      {
+        "id": "D",
+        "text": "Set `top_k = 1` child globally so duplicates can never occur.",
+        "trapLabel": "Trap: Collapses Multi-Source Recall",
+        "explanation": "Returning only 1 passage fails any question spanning two sections or documents."
+      }
+    ],
+    "correctOptionId": "B",
+    "takeaway": "In Parent-Child retrieval, multiple child hits routinely map to one parent—always over-fetch children and deduplicate by `parent_id` using `max(child_score)`."
+  },
+  {
+    "id": "qz-s23-3",
+    "sourceId": "session-23",
+    "module": "Module 2",
+    "category": "Trade-Off",
+    "scenario": "An engineer runs an offline benchmark comparing `chunk_size = 200` vs `chunk_size = 1000` by retrieving `top_k = 5` in both configs and checking if hardcoded `gold_chunk_id` appears in `top_k`. They declare `1000` the winner!",
+    "question": "What TWO experimental methodology flaws invalidate their conclusion?",
+    "options": [
+      {
+        "id": "A",
+        "text": "They didn't test `chunk_size = 5000`, and they used Cosine instead of Euclidean distance.",
+        "trapLabel": "Trap: Misses the Core Confounding Variables",
+        "explanation": "On normalized embeddings Cosine and L2 rank identically; the bug is unfair token budget and mutable chunk IDs."
+      },
+      {
+        "id": "B",
+        "text": "1) Fixing `top_k = 5` gave `1000`-tok chunks **`5×` more prompt tokens (`5,000` vs `1,000`)** instead of fixing total token budget (`20 × 200` vs `4 × 1000`); 2) `chunk_id`s change across splitters, so ground truth must be **character-span overlap (`doc_id, start..end`)** + final answer faithfulness.",
+        "trapLabel": "Optimal Trade-Off",
+        "explanation": "Holding total injected tokens constant isolates retrieval precision per token, and character-span recall evaluates any splitter cleanly on the exact same golden dataset."
+      },
+      {
+        "id": "C",
+        "text": "Chunking can only be evaluated via live 30-day A/B tests, never offline.",
+        "trapLabel": "Trap: Slows Iteration 100x Unnecessarily",
+        "explanation": "Offline character-span Recall@Budget + RAG Triad evals iterate across 10 chunk configs in one afternoon."
+      },
+      {
+        "id": "D",
+        "text": "They forgot to set `chunk_overlap = 900` on the `1000`-token chunks.",
+        "trapLabel": "Trap: 90% Overlap Explodes Index 10x",
+        "explanation": "90% overlap multiplies vector RAM 10x and floods top-k with near-identical windows."
+      }
+    ],
+    "correctOptionId": "B",
+    "takeaway": "Benchmark chunking at a fixed total prompt token budget (`K × size = const`) using character-span ground truth rather than brittle `chunk_id`s."
+  },
+  {
+    "id": "qz-s24-1",
+    "sourceId": "session-24",
+    "module": "Module 2",
+    "category": "2 AM Failure",
+    "projectTag": "Deloitte Slide RAG",
+    "scenario": "To upgrade from `embed-v1` (`768d`) to `embed-v2` (`768d`), an engineer deploys `embed-v2` to the live query pods at 5 PM Friday and starts an 18-hour background job overwriting all `80M` vectors in `prod_chunks` in place. Within 60 seconds, search accuracy drops near `0%`!",
+    "question": "Why did accuracy collapse even though both models are `768d`, and what is the zero-downtime migration runbook?",
+    "options": [
+      {
+        "id": "A",
+        "text": "`v1` and `v2` coordinate spaces are arbitrarily rotated/orthogonal—comparing a `v2` query against `v1` doc vectors is random noise! Keep `alias -> chunks_v1` on `v1`, **dual-write** live edits, backfill **`chunks_v2`** in shadow (skipping stale versions), validate dark-read recall, then **atomically flip alias + query encoder together**.",
+        "trapLabel": "Optimal Trade-Off",
+        "explanation": "Locking `model_id` per index version and cutting over via a shadow collection + 48h rollback soak gives zero downtime and zero mixed-space queries."
+      },
+      {
+        "id": "B",
+        "text": "Multiply `v2` query vectors by `0.5` during the 18-hour migration so they blend smoothly with `v1`.",
+        "trapLabel": "Trap: Linear Scaling Cannot Align Unrelated Spaces",
+        "explanation": "Scalar multiplication leaves cosine similarity unchanged and still produces garbage against `v1` vectors."
+      },
+      {
+        "id": "C",
+        "text": "Take the entire search product down for maintenance every time you upgrade embeddings.",
+        "trapLabel": "Trap: Unacceptable 18-Hour Enterprise Outage",
+        "explanation": "Blue-green shadow indexing eliminates maintenance downtime completely."
+      },
+      {
+        "id": "D",
+        "text": "Query `prod_chunks` with `v1` and `v2` concatenated into a `1536d` vector.",
+        "trapLabel": "Trap: Schema Dimension Mismatch",
+        "explanation": "A `768d` index rejects `1536d` vectors and still wouldn't have `v2` values on un-migrated points."
+      }
+    ],
+    "correctOptionId": "A",
+    "takeaway": "Two embedding models never share a cosine space even at identical dimensions—always dual-write to a version-locked shadow index and cut over via an atomic alias."
+  },
+  {
+    "id": "qz-s24-2",
+    "sourceId": "session-24",
+    "module": "Module 2",
+    "category": "Capacity Math",
+    "scenario": "Your `100M`-vector index uses a `1,536-d` Matryoshka (`MRL`) embedding model (`~922 GB` HNSW RAM in FP32). You slice `vec[:256]` directly into an Inner-Product (`IP`) HNSW index (`INT8`) without post-processing, and notice recall dropped by `9%` instead of `<1.5%`.",
+    "question": "What two fixes recover `>99%` of full `1,536-d` recall while keeping HNSW RAM under `~65 GB`?",
+    "options": [
+      {
+        "id": "A",
+        "text": "Slice the *last* `256` dimensions `vec[1280:]` instead of the first `256`.",
+        "trapLabel": "Trap: MRL Concentrates Principal Variance in Prefix `[:256]`",
+        "explanation": "Tail dimensions only encode fine residual nuance and fail standalone."
+      },
+      {
+        "id": "B",
+        "text": "1) **L2-renormalize** `vec[:256] / ||vec[:256]||_2` after slicing (because truncated prefixes no longer have unit norm `1.0`, corrupting `IP` rankings!); 2) **Oversample `top-200`** in `256-d INT8` HNSW RAM and **rescore exact `1,536-d FP16`** vectors from NVMe SSD (`<0.5ms`).",
+        "trapLabel": "Optimal Trade-Off",
+        "explanation": "L2 renormalization restores exact cosine ranking on the MRL prefix, and SSD rescoring over 200 finalists recovers full-dimension precision at ~1/14th the RAM."
+      },
+      {
+        "id": "C",
+        "text": "Run PCA across `100M` vectors on every single document insert.",
+        "trapLabel": "Trap: Unnecessary When Model Already Trained with MRL",
+        "explanation": "Matryoshka training already aligned nested prefixes without needing stateful PCA projection matrices."
+      },
+      {
+        "id": "D",
+        "text": "Abandon truncation and pay for `1 TB` of FP32 RAM.",
+        "trapLabel": "Trap: 14x Unnecessary Cloud Spend",
+        "explanation": "Renormalized MRL + SSD rescoring matches full-dim recall for a fraction of the RAM."
+      }
+    ],
+    "correctOptionId": "B",
+    "takeaway": "After slicing a Matryoshka vector `v[:d]`, always L2-renormalize (`||v[:d]||_2 = 1`) and pair quantized RAM shortlists with NVMe full-dim rescoring."
+  },
+  {
+    "id": "qz-s24-3",
+    "sourceId": "session-24",
+    "module": "Module 2",
+    "category": "Trade-Off",
+    "scenario": "You fine-tune a `300M` domain bi-encoder on `25,000` synthetic `(query, pos_chunk)` pairs by treating top-5 BM25/Dense matches (`chunk != pos_chunk`) as hard negatives in InfoNCE loss. Shockingly, `Recall@10` on your golden eval drops from `84%` to `73%`!",
+    "question": "Why did contrastive fine-tuning make the model *worse* than baseline, and what fixes it?",
+    "options": [
+      {
+        "id": "A",
+        "text": "InfoNCE loss only works on `7B+` decoder models, never on `300M` BERT/RoBERTa encoders.",
+        "trapLabel": "Trap: Encoders Are the Standard InfoNCE Backbone",
+        "explanation": "Almost all leading bi-encoders (`BGE`, `Arctic`, `E5`, `GTE`) are 110M–560M encoders trained with InfoNCE."
+      },
+      {
+        "id": "B",
+        "text": "`25,000` pairs is too much data and caused catastrophic forgetting of English grammar.",
+        "trapLabel": "Trap: 25k Clean Triplets Is Standard Domain Scale",
+        "explanation": "Data contamination by unlabeled positives, not dataset size, caused the collapse."
+      },
+      {
+        "id": "C",
+        "text": "**Unlabeled False Negatives:** In enterprise corpora with duplicate/overlapping FAQs, top-5 neighbors are often *also* valid answers—pushing them apart corrupted the space! Filter mined negatives with a frozen Cross-Encoder teacher (`drop if score(q, neg) >= 0.95 * score(q, pos)`).",
+        "trapLabel": "Optimal Trade-Off",
+        "explanation": "Relative margin denoising removes disguised positives while keeping genuine hard negatives (e.g. wrong-quarter or wrong-product decoys) that sharpen domain boundaries."
+      },
+      {
+        "id": "D",
+        "text": "Replace hard negatives with random Wikipedia paragraphs.",
+        "trapLabel": "Trap: Trivial Negatives Teach Zero Domain Nuance",
+        "explanation": "Easy random negatives give near-zero gradient on subtle domain confusions like `Form 10-K` vs `Form 10-Q`."
+      }
+    ],
+    "correctOptionId": "C",
+    "takeaway": "Naive top-K hard-negative mining pulls in unlabeled true positives; always denoise hard negatives with a cross-encoder teacher margin (`< 0.95 × pos_score`)."
+  },
+  {
+    "id": "qz-s05-2",
+    "sourceId": "session-05",
+    "module": "Module 2",
+    "category": "Capacity Math",
+    "projectTag": "Deloitte Slide RAG",
+    "scenario": "You need to index `100 million` `1,536-d` vectors with `99%` Recall@10, `P95 < 12ms`, and high availability (`RF = 2`). Raw `FP32` HNSW would cost `~$10,000/month` (`~2.4 TB` cluster RAM).",
+    "question": "Which configuration cuts cluster RAM ~4x (down to ~600 GB across `RF = 2`) while preserving ~99% Recall@10?",
+    "options": [
+      {
+        "id": "A",
+        "text": "Keep `FP32` vectors in RAM, set `M = 2` and `efSearch = 8`.",
+        "trapLabel": "Trap: Saves Minimal RAM & Collapses Recall Below 60%",
+        "explanation": "Vector bytes (`614 GB/copy`), not just graph links, dominate `1536-d` FP32 memory, and `M=2` disconnects the graph."
+      },
+      {
+        "id": "B",
+        "text": "Store **`INT8` scalar-quantized vectors in HNSW RAM** (`~230 GB/copy` + `30%` compaction headroom ≈ `300 GB/copy`) with **exact `FP16` vectors on local NVMe SSD**, oversampling `top-40..80` in RAM and rescoring exact `FP16` from SSD in `<0.5ms`.",
+        "trapLabel": "Optimal Trade-Off",
+        "explanation": "INT8 cuts vector RAM 4x immediately, and reading 40–80 sequential 3KB vectors from NVMe SSD restores full-precision cosine order in sub-millisecond time."
+      },
+      {
+        "id": "C",
+        "text": "Store raw `FP32` vectors in AWS S3 Glacier and scan S3 on every query.",
+        "trapLabel": "Trap: Minutes-to-Hours Retrieval Latency",
+        "explanation": "Glacier archival storage has minute/hour first-byte latency, violating `<12ms` real-time search."
+      },
+      {
+        "id": "D",
+        "text": "Split across `200` tiny shards with `RF = 1` and `0%` free RAM headroom.",
+        "trapLabel": "Trap: Zero Fault Tolerance, Compaction OOM & 200-Shard Tail Spike",
+        "explanation": "`RF = 1` loses availability on any pod restart, `0%` headroom OOMs on segment merge, and 200-way scatter-gather wrecks P99."
+      }
+    ],
+    "correctOptionId": "B",
+    "takeaway": "In-RAM INT8 (or Binary) HNSW shortlist + local NVMe SSD FP16 rescoring is the production sweet spot—slashing RAM 4x–16x while keeping <10ms latency and ~99% recall."
+  },
+  {
+    "id": "qz-s05-3",
+    "sourceId": "session-05",
+    "module": "Module 2",
+    "category": "2 AM Failure",
+    "scenario": "To stay GDPR-compliant, a nightly job calls `delete(point_ids)` on `18 million` expired chat chunks in your `80M`-vector HNSW cluster. Fifteen minutes later, RAM usage *spikes* from `72%` to `100%` (`OOMKilled`) and live search P99 jumps from `9ms` to `850ms`!",
+    "question": "Why did *deleting* vectors increase RAM and CPU, and how should time-based expiration be designed instead?",
+    "options": [
+      {
+        "id": "A",
+        "text": "Vector DBs leak memory permanently on every delete API call.",
+        "trapLabel": "Trap: Misunderstands HNSW Tombstone & Compaction Mechanics",
+        "explanation": "It is transient dual-segment rebuild overhead + CPU saturation, not a bug."
+      },
+      {
+        "id": "B",
+        "text": "Run single-point deletes one by one during peak 10 AM traffic instead.",
+        "trapLabel": "Trap: Shifts Compaction Thrash Onto Peak Users",
+        "explanation": "Point-by-point deletes still accumulate tombstones and trigger heavy segment rebuilds."
+      },
+      {
+        "id": "C",
+        "text": "HNSW deletes only mark **soft tombstone bits** until background compaction builds a brand-new HNSW graph *alongside* the old segment (`transient RAM + CPU spike`)! Use **time-partitioned collections/shards** (`drop monthly partition in O(1)`), cap compaction CPU threads, and reserve `30%` RAM headroom.",
+        "trapLabel": "Optimal Trade-Off",
+        "explanation": "Dropping an expired monthly partition unlinks segment files in `O(1)` with zero tombstones and zero HNSW graph rebuild!"
+      },
+      {
+        "id": "D",
+        "text": "Disable HNSW segment compaction permanently (`vacuum = off` forever).",
+        "trapLabel": "Trap: Unbounded Tombstone Bloat & Degraded Traversal",
+        "explanation": "Never compacting leaves dead vectors in RAM forever and forces HNSW hops through majority-dead neighborhoods."
+      }
+    ],
+    "correctOptionId": "C",
+    "takeaway": "Point deletes in HNSW create soft tombstones followed by expensive dual-memory segment rebuilds; expire time-series vectors via `O(1)` partition drops and budget 30% RAM headroom."
+  },
+  {
+    "id": "qz-s06-2",
+    "sourceId": "session-06",
+    "module": "Module 2",
+    "category": "2 AM Failure",
+    "scenario": "After combining Parent-Child chunking (`200-token` children -> `1,300-token` parents) with a `512`-token Cross-Encoder reranker, you pass `[query + hydrated_1300_tok_parent]` into the reranker. Offline eval shows Stage-2 `Recall@6` is actually *worse* than un-reranked `RRF`!",
+    "question": "What caused the Cross-Encoder to demote true answers, and what fixes both accuracy and GPU latency?",
+    "options": [
+      {
+        "id": "A",
+        "text": "Cross-Encoders are fundamentally weaker than BM25 on English text.",
+        "trapLabel": "Trap: Contradicts Cross-Attention Physics",
+        "explanation": "A properly fed Cross-Encoder boosts nDCG@10 by +8–15%; the bug is silent input truncation."
+      },
+      {
+        "id": "B",
+        "text": "The `512`-token Cross-Encoder **silently truncated tokens `513..1300`**, slicing off child matches in the bottom half of long parents! **Rerank the `<=200`-token `Child` chunks first** (sorted by length into micro-batches), deduplicate `parent_id` by `max(child_score)`, and hydrate `Parent` text *after* reranking.",
+        "trapLabel": "Optimal Trade-Off",
+        "explanation": "Scoring compact matched children guarantees zero truncation AND cuts Cross-Encoder attention FLOPs ~4x before expanding winners to full parent context."
+      },
+      {
+        "id": "C",
+        "text": "Replace the GPU Cross-Encoder with `GPT-4o` scoring all `100` full parents sequentially.",
+        "trapLabel": "Trap: 15+ Seconds Latency & 50x Cost Explosion",
+        "explanation": "100 sequential frontier LLM calls blows past every interactive SLA."
+      },
+      {
+        "id": "D",
+        "text": "Change `RRF` constant `k` from `60` to `1,000,000`.",
+        "trapLabel": "Trap: Still Truncates Inside Stage-2 Reranker",
+        "explanation": "Changing Stage-1 RRF smoothing does nothing to stop Stage-2 tokenizer truncation."
+      }
+    ],
+    "correctOptionId": "B",
+    "takeaway": "Never feed 1,300-token parent chunks into a 512-token Cross-Encoder—rerank the matched child spans first (or use an 8K reranker), then expand top unique parents."
+  },
+  {
+    "id": "qz-s06-3",
+    "sourceId": "session-06",
+    "module": "Module 2",
+    "category": "Architecture",
+    "projectTag": "Network18 Financial News",
+    "scenario": "During market-open breaking news, search traffic spikes `4×` from `150 QPS` to `600 QPS`. Stage-1 `BM25 + Dense` stays fast at `22ms`, but your `6`-GPU Cross-Encoder pool saturates, queueing requests for `9 seconds` and causing `504 Gateway Timeouts` across the entire app.",
+    "question": "How do you protect `P99` availability and cut baseline Cross-Encoder GPU load by ~35% without losing quality?",
+    "options": [
+      {
+        "id": "A",
+        "text": "Wrap the Cross-Encoder in a **strict `65ms` timeout + bulkhead that fails open to `RRF top-6`**, and add a **Score-Margin Early Exit** skipping GPU rerank when Rank #1 tops *both* BM25 and Dense with a wide margin.",
+        "trapLabel": "Optimal Trade-Off",
+        "explanation": "Early exit sheds ~30% unambiguous traffic cleanly in normal operation, and fail-open fallback keeps availability at 100% (`nDCG` dips slightly from 0.89 to 0.81 instead of timing out!)."
+      },
+      {
+        "id": "B",
+        "text": "Set infinite HTTP retries with `50ms` fixed sleep on the Cross-Encoder client.",
+        "trapLabel": "Trap: Retry Storm Multiplies GPU Queue Saturation",
+        "explanation": "Retrying an overloaded GPU queue amplifies load 3–5x and locks the cluster in a metastable outage."
+      },
+      {
+        "id": "C",
+        "text": "Move the `300M` Cross-Encoder (`50` pairs/query) onto FastAPI CPU threads during spikes.",
+        "trapLabel": "Trap: 50 Transformer Forward Passes on CPU Takes >1.5s & Starves Event Loop",
+        "explanation": "Running 50-pair encoder batches on web CPUs spikes latency past budget and blocks async SSE handling."
+      },
+      {
+        "id": "D",
+        "text": "Return HTTP `503` to all users whenever GPU utilization crosses `80%`.",
+        "trapLabel": "Trap: Unnecessary Hard Failure When Stage-1 Results Are Already Ready",
+        "explanation": "Fused Hybrid RRF results are already in memory and answer ~80%+ of queries accurately!"
+      }
+    ],
+    "correctOptionId": "A",
+    "takeaway": "Reranking is a precision enhancer, never a single point of failure—use dual-rank-1 early exits to save GPU capacity and fail open to `RRF top-K` on timeout."
+  },
+  {
+    "id": "qz-s25-1",
+    "sourceId": "session-25",
+    "module": "Module 2",
+    "category": "Trade-Off",
+    "projectTag": "Network18 Financial News",
+    "scenario": "A teammate enables `HyDE` (embedding an LLM-generated hypothetical answer instead of the raw query) globally on your financial & internal engineering RAG. Conceptual queries improve `+4%`, **but** queries mentioning new stock tickers (`SWIGGY.NS`), internal codenames (`Project Falcon`), or error codes (`ERR_K8S_409`) drop `-38%` in Recall@10!",
+    "question": "Why did `HyDE` wreck entity/code queries, and what architecture captures upside without the regression?",
+    "options": [
+      {
+        "id": "A",
+        "text": "Switch `HyDE` from `Gemini Flash` to a `70B` model with `temperature = 1.2` for more creative hypothetical docs.",
+        "trapLabel": "Trap: Higher Creativity Hallucinates Worse Drift on Unseen Entities",
+        "explanation": "No pretrained LLM knows private internal codenames or post-cutoff filings; higher temperature adds more hallucinated noise."
+      },
+      {
+        "id": "B",
+        "text": "On unseen private entities/codes, the LLM hallucinates plausible-sounding *wrong* domain prose that drags the embedding away from the real docs! **Bypass `HyDE` when NER/regex detects codes/entities**, and when `HyDE` runs on vague conceptual queries, **fuse `[raw_query, hyde_doc]` alongside raw-query `BM25`**.",
+        "trapLabel": "Optimal Trade-Off",
+        "explanation": "Selective routing + centroid/RRF fusion with the raw query preserves exact lexical anchors while still bridging novice-to-expert phrasing gaps."
+      },
+      {
+        "id": "C",
+        "text": "Delete `BM25` so `HyDE` vectors don't conflict with keywords.",
+        "trapLabel": "Trap: Removes Your Best Exact-Ticker Safety Net",
+        "explanation": "Raw-query BM25 is what anchors exact tickers and error codes."
+      },
+      {
+        "id": "D",
+        "text": "Generate `20` separate `HyDE` essays sequentially before searching.",
+        "trapLabel": "Trap: Adds 5+ Seconds of Serial Decode Latency",
+        "explanation": "20 hypothetical essays blow out TTFT and still hallucinate on unseen private codenames."
+      }
+    ],
+    "correctOptionId": "B",
+    "takeaway": "Never replace the raw query blindly with `HyDE`—skip `HyDE` on exact entity/code queries and always fuse `HyDE` vectors with raw-query Dense + BM25."
+  },
+  {
+    "id": "qz-s25-2",
+    "sourceId": "session-25",
+    "module": "Module 2",
+    "category": "Architecture",
+    "scenario": "An executive asks your RAG assistant: `'Compare FY25 gross margin and R&D spend across Snowflake, Confluent, and MongoDB.'` Single-query hybrid search (`top_k = 8`) fills `7` of `8` slots with Snowflake's verbose 10-K and `0` slots for Confluent, so the LLM fabricates or omits Confluent!",
+    "question": "What low-latency retrieval pattern fixes multi-entity starvation cleanly?",
+    "options": [
+      {
+        "id": "A",
+        "text": "Bump single-query `top_k` from `8` to `200` and stuff `100,000` tokens into the prompt.",
+        "trapLabel": "Trap: 25x Cost, Slow TTFT & Lost-in-the-Middle Noise",
+        "explanation": "Brute-force context stuffing wastes budget on 190 irrelevant chunks."
+      },
+      {
+        "id": "B",
+        "text": "Run a `~150ms` Flash **Sub-Query Decomposer** that splits into `3` per-company sub-queries executed **in parallel (`asyncio.gather`)** with a **guaranteed `top-3` reranked slot quota per sub-query** (`9` balanced chunks total).",
+        "trapLabel": "Optimal Trade-Off",
+        "explanation": "Parallel sub-query fan-out adds only ~180ms total while guaranteeing every compared entity gets dedicated high-precision evidence slots."
+      },
+      {
+        "id": "C",
+        "text": "Build a full `GraphRAG` Leiden community index over the entire corpus just for 3-company comparisons.",
+        "trapLabel": "Trap: 15x Ingest LLM Bill for a Simple Decomposition Problem",
+        "explanation": "Named-entity comparisons have explicit targets that parallel sub-query decomposition solves at 1/15th the cost."
+      },
+      {
+        "id": "D",
+        "text": "Run `3` sequential agent turns (`wait for Snowflake answer -> then Confluent -> then MongoDB`).",
+        "trapLabel": "Trap: 3x Unnecessary Serial Latency",
+        "explanation": "Independent entity sub-queries have zero sequential dependency and should always fan out in parallel."
+      }
+    ],
+    "correctOptionId": "B",
+    "takeaway": "Single top-K pools starve quieter entities on comparison queries; decompose into parallel sub-queries with guaranteed per-subquery `top-k` quotas."
+  },
+  {
+    "id": "qz-s25-3",
+    "sourceId": "session-25",
+    "module": "Module 2",
+    "category": "Trade-Off",
+    "scenario": "Your VP proposes indexing `2M` internal engineering docs with LLM-extracted **GraphRAG** (entity-relation triples + hierarchical Leiden community summaries) to answer `'What are the top systemic reliability themes across all 2025 postmortems?'`—in a company with strict per-team document ACLs.",
+    "question": "When is GraphRAG justified here, and what **critical security trap** must you solve before shipping community summaries?",
+    "options": [
+      {
+        "id": "A",
+        "text": "GraphRAG is justified ONLY for global sensemaking/multi-hop graph queries (`scope it to the ~4,000 postmortems, not all 2M docs!`); **Security Trap:** Pre-computed Leiden community summaries blend facts across mixed-ACL docs, leaking restricted postmortems unless communities are partitioned by ACL tier or source-verified at query time!",
+        "trapLabel": "Optimal Trade-Off",
+        "explanation": "Scoping GraphRAG to the postmortem corpus cuts the 15x ingest bill 500x, and enforcing ACL-homogeneous community summaries prevents cross-team secret leakage."
+      },
+      {
+        "id": "B",
+        "text": "GraphRAG has zero indexing overhead and automatically enforces per-user SharePoint ACLs inside community summaries.",
+        "trapLabel": "Trap: Blind to 10–20x Ingest Bill & Summary Data Leakage",
+        "explanation": "Abstractive community summaries bake restricted source facts into shared summary text unless explicitly isolated."
+      },
+      {
+        "id": "C",
+        "text": "Replace all vector and BM25 indexes completely with GraphRAG community summaries.",
+        "trapLabel": "Trap: Loses Pinpoint Clause, Code & Exact-Error Lookup",
+        "explanation": "High-level community summaries blur exact line-level code and error-code lookups where Hybrid + Rerank excels."
+      },
+      {
+        "id": "D",
+        "text": "Recompute Leiden clustering and LLM summaries across all `2M` docs synchronously on every single document edit.",
+        "trapLabel": "Trap: Bankrupting Continuous Re-Summarization Cost",
+        "explanation": "Global community re-clustering on every edit is prohibitively slow and expensive."
+      }
+    ],
+    "correctOptionId": "A",
+    "takeaway": "Scope GraphRAG strictly to corpora needing global thematic/network synthesis, and never pre-summarize across incompatible RBAC boundaries."
+  },
+  {
+    "id": "qz-s26-1",
+    "sourceId": "session-26",
+    "module": "Module 2",
+    "category": "Architecture",
+    "projectTag": "Deloitte Multi-Agent",
+    "scenario": "Your RAG Synthesis Agent receives `8` reranked chunks (`c1` highest score down to `c8`), `18` conversation turns, a `3,500`-token system prompt + `10` MCP tool schemas (stored in a Python `set`), and a `current_utc_timestamp`. Prompt cache hits are `0%`, and answers frequently miss facts sitting in `c2` and `c3` when `20` chunks were previously stuffed.",
+    "question": "Which Context Builder redesign maximizes KV Prefix Caching AND factual extraction simultaneously?",
+    "options": [
+      {
+        "id": "A",
+        "text": "Put `current_utc_timestamp` and `c1..c8` at token `0` so the model reads fresh context first, followed by unsorted tool schemas.",
+        "trapLabel": "Trap: Guarantees 0% Prefix Cache Hit Rate",
+        "explanation": "Changing token 0 on every query invalidates KV prefix reuse across the entire 3,500-token system + tools block."
+      },
+      {
+        "id": "B",
+        "text": "Pin **static system rules + deterministically sorted tool schemas at Slot `0`**, read an **async pre-computed Rolling Summary** (`Slot 1`), place deduplicated top-`6..8` chunks in **U-curve order `[c1, c3, c5, c7, c8, c6, c4, c2]`** (`Slot 2`), and append recent turns + `timestamp` + `user_query` at the tail (`2,000`-token output reserve).",
+        "trapLabel": "Optimal Trade-Off",
+        "explanation": "Byte-identical Slot 0 hits 75–90% prefix cache discounts, async summaries add 0ms TTFT, and U-curve ordering puts `c1` and `c2` at the primacy and recency attention peaks."
+      },
+      {
+        "id": "C",
+        "text": "Shuffle `c1..c8` randomly on every request to average out positional bias.",
+        "trapLabel": "Trap: Puts #1 Best Chunk in the Dead Middle ~50% of the Time",
+        "explanation": "Randomizing throws away your Cross-Encoder's ranking signal instead of placing #1 and #2 at high-attention edges."
+      },
+      {
+        "id": "D",
+        "text": "Run synchronous LLM summarization of all 18 turns inline before every single user message.",
+        "trapLabel": "Trap: Adds 500–900ms Serial Latency to Every Turn's TTFT",
+        "explanation": "Rolling summaries belong on an async post-turn background worker so Turn N+1 reads them from Redis in <1ms."
+      }
+    ],
+    "correctOptionId": "B",
+    "takeaway": "Align immutable sorted prefixes at token 0 for KV caching, summarize old history asynchronously, and interleave top chunks in a U-curve (`#1` first, `#2` last)."
+  },
+  {
+    "id": "qz-s26-2",
+    "sourceId": "session-26",
+    "module": "Module 2",
+    "category": "2 AM Failure",
+    "projectTag": "Deloitte Multi-Agent",
+    "scenario": "You enable grammar-based **Constrained Decoding (`response_schema`)** on your Billing Agent with schema `{\"decision\": Literal[\"refund\", \"deny\"], \"amount_usd\": float, \"reasoning\": str}`. JSON parse errors drop to `0.0%`, **but** decision accuracy drops `11%` AND one ticket emits `{\"decision\": \"refund\", \"amount_usd\": 4500.0}` on a `$45.00` order!",
+    "question": "Why did accuracy drop AND an invalid `$4,500` refund slip through constrained decoding?",
+    "options": [
+      {
+        "id": "A",
+        "text": "1) Putting `decision` *before* `reasoning` forced left-to-right decoding to guess on Token #4 before thinking! Reorder keys **`evidence_quotes -> reasoning -> decision -> amount_usd`**; 2) Grammar masks guarantee **syntax, not business semantics**—enforce deterministic Pydantic bounds (`amount_usd <= order.paid_usd`) + human/policy gate!",
+        "trapLabel": "Optimal Trade-Off",
+        "explanation": "Autoregressive models condition later JSON fields on earlier tokens, and semantic/financial invariants must always be enforced in deterministic code outside the grammar."
+      },
+      {
+        "id": "B",
+        "text": "Turn off Constrained Decoding and go back to regex parsing free-form Markdown.",
+        "trapLabel": "Trap: Reintroduces 2% Syntax Crashes Without Fixing Business Bounds",
+        "explanation": "Free-form text still hallucinates `$4,500` unless validated in Python; reordering schema keys restores CoT accuracy while keeping 100% valid syntax."
+      },
+      {
+        "id": "C",
+        "text": "Encode every single customer's order dollar amount as a separate hardcoded regex inside the global system prompt.",
+        "trapLabel": "Trap: Bloats & Mutates System Prefix on Every Request",
+        "explanation": "Dynamic per-order bounds belong in post-decode Python validation (or tool gateway checks), not in the cached static system prefix."
+      },
+      {
+        "id": "D",
+        "text": "Set `top_p = 1.0, temperature = 1.5` so the model explores better decisions.",
+        "trapLabel": "Trap: High Temperature Increases Numeric & Decision Errors",
+        "explanation": "Sampling noise worsens structured extraction reliability."
+      }
+    ],
+    "correctOptionId": "A",
+    "takeaway": "In Structured Outputs, always place `reasoning` fields *before* `decision` fields, and remember grammar masks enforce JSON syntax—never business logic!"
+  },
+  {
+    "id": "qz-s26-3",
+    "sourceId": "session-26",
+    "module": "Module 2",
+    "category": "2 AM Failure",
+    "scenario": "On unanswerable policy questions (where the KB genuinely has no answer), your assistant fabricates plausible rules `18%` of the time and cites `[doc_99]` (which doesn't exist) or cites `[doc_12]` (which discusses an unrelated topic).",
+    "question": "Which layered contract eliminates phantom source IDs and cuts unanswerable bluffing below `<2%`?",
+    "options": [
+      {
+        "id": "A",
+        "text": "Add `'PLEASE DO NOT HALLUCINATE!!!'` three times in capital letters at the top of the prompt.",
+        "trapLabel": "Trap: Prompt Begging Loses Against Helpfulness RLHF Bias",
+        "explanation": "Without a structured abstention state and deterministic post-checks, models still extrapolate to appear helpful."
+      },
+      {
+        "id": "B",
+        "text": "Give the output schema a first-class **`status: Literal['answered', 'insufficient_evidence']`** field, dynamically lock **`cited_ids: list[Enum[*injected_ids]]`** in constrained decoding, and run a `<2ms` **numeric/entity span check** (+ NLI check on regulated routes) against the cited `<source>` text.",
+        "trapLabel": "Optimal Trade-Off",
+        "explanation": "Enum-locked `cited_ids` makes phantom source IDs mathematically impossible, explicit `'insufficient_evidence'` legitimizes abstention, and span/NLI verification catches misattributed citations."
+      },
+      {
+        "id": "C",
+        "text": "Strip all `<source>` IDs and stop showing citations in the UI so users don't notice mismatches.",
+        "trapLabel": "Trap: Hides Hallucinations Instead of Fixing Groundedness",
+        "explanation": "Removing provenance destroys enterprise trust and auditability."
+      },
+      {
+        "id": "D",
+        "text": "Always inject `50` chunks instead of `6` so every question looks somewhat covered.",
+        "trapLabel": "Trap: More Distractors Increase Confident Extrapolation",
+        "explanation": "Irrelevant chunks give the model more lexical fragments to weave into plausible-sounding fabrications."
+      }
+    ],
+    "correctOptionId": "B",
+    "takeaway": "Eliminate citation bluffing structurally: dynamic `Enum[injected_source_ids]` masking + a first-class `'insufficient_evidence'` schema state + post-hoc span/number verification."
+  },
+  {
+    "id": "qz-s08-2",
+    "sourceId": "session-08",
+    "module": "Module 2",
+    "category": "2 AM Failure",
+    "projectTag": "Deloitte Slide RAG",
+    "scenario": "Your multi-tenant RAG correctly enforces `allow_groups` inside Qdrant Dense Search! However, during a security audit, an intern retrieves a restricted M&A slide in **two** ways: (1) typing exact ticker keywords (`BM25` half of Hybrid Search had no `deny_groups` filter!), and (2) asking the exact question a Partner asked 3 minutes earlier (`Semantic Cache` was keyed only by `tenant_id`)!",
+    "question": "What Zero-Trust architecture closes BOTH leakage paths permanently?",
+    "options": [
+      {
+        "id": "A",
+        "text": "Delete both BM25 and Semantic Caching so only Qdrant Dense Search remains.",
+        "trapLabel": "Trap: Sacrifices Exact-Ticker Recall & Cache Cost Savings Unnecessarily",
+        "explanation": "Both BM25 and caching are completely safe when bound to the exact same canonical security scope."
+      },
+      {
+        "id": "B",
+        "text": "Mint a **cryptographically signed `VerifiedSecurityScope`** from the server-verified JWT + Redis revocation set, compile **one canonical `(tenant_id AND allow_groups AND NOT deny_groups)` predicate** applied identically inside a capability-locked Hybrid (`Vector + BM25`) client, and namespace all caches by **`HMAC(tenant_id, acl_scope)`** + 5-min canary red-team probes.",
+        "trapLabel": "Optimal Trade-Off",
+        "explanation": "Single-source predicate compilation eliminates Dense/BM25 filter drift, capability types block unscoped code paths, and ACL-hashed cache namespaces isolate Partner vs Intern hits."
+      },
+      {
+        "id": "C",
+        "text": "Keep the shared tenant Semantic Cache and ask an LLM guardrail to redact numbers if `role == 'intern'`.",
+        "trapLabel": "Trap: Prompts & Probabilistic Classifiers Are Not Access Control",
+        "explanation": "LLM redaction leaks implicit facts/existence and fails under adversarial phrasing."
+      },
+      {
+        "id": "D",
+        "text": "Pass `user_groups` in a client-side React JSON payload so the browser filters BM25 hits before rendering.",
+        "trapLabel": "Trap: Client-Side Filtering Exposes Raw Secrets in DevTools Network Tab",
+        "explanation": "Any payload sent to the browser or trusted from client JSON is trivially inspected or forged via curl."
+      }
+    ],
+    "correctOptionId": "B",
+    "takeaway": "Every retrieval leg (Dense, BM25, SQL) and every cache key must compile from one server-minted `(tenant_id, allow, deny, revocations)` capability token."
+  },
+  {
+    "id": "qz-s08-3",
+    "sourceId": "session-08",
+    "module": "Module 2",
+    "category": "Architecture",
+    "scenario": "Your B2B RAG platform is onboarding `4,800` small startups (`~15,000` vectors each) AND `12` regulated global banks (`15M` vectors each, requiring `CMEK` customer-managed encryption keys and instant crypto-shredding). Creating `4,812` separate in-memory HNSW collections crashed your test cluster's RAM and file descriptors.",
+    "question": "Which multi-tenant topology satisfies both startup unit economics and bank regulatory audits?",
+    "options": [
+      {
+        "id": "A",
+        "text": "Put all `4,812` customers—including the `12` banks—into `1` giant shared collection encrypted with a single provider-owned key.",
+        "trapLabel": "Trap: Fails Bank CMEK / Physical Isolation & Noisy-Neighbor Audits",
+        "explanation": "Shared KMS keys cannot crypto-shred a single bank's data on contract exit, and whale backfills impact shared shards."
+      },
+      {
+        "id": "B",
+        "text": "Provision `4,812` physically separate Kubernetes clusters (`$300/mo` minimum each = `$1.44M/month`).",
+        "trapLabel": "Trap: Bankrupts SaaS Gross Margin on Idle SMB Clusters",
+        "explanation": "Dedicated clusters for $29/mo SMB tenants destroy unit economics."
+      },
+      {
+        "id": "C",
+        "text": "**Tiered Multi-Tenancy:** Pack the `4,800` SMBs into shared shards with **`tenant_id` payload subgraph indexing + per-tenant QPS token buckets** (`~$0.30/SMB/mo`), promote mid-market tenants to dedicated shards, and isolate the `12` regulated banks onto **dedicated single-tenant clusters/VPCs with `CMEK`**.",
+        "trapLabel": "Optimal Trade-Off",
+        "explanation": "Tiered pooling avoids 4,800 separate HNSW graphs while giving regulated whales 100% physical, noisy-neighbor, and CMEK isolation."
+      },
+      {
+        "id": "D",
+        "text": "Create one HNSW collection per *ACL group* across all customers (`80,000` collections).",
+        "trapLabel": "Trap: Worse Collection Explosion + Massive Vector Duplication",
+        "explanation": "Documents shared across 10 groups get duplicated 10x and 80k collections crash node metadata."
+      }
+    ],
+    "correctOptionId": "C",
+    "takeaway": "Use Tiered Multi-Tenancy: pooled `tenant_id`-indexed shards with QPS quotas for thousands of SMBs, dedicated shards for mid-market, and dedicated `CMEK` clusters for regulated whales."
   }
 ]

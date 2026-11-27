@@ -240,7 +240,7 @@
           "phase": 1,
           "week": 2,
           "priority": "core",
-          "status": "skeleton",
+          "status": "written",
           "isNew": true,
           "topics": [
             "Parsing strategies: text-layer extraction vs OCR vs layout models vs VLM-based parsing",
@@ -268,7 +268,7 @@
           "phase": 1,
           "week": 2,
           "priority": "core",
-          "status": "skeleton",
+          "status": "written",
           "isNew": true,
           "topics": [
             "Fixed-size, recursive, sentence/semantic, and document-structure-aware chunking",
@@ -296,7 +296,7 @@
           "phase": 1,
           "week": 2,
           "priority": "solid",
-          "status": "skeleton",
+          "status": "written",
           "isNew": true,
           "topics": [
             "Choosing a model: domain eval beats leaderboard (MTEB) rank; multilingual and long-context needs",
@@ -323,7 +323,7 @@
           "phase": 1,
           "week": 3,
           "priority": "core",
-          "status": "skeleton",
+          "status": "written",
           "isNew": false,
           "topics": [
             "HNSW (M, efConstruction, efSearch) memory + recall math",
@@ -349,7 +349,7 @@
           "phase": 1,
           "week": 3,
           "priority": "core",
-          "status": "skeleton",
+          "status": "written",
           "isNew": false,
           "topics": [
             "Sparse (BM25/SPLADE) vs dense vs hybrid and Reciprocal Rank Fusion",
@@ -376,7 +376,7 @@
           "phase": 1,
           "week": 3,
           "priority": "solid",
-          "status": "skeleton",
+          "status": "written",
           "isNew": false,
           "topics": [
             "Document-level ACLs: capture at ingest, enforce at query time",
@@ -402,7 +402,7 @@
           "phase": 1,
           "week": 3,
           "priority": "core",
-          "status": "skeleton",
+          "status": "written",
           "isNew": true,
           "topics": [
             "Query understanding: rewrite, expand, decompose, route to the right index",
@@ -431,7 +431,7 @@
           "phase": 1,
           "week": 3,
           "priority": "core",
-          "status": "skeleton",
+          "status": "written",
           "isNew": true,
           "topics": [
             "Context window as a budget: system prompt, history, retrieved chunks, tool results, output reserve",
@@ -610,7 +610,7 @@
           "phase": 1,
           "week": 2,
           "priority": "core",
-          "status": "skeleton",
+          "status": "written",
           "isNew": true,
           "topics": [
             "Tokenization & token economics (why 1 word != 1 token, multilingual penalty)",
