@@ -1,8 +1,11 @@
 package dev.lakshya.aisysdesign.ui
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import dev.lakshya.aisysdesign.data.ContentSyncUiState
+import dev.lakshya.aisysdesign.data.GitHubContentSyncClient
 import dev.lakshya.aisysdesign.data.PortalCatalog
 import dev.lakshya.aisysdesign.data.PortalRepository
 import dev.lakshya.aisysdesign.data.ProgressRepository
@@ -72,8 +75,22 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
   private val progressRepo = ProgressRepository(appContext)
   private val prefsRepo = UserPreferencesRepository(appContext)
   private val ttsController = StudyTtsController(appContext)
+  private val contentSyncClient = GitHubContentSyncClient()
+  private val contentPrefs = appContext.getSharedPreferences("sysdesign_content_sync_v1", Context.MODE_PRIVATE)
 
-  val catalog: PortalCatalog = portalRepo.loadCatalog()
+  private val _catalog = MutableStateFlow(portalRepo.loadCatalog())
+  val catalog: StateFlow<PortalCatalog> = _catalog.asStateFlow()
+
+  private val _contentVersion = MutableStateFlow(0)
+  val contentVersion: StateFlow<Int> = _contentVersion.asStateFlow()
+
+  private val _contentSyncUi = MutableStateFlow(
+    ContentSyncUiState(
+      lastSyncedAt = contentPrefs.getString("last_content_sync_at", null),
+    )
+  )
+  val contentSyncUi: StateFlow<ContentSyncUiState> = _contentSyncUi.asStateFlow()
+
   val studyState: StateFlow<SyncedStudyState> = progressRepo.state
   val syncUi: StateFlow<SyncUiState> = progressRepo.syncUi
   val userPrefs: StateFlow<UserPrefs> = prefsRepo.userPrefs
@@ -82,6 +99,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
   private val _mockTimer = MutableStateFlow(MockTimerState())
   val mockTimer: StateFlow<MockTimerState> = _mockTimer.asStateFlow()
   private var timerJob: Job? = null
+
+  init {
+    val lastMs = contentPrefs.getLong("last_content_sync_ms", 0L)
+    if (System.currentTimeMillis() - lastMs > 30L * 60L * 1000L) {
+      refreshContentFromGitHub(silent = true)
+    }
+  }
 
   fun isCompleted(itemId: String, state: SyncedStudyState): Boolean {
     val rawId = itemId.removePrefix("problem:")
@@ -92,7 +116,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
   }
 
   fun getActiveNextItem(state: SyncedStudyState, mode: RecommendationMode): RoadmapItem {
-    val items = catalog.sequenceItems
+    val items = _catalog.value.sequenceItems
     val roadmapNext = items.firstOrNull { !isCompleted(it.id, state) } ?: items.first()
     return when (mode) {
       RecommendationMode.ROADMAP -> roadmapNext
@@ -103,7 +127,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
   fun dueFlashcardsCount(state: SyncedStudyState): Int {
     val now = System.currentTimeMillis()
-    return catalog.flashcards.count { card ->
+    return _catalog.value.flashcards.count { card ->
       SrsEngine.isCardDue(state.flashcardSRS[card.id], now)
     }
   }
@@ -177,6 +201,58 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
   fun exportProgressJson(): String = progressRepo.exportProgressJson()
 
   fun importProgressJson(rawJson: String): Boolean = progressRepo.importProgressJson(rawJson)
+
+  // GitHub Repo OTA Content Sync
+  fun refreshContentFromGitHub(silent: Boolean = false) {
+    if (_contentSyncUi.value.isSyncing) return
+    viewModelScope.launch {
+      _contentSyncUi.update { it.copy(isSyncing = true, error = null, statusMessage = null) }
+      try {
+        val result = contentSyncClient.syncAll(portalRepo.otaDir)
+        _catalog.value = portalRepo.loadCatalog()
+        _contentVersion.update { it + 1 }
+        contentPrefs.edit()
+          .putString("last_content_sync_at", result.syncedAtIso)
+          .putLong("last_content_sync_ms", System.currentTimeMillis())
+          .apply()
+        val msg =
+          if (result.updatedCount > 0) "Updated ${result.updatedCount} file(s) from GitHub"
+          else "Already up to date (${result.totalTracked} files)"
+        _contentSyncUi.value = ContentSyncUiState(
+          isSyncing = false,
+          lastSyncedAt = result.syncedAtIso,
+          updatedCount = result.updatedCount,
+          error = null,
+          statusMessage = msg,
+        )
+      } catch (e: Exception) {
+        _contentSyncUi.update { cur ->
+          cur.copy(
+            isSyncing = false,
+            error = if (silent) cur.error else (e.message ?: "Could not reach GitHub"),
+          )
+        }
+      }
+    }
+  }
+
+  fun refreshSingleArticle(itemType: String, itemId: String, onDone: (Boolean) -> Unit = {}) {
+    if (_contentSyncUi.value.isSyncing) return
+    viewModelScope.launch {
+      _contentSyncUi.update { it.copy(isSyncing = true, error = null) }
+      val ok = try {
+        val downloaded = contentSyncClient.refreshSingleMarkdown(portalRepo.otaDir, itemType, itemId)
+        if (downloaded) {
+          _contentVersion.update { it + 1 }
+        }
+        downloaded
+      } catch (_: Exception) {
+        false
+      }
+      _contentSyncUi.update { it.copy(isSyncing = false) }
+      onDone(ok)
+    }
+  }
 
   // Preferences & Notifications
   fun setThemeMode(mode: ThemeMode) = prefsRepo.setThemeMode(mode)

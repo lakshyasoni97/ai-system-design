@@ -6,9 +6,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CloudDone
+import androidx.compose.material.icons.rounded.CloudDownload
 import androidx.compose.material.icons.rounded.CloudSync
 import androidx.compose.material.icons.rounded.LinkOff
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -27,12 +30,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import dev.lakshya.aisysdesign.data.ContentSyncUiState
+import dev.lakshya.aisysdesign.data.GitHubContentSyncClient
 import dev.lakshya.aisysdesign.data.model.SyncUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GistSyncSheet(
   syncUi: SyncUiState,
+  contentSyncUi: ContentSyncUiState,
+  onSyncContentNow: () -> Unit,
   onConnect: (String) -> Unit,
   onSyncNow: () -> Unit,
   onDisconnect: () -> Unit,
@@ -51,120 +58,187 @@ fun GistSyncSheet(
       modifier = Modifier
         .fillMaxWidth()
         .navigationBarsPadding()
+        .verticalScroll(rememberScrollState())
         .padding(horizontal = 20.dp)
         .padding(bottom = 28.dp),
-      verticalArrangement = Arrangement.spacedBy(16.dp),
+      verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
-      Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-      ) {
-        TonalChip(
-          text = if (syncUi.isConfigured) "Gist Connected" else "Offline Local",
-          containerColor =
-            if (syncUi.isConfigured) MaterialTheme.colorScheme.primaryContainer
-            else MaterialTheme.colorScheme.surfaceContainerHigh,
-          contentColor =
-            if (syncUi.isConfigured) MaterialTheme.colorScheme.onPrimaryContainer
-            else MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-          text = "Cross-Device Sync",
-          style = MaterialTheme.typography.titleLarge,
-        )
-      }
-
       Text(
-        text = "Uses your private GitHub Gist (ai-system-design-sync.json) so progress, SRS flashcards, quizzes, notes, and highlights stay 1-to-1 with the web portal.",
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        text = "GitHub Sync",
+        style = MaterialTheme.typography.headlineSmall,
       )
 
-      if (!syncUi.syncError.isNullOrBlank()) {
-        Surface(
-          shape = RoundedCornerShape(18.dp),
-          color = MaterialTheme.colorScheme.errorContainer,
-          modifier = Modifier.fillMaxWidth(),
+      // 1. Live Public Repo Content OTA Sync (.md + .json)
+      Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        modifier = Modifier.fillMaxWidth(),
+      ) {
+        Column(
+          modifier = Modifier.padding(18.dp),
+          verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+          ) {
+            TonalChip(
+              text = "Public Repo",
+              containerColor = MaterialTheme.colorScheme.primaryContainer,
+              contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+            Text(
+              text = "${GitHubContentSyncClient.REPO_OWNER}/${GitHubContentSyncClient.REPO_NAME}",
+              style = MaterialTheme.typography.titleMedium,
+            )
+          }
+
           Text(
-            text = syncUi.syncError,
+            text = "Pulls new & updated .md study guides and .json files straight from the main branch into offline storage—no APK rebuild needed.",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onErrorContainer,
-            modifier = Modifier.padding(14.dp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
+
+          if (!contentSyncUi.lastSyncedAt.isNullOrBlank()) {
+            Text(
+              text = "Last checked: ${contentSyncUi.lastSyncedAt.take(19).replace('T', ' ')} UTC",
+              style = MaterialTheme.typography.labelSmall,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+          }
+
+          if (!contentSyncUi.statusMessage.isNullOrBlank()) {
+            Text(
+              text = contentSyncUi.statusMessage,
+              style = MaterialTheme.typography.labelMedium,
+              color = MaterialTheme.colorScheme.primary,
+            )
+          }
+
+          if (!contentSyncUi.error.isNullOrBlank()) {
+            Text(
+              text = contentSyncUi.error,
+              style = MaterialTheme.typography.bodyMedium,
+              color = MaterialTheme.colorScheme.error,
+            )
+          }
+
+          TactilePillButton(
+            text = if (contentSyncUi.isSyncing) "Checking GitHub..." else "Sync Content Now",
+            icon = Icons.Rounded.CloudDownload,
+            enabled = !contentSyncUi.isSyncing,
+            onClick = onSyncContentNow,
+            modifier = Modifier.fillMaxWidth(),
           )
         }
       }
 
-      if (syncUi.isConfigured) {
-        Surface(
-          shape = RoundedCornerShape(22.dp),
-          color = MaterialTheme.colorScheme.surfaceContainerLow,
-          modifier = Modifier.fillMaxWidth(),
+      // 2. Private Gist Progress Sync
+      Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        modifier = Modifier.fillMaxWidth(),
+      ) {
+        Column(
+          modifier = Modifier.padding(18.dp),
+          verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-          Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+          Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
           ) {
-            Text(
-              text = "@${syncUi.githubUser?.login ?: "github"}",
-              style = MaterialTheme.typography.titleMedium,
-              color = MaterialTheme.colorScheme.onSurface,
+            TonalChip(
+              text = if (syncUi.isConfigured) "Gist Connected" else "Offline Local",
+              containerColor =
+                if (syncUi.isConfigured) MaterialTheme.colorScheme.primaryContainer
+                else MaterialTheme.colorScheme.surfaceContainerHigh,
+              contentColor =
+                if (syncUi.isConfigured) MaterialTheme.colorScheme.onPrimaryContainer
+                else MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            if (!syncUi.lastSyncedAt.isNullOrBlank()) {
+            Text(
+              text = "Progress & Notes Sync",
+              style = MaterialTheme.typography.titleMedium,
+            )
+          }
+
+          Text(
+            text = "Uses your private GitHub Gist (ai-system-design-sync.json) so completed items, SRS flashcards, quizzes, notes, and highlights stay synced with the web portal.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
+
+          if (!syncUi.syncError.isNullOrBlank()) {
+            Surface(
+              shape = RoundedCornerShape(16.dp),
+              color = MaterialTheme.colorScheme.errorContainer,
+              modifier = Modifier.fillMaxWidth(),
+            ) {
               Text(
-                text = "Last synced: ${syncUi.lastSyncedAt.take(19).replace('T', ' ')} UTC",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-              )
-            }
-            if (!syncUi.gistUrl.isNullOrBlank()) {
-              Text(
-                text = syncUi.gistUrl,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
+                text = syncUi.syncError,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                modifier = Modifier.padding(12.dp),
               )
             }
           }
-        }
 
-        Row(
-          modifier = Modifier.fillMaxWidth(),
-          horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-          TactilePillButton(
-            text = if (syncUi.isSyncing) "Syncing..." else "Sync Now",
-            icon = Icons.Rounded.CloudSync,
-            enabled = !syncUi.isSyncing,
-            onClick = onSyncNow,
-            modifier = Modifier.weight(1f),
-          )
-          TactilePillButton(
-            text = "Disconnect",
-            icon = Icons.Rounded.LinkOff,
-            onClick = onDisconnect,
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            contentColor = MaterialTheme.colorScheme.onSurface,
-          )
-        }
-      } else {
-        OutlinedTextField(
-          value = tokenInput,
-          onValueChange = { tokenInput = it },
-          label = { Text("GitHub Personal Access Token (gist scope)") },
-          placeholder = { Text("ghp_...") },
-          singleLine = true,
-          visualTransformation = PasswordVisualTransformation(),
-          shape = RoundedCornerShape(18.dp),
-          modifier = Modifier.fillMaxWidth(),
-        )
+          if (syncUi.isConfigured) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+              Text(
+                text = "@${syncUi.githubUser?.login ?: "github"}",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+              )
+              if (!syncUi.lastSyncedAt.isNullOrBlank()) {
+                Text(
+                  text = "Last synced: ${syncUi.lastSyncedAt.take(19).replace('T', ' ')} UTC",
+                  style = MaterialTheme.typography.labelSmall,
+                  color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+              }
+            }
 
-        TactilePillButton(
-          text = if (syncUi.isSyncing) "Connecting..." else "Connect & Merge Gist",
-          icon = Icons.Rounded.CloudDone,
-          enabled = !syncUi.isSyncing && tokenInput.isNotBlank(),
-          onClick = { onConnect(tokenInput) },
-          modifier = Modifier.fillMaxWidth(),
-        )
+            Row(
+              modifier = Modifier.fillMaxWidth(),
+              horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+              TactilePillButton(
+                text = if (syncUi.isSyncing) "Syncing..." else "Sync Progress",
+                icon = Icons.Rounded.CloudSync,
+                enabled = !syncUi.isSyncing,
+                onClick = onSyncNow,
+                modifier = Modifier.weight(1f),
+              )
+              TactilePillButton(
+                text = "Disconnect",
+                icon = Icons.Rounded.LinkOff,
+                onClick = onDisconnect,
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                contentColor = MaterialTheme.colorScheme.onSurface,
+              )
+            }
+          } else {
+            OutlinedTextField(
+              value = tokenInput,
+              onValueChange = { tokenInput = it },
+              label = { Text("GitHub PAT (gist scope)") },
+              placeholder = { Text("ghp_...") },
+              singleLine = true,
+              visualTransformation = PasswordVisualTransformation(),
+              shape = RoundedCornerShape(18.dp),
+              modifier = Modifier.fillMaxWidth(),
+            )
+
+            TactilePillButton(
+              text = if (syncUi.isSyncing) "Connecting..." else "Connect & Merge Gist",
+              icon = Icons.Rounded.CloudDone,
+              enabled = !syncUi.isSyncing && tokenInput.isNotBlank(),
+              onClick = { onConnect(tokenInput) },
+              modifier = Modifier.fillMaxWidth(),
+            )
+          }
+        }
       }
     }
   }

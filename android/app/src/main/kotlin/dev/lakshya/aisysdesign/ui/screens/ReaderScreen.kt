@@ -34,6 +34,7 @@ import androidx.compose.material.icons.rounded.FormatSize
 import androidx.compose.material.icons.rounded.List
 import androidx.compose.material.icons.rounded.Quiz
 import androidx.compose.material.icons.rounded.Stop
+import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.VolumeUp
@@ -108,6 +109,8 @@ fun ReaderScreen(
   quizCount: Int,
   initialScrollIndex: Int,
   ttsState: TtsUiState,
+  isRefreshingContent: Boolean,
+  onRefreshArticle: () -> Unit,
   onSaveScrollIndex: (Int) -> Unit,
   onBack: () -> Unit,
   onToggleCompleted: () -> Unit,
@@ -229,6 +232,13 @@ fun ReaderScreen(
               isRecallMode = !isRecallMode
               if (!isRecallMode) revealedClozes = emptySet()
             },
+          )
+          // Refresh this .md from GitHub
+          TonalIconPill(
+            icon = Icons.Rounded.Sync,
+            contentDescription = "Refresh markdown from GitHub",
+            badgeDotColor = if (isRefreshingContent) MaterialTheme.colorScheme.primary else null,
+            onClick = onRefreshArticle,
           )
           // TTS Listen toggle
           TonalIconPill(

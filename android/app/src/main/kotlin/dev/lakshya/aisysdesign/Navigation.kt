@@ -1,5 +1,6 @@
 package dev.lakshya.aisysdesign
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
@@ -14,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -38,11 +40,15 @@ import dev.lakshya.aisysdesign.ui.screens.TodayScreen
 @Composable
 fun MainNavigation(vm: AppViewModel) {
   val backStack: NavBackStack<NavKey> = rememberNavBackStack(TodayRoute)
+  val catalog by vm.catalog.collectAsState()
+  val contentVersion by vm.contentVersion.collectAsState()
+  val contentSyncUi by vm.contentSyncUi.collectAsState()
   val studyState by vm.studyState.collectAsState()
   val syncUi by vm.syncUi.collectAsState()
   val userPrefs by vm.userPrefs.collectAsState()
   val timerState by vm.mockTimer.collectAsState()
   val ttsState by vm.ttsState.collectAsState()
+  val context = LocalContext.current
 
   var recommendationMode by remember { mutableStateOf(RecommendationMode.ROADMAP) }
   var showPocketTools by remember { mutableStateOf(false) }
@@ -99,10 +105,13 @@ fun MainNavigation(vm: AppViewModel) {
             val activeNext = vm.getActiveNextItem(studyState, recommendationMode)
             val dueCount = vm.dueFlashcardsCount(studyState)
             val streak = vm.computeStudyStreakDays(studyState)
+            val combinedSyncUi = syncUi.copy(
+              isSyncing = syncUi.isSyncing || contentSyncUi.isSyncing,
+            )
             TodayScreen(
-              catalog = vm.catalog,
+              catalog = catalog,
               studyState = studyState,
-              syncUi = syncUi,
+              syncUi = combinedSyncUi,
               timerState = timerState,
               streakDays = streak,
               activeNextItem = activeNext,
@@ -124,7 +133,7 @@ fun MainNavigation(vm: AppViewModel) {
 
           entry<RecallRoute> { key ->
             RecallScreen(
-              catalog = vm.catalog,
+              catalog = catalog,
               studyState = studyState,
               initialMode = key.initialMode,
               initialSourceId = key.sourceId,
@@ -136,7 +145,7 @@ fun MainNavigation(vm: AppViewModel) {
 
           entry<LibraryRoute> {
             LibraryScreen(
-              catalog = vm.catalog,
+              catalog = catalog,
               studyState = studyState,
               isCompleted = { id -> vm.isCompleted(id, studyState) },
               onToggleCompleted = vm::toggleCompleted,
@@ -150,40 +159,40 @@ fun MainNavigation(vm: AppViewModel) {
           }
 
           entry<ReaderRoute> { key ->
-            val markdown = remember(key.itemType, key.itemId) {
+            val markdown = remember(key.itemType, key.itemId, contentVersion) {
               vm.loadMarkdown(key.itemType, key.itemId)
             }
-            val title = remember(key.itemType, key.itemId) {
+            val title = remember(key.itemType, key.itemId, catalog) {
               if (key.itemType == "fundamental") {
-                vm.catalog.fundamentals.topics.firstOrNull { it.id == key.itemId }?.let {
+                catalog.fundamentals.topics.firstOrNull { it.id == key.itemId }?.let {
                   "Topic ${it.number}: ${it.title}"
                 } ?: key.itemId
               } else {
-                vm.catalog.sessions.firstOrNull { it.id == key.itemId }?.let {
+                catalog.sessions.firstOrNull { it.id == key.itemId }?.let {
                   "S${it.number.toString().padStart(2, '0')}: ${it.title}"
                 } ?: key.itemId
               }
             }
-            val studyPrompt = remember(key.itemType, key.itemId) {
+            val studyPrompt = remember(key.itemType, key.itemId, catalog) {
               if (key.itemType == "fundamental") {
                 "Explain $title from first principles with analogies, edge cases, and AI system tie-ins."
               } else {
-                vm.catalog.sessions.firstOrNull { it.id == key.itemId }?.studyPrompt
+                catalog.sessions.firstOrNull { it.id == key.itemId }?.studyPrompt
                   ?: "Teach me $title for a Senior AI System Design interview."
               }
             }
-            val resources = remember(key.itemType, key.itemId) {
+            val resources = remember(key.itemType, key.itemId, catalog) {
               if (key.itemType == "fundamental") {
-                vm.catalog.resources.fundamentals[key.itemId].orEmpty()
+                catalog.resources.fundamentals[key.itemId].orEmpty()
               } else {
-                vm.catalog.resources.sessions[key.itemId].orEmpty()
+                catalog.resources.sessions[key.itemId].orEmpty()
               }
             }
             val itemHighlights = remember(studyState.highlights, key.itemId) {
               studyState.highlights.filter { it.sourceId == key.itemId }
             }
-            val quizCount = remember(key.itemId) {
-              vm.catalog.quizzes.count { it.sourceId == key.itemId }
+            val quizCount = remember(key.itemId, catalog) {
+              catalog.quizzes.count { it.sourceId == key.itemId }
             }
             val initialScroll = remember(key.itemId) { vm.getArticleScroll(key.itemId) }
 
@@ -200,6 +209,16 @@ fun MainNavigation(vm: AppViewModel) {
               quizCount = quizCount,
               initialScrollIndex = initialScroll,
               ttsState = ttsState,
+              isRefreshingContent = contentSyncUi.isSyncing,
+              onRefreshArticle = {
+                vm.refreshSingleArticle(key.itemType, key.itemId) { ok ->
+                  Toast.makeText(
+                    context,
+                    if (ok) "Updated from GitHub" else "Could not refresh (offline?)",
+                    Toast.LENGTH_SHORT,
+                  ).show()
+                }
+              },
               onSaveScrollIndex = { idx -> vm.saveArticleScroll(key.itemId, idx) },
               onBack = {
                 vm.stopSpeaking()
@@ -236,7 +255,7 @@ fun MainNavigation(vm: AppViewModel) {
           }
 
           entry<ProblemRoute> { key ->
-            val problem = vm.catalog.problems.firstOrNull { it.id == key.problemId }
+            val problem = catalog.problems.firstOrNull { it.id == key.problemId }
             if (problem != null) {
               ProblemDetailScreen(
                 problem = problem,
@@ -253,7 +272,7 @@ fun MainNavigation(vm: AppViewModel) {
           }
 
           entry<ProjectRoute> { key ->
-            val project = vm.catalog.projects.firstOrNull { it.id == key.projectId }
+            val project = catalog.projects.firstOrNull { it.id == key.projectId }
             if (project != null) {
               ProjectDetailScreen(
                 project = project,
@@ -291,6 +310,8 @@ fun MainNavigation(vm: AppViewModel) {
   if (showSyncSheet) {
     GistSyncSheet(
       syncUi = syncUi,
+      contentSyncUi = contentSyncUi,
+      onSyncContentNow = { vm.refreshContentFromGitHub(silent = false) },
       onConnect = vm::connectSync,
       onSyncNow = vm::syncNow,
       onDisconnect = vm::disconnectSync,

@@ -14,6 +14,7 @@ import dev.lakshya.aisysdesign.data.model.RoadmapItem
 import dev.lakshya.aisysdesign.data.model.RoadmapItemType
 import dev.lakshya.aisysdesign.data.model.RolesData
 import kotlinx.serialization.json.Json
+import java.io.File
 
 data class PortalCatalog(
   val curriculum: CurriculumData,
@@ -153,22 +154,37 @@ class PortalRepository(private val context: Context) {
         sequenceItems = sequenceItems,
       )
     }
+    fun readFromDirOrFallback(
+      otaDir: File,
+      relPath: String,
+      fallback: () -> String,
+    ): String {
+      val cached = File(otaDir, relPath)
+      if (cached.exists() && cached.length() > 0L) {
+        return cached.readText(Charsets.UTF_8)
+      }
+      return fallback()
+    }
   }
 
-  private fun readAssetText(path: String): String {
-    return context.assets.open(path).bufferedReader().use { it.readText() }
+  val otaDir: File = File(context.filesDir, "ota_content")
+
+  private fun readContentOrAsset(relPath: String): String {
+    return readFromDirOrFallback(otaDir, relPath) {
+      context.assets.open(relPath).bufferedReader().use { it.readText() }
+    }
   }
 
   fun loadCatalog(): PortalCatalog {
     return buildCatalog(
-      curriculumJson = readAssetText("data/curriculum.json"),
-      fundamentalsJson = readAssetText("data/fundamentals.json"),
-      flashcardsJson = readAssetText("data/flashcards.json"),
-      quizzesJson = readAssetText("data/quizzes.json"),
-      problemsJson = readAssetText("data/problems.json"),
-      projectsJson = readAssetText("data/projects.json"),
-      rolesJson = readAssetText("data/roles.json"),
-      resourcesJson = readAssetText("data/resources.json"),
+      curriculumJson = readContentOrAsset("data/curriculum.json"),
+      fundamentalsJson = readContentOrAsset("data/fundamentals.json"),
+      flashcardsJson = readContentOrAsset("data/flashcards.json"),
+      quizzesJson = readContentOrAsset("data/quizzes.json"),
+      problemsJson = readContentOrAsset("data/problems.json"),
+      projectsJson = readContentOrAsset("data/projects.json"),
+      rolesJson = readContentOrAsset("data/roles.json"),
+      resourcesJson = readContentOrAsset("data/resources.json"),
     )
   }
 
@@ -176,9 +192,9 @@ class PortalRepository(private val context: Context) {
     val folder = if (itemType == "fundamental") "fundamentals" else "sessions"
     val cleanId = itemId.removeSuffix(".md")
     return try {
-      readAssetText("content/$folder/$cleanId.md")
+      readContentOrAsset("content/$folder/$cleanId.md")
     } catch (_: Exception) {
-      "# $cleanId\n\nContent file not found in bundled assets."
+      "# $cleanId\n\nContent file not found in bundled assets or GitHub cache."
     }
   }
 }
